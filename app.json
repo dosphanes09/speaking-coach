@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Daily Speaking Coach",
+    "slug": "daily-speaking-coach",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F7F7F2"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Daily Speaking Coach uses the camera when you choose video practice.",
+          "microphonePermission": "Daily Speaking Coach records your one-minute speaking practice.",
+          "recordAudioAndroid": true
+        }
+      ]
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Daily Speaking Coach uses the camera when you choose video practice.",
+        "NSMicrophoneUsageDescription": "Daily Speaking Coach records your one-minute speaking practice."
+      }
+    },
+    "android": {
+      "package": "com.yagiz.dailyspeakingcoach",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3433f827-4edf-4065-b2a0-c14ac1887d36"
+      }
+    }
+  }
+}
