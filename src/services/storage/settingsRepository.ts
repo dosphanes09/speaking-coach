@@ -6,14 +6,16 @@ const SETTINGS_KEY = "daily-speaking-coach:settings:v1";
 
 export const defaultSettings: AppSettings = {
   targetLevel: "B1",
-  backendBaseUrl: getConfiguredBackendBaseUrl()
+  backendBaseUrl: getConfiguredBackendBaseUrl(),
+  themeMode: "light"
 };
 
 export function normalizeSettings(settings: AppSettings): AppSettings {
-  const normalizedSettings = {
+  const normalizedSettings: AppSettings = {
     ...defaultSettings,
     ...settings,
-    backendBaseUrl: settings.backendBaseUrl.trim()
+    backendBaseUrl: String(settings.backendBaseUrl || "").trim(),
+    themeMode: settings.themeMode === "dark" ? "dark" : "light"
   };
 
   if (isDevelopmentBuild()) {

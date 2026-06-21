@@ -1,7 +1,8 @@
 services:
   - type: web
-    name: daily-speaking-coach-backend
+    name: daily-speaking-coach-api
     runtime: node
+    plan: free
     rootDir: backend
     buildCommand: npm ci
     startCommand: npm start
@@ -9,17 +10,45 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: SERVICE_NAME
+        value: daily-speaking-coach-api
       - key: OPENAI_API_KEY
+        sync: false
+      - key: AUTH_TOKEN_SECRET
+        sync: false
+      - key: APP_INVITE_CODES
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: REQUIRE_HTTPS
         value: "true"
+      - key: REQUIRE_APP_AUTH
+        value: "true"
+      - key: AUTH_TOKEN_TTL_SECONDS
+        value: "31536000"
+      - key: AUTH_ISSUER
+        value: daily-speaking-coach-api
+      - key: AUTH_AUDIENCE
+        value: daily-speaking-coach-mobile
       - key: MAX_FILE_SIZE_BYTES
         value: "12582912"
       - key: MAX_AUDIO_DURATION_SECONDS
-        value: "75"
+        value: "120"
       - key: MAX_DAILY_ANALYSES_PER_USER
         value: "10"
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"
       - key: RATE_LIMIT_MAX_REQUESTS
         value: "30"
+      - key: OPENAI_TRANSCRIPTION_MODEL
+        value: gpt-4o-mini-transcribe
+      - key: OPENAI_ANALYSIS_MODEL
+        value: gpt-5.4-mini
+      - key: OPENAI_TIMEOUT_MS
+        value: "30000"
+      - key: OPENAI_MAX_RETRIES
+        value: "1"
+      - key: OPENAI_MAX_OUTPUT_TOKENS
+        value: "8000"

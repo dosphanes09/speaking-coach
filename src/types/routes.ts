@@ -1,11 +1,17 @@
-import { AnalysisResult, RecordedMedia, SpeakingRecord, Topic } from "./models";
+import { AnalysisResult, GrammarLevel, RecordedMedia, SpeakingRecord, Topic } from "./models";
 
 export type MainRoute =
   | { name: "home" }
   | { name: "chat" }
-  | { name: "thinking"; topic: Topic }
-  | { name: "recording"; topic: Topic }
-  | { name: "transcript"; topic: Topic; media: RecordedMedia }
+  | { name: "learning" }
+  | { name: "grammarHome" }
+  | { name: "grammarLevel"; level: GrammarLevel }
+  | { name: "practiceModes" }
+  | { name: "pictureDescription" }
+  | { name: "listeningPictureGame" }
+  | { name: "thinking"; topic: Topic; thinkingNotes?: string }
+  | { name: "recording"; topic: Topic; thinkingNotes: string }
+  | { name: "transcript"; topic: Topic; media: RecordedMedia; thinkingNotes?: string }
   | { name: "analysis"; topic: Topic; media: RecordedMedia; transcript: string; analysisResult: AnalysisResult }
   | { name: "history" }
   | { name: "recordDetail"; record: SpeakingRecord }

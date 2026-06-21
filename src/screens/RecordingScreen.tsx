@@ -7,24 +7,31 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { RecordedMedia, RecordingType, Topic } from "@/types/models";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 import { deleteMedia, getMimeType, persistRecording } from "@/services/media/mediaStorage";
-
-const MAX_RECORDING_SECONDS = 60;
+import { clampRecordingSeconds, formatPracticeDuration } from "@/utils/practiceTiming";
 
 type RecordingStatus = "idle" | "recording" | "finished";
 
 interface RecordingScreenProps {
   topic: Topic;
+  thinkingNotes: string;
+  recordingLimitSeconds: number;
   onBack: () => void;
   onRecorded: (media: RecordedMedia) => void;
 }
 
 export function RecordingScreen({
   topic,
+  thinkingNotes,
+  recordingLimitSeconds,
   onBack,
   onRecorded
 }: RecordingScreenProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+  const maxRecordingSeconds = clampRecordingSeconds(recordingLimitSeconds);
   const [mode, setMode] = useState<RecordingType>("audio");
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -41,7 +48,7 @@ export function RecordingScreen({
   const finalizeRecording = useCallback(
     async (temporaryUri: string, recordingType: RecordingType) => {
       const durationSeconds = startedAtRef.current
-        ? Math.max(1, Math.min(MAX_RECORDING_SECONDS, Math.round((Date.now() - startedAtRef.current) / 1000)))
+        ? Math.max(1, Math.min(maxRecordingSeconds, Math.round((Date.now() - startedAtRef.current) / 1000)))
         : 1;
       const persistedUri = await persistRecording(temporaryUri, recordingType);
       setRecordedMedia({
@@ -56,7 +63,7 @@ export function RecordingScreen({
       stopInProgressRef.current = false;
       startedAtRef.current = null;
     },
-    []
+    [maxRecordingSeconds]
   );
 
   const stopRecording = useCallback(async () => {
@@ -98,8 +105,8 @@ export function RecordingScreen({
 
     const timer = setInterval(() => {
       setElapsedSeconds((current) => {
-        const next = Math.min(MAX_RECORDING_SECONDS, current + 1);
-        if (next >= MAX_RECORDING_SECONDS) {
+        const next = Math.min(maxRecordingSeconds, current + 1);
+        if (next >= maxRecordingSeconds) {
           void stopRecording();
         }
         return next;
@@ -107,7 +114,7 @@ export function RecordingScreen({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, stopRecording]);
+  }, [maxRecordingSeconds, status, stopRecording]);
 
   async function startAudioRecording(): Promise<void> {
     const permission = await Audio.requestPermissionsAsync();
@@ -150,7 +157,7 @@ export function RecordingScreen({
       throw new Error("Camera is not ready yet.");
     }
 
-    const video = await cameraRef.current.recordAsync({ maxDuration: MAX_RECORDING_SECONDS });
+    const video = await cameraRef.current.recordAsync({ maxDuration: maxRecordingSeconds });
     if (video?.uri) {
       await finalizeRecording(video.uri, "video");
     }
@@ -199,7 +206,8 @@ export function RecordingScreen({
     setError("");
   }
 
-  const remainingSeconds = MAX_RECORDING_SECONDS - elapsedSeconds;
+  const remainingSeconds = maxRecordingSeconds - elapsedSeconds;
+  const trimmedNotes = thinkingNotes.trim();
 
   return (
     <View style={styles.screen}>
@@ -210,6 +218,13 @@ export function RecordingScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {trimmedNotes ? (
+          <Card style={styles.notesCard}>
+            <Text style={styles.notesTitle}>Prep notes</Text>
+            <Text style={styles.notesBody}>{trimmedNotes}</Text>
+          </Card>
+        ) : null}
+
         <Card style={styles.controlCard}>
           <SegmentedControl<RecordingType> options={["audio", "video"]} value={mode} onChange={setMode} />
           {mode === "video" && status !== "finished" ? (
@@ -218,6 +233,9 @@ export function RecordingScreen({
           <View style={styles.timerBox}>
             <Text style={styles.timer}>{remainingSeconds}</Text>
             <Text style={styles.timerLabel}>seconds left</Text>
+            <Text style={styles.durationHint}>
+              Suggested time: {formatPracticeDuration(maxRecordingSeconds)}
+            </Text>
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </Card>
@@ -241,7 +259,8 @@ export function RecordingScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     padding: spacing.md,
@@ -253,6 +272,22 @@ const styles = StyleSheet.create({
   },
   controlCard: {
     gap: spacing.md
+  },
+  notesCard: {
+    gap: spacing.xs,
+    backgroundColor: colors.surfaceMuted
+  },
+  notesTitle: {
+    color: colors.primaryDark,
+    fontSize: 13,
+    fontWeight: "900",
+    textTransform: "uppercase"
+  },
+  notesBody: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: "700"
   },
   camera: {
     width: "100%",
@@ -278,6 +313,13 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontWeight: "700"
   },
+  durationHint: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+    marginTop: spacing.xs
+  },
   error: {
     color: colors.danger,
     fontWeight: "700",
@@ -289,4 +331,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line
   }
-});
+  });
+}

@@ -101,7 +101,7 @@ function extractOutputText(responseJson) {
   throw new HttpError(502, "invalid_openai_response", "Speech analysis service returned an invalid response.");
 }
 
-async function analyzeTranscript(topic, transcript, level) {
+async function analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext = null) {
   const response = await fetchWithTimeoutAndRetry("https://api.openai.com/v1/responses", () => ({
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -123,7 +123,7 @@ async function analyzeTranscript(topic, transcript, level) {
           content: [
             {
               type: "input_text",
-              text: buildSpeakingAnalysisPrompt(topic, transcript, level)
+              text: buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext)
             }
           ]
         }
@@ -135,7 +135,8 @@ async function analyzeTranscript(topic, transcript, level) {
           strict: true,
           schema: analysisJsonSchema
         }
-      }
+      },
+      max_output_tokens: config.openAiMaxOutputTokens
     })
   }));
 

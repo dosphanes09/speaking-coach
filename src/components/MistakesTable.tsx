@@ -2,13 +2,17 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Card } from "./Card";
 import { Mistake } from "@/types/models";
-import { colors, spacing } from "@/theme/colors";
+import { AppColors, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface MistakesTableProps {
   mistakes: Mistake[];
 }
 
 export function MistakesTable({ mistakes }: MistakesTableProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container}>
       {mistakes.map((mistake) => (
@@ -27,7 +31,8 @@ export function MistakesTable({ mistakes }: MistakesTableProps): React.JSX.Eleme
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   container: {
     gap: spacing.sm
   },
@@ -46,4 +51,5 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: spacing.xs
   }
-});
+  });
+}

@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, spacing } from "@/theme/colors";
+import { AppColors, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface HeaderProps {
   title: string;
@@ -17,6 +18,9 @@ export function Header({
   rightLabel,
   onRightPress
 }: HeaderProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
@@ -41,7 +45,8 @@ export function Header({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   container: {
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
@@ -85,4 +90,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22
   }
-});
+  });
+}

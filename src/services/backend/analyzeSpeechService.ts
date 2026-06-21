@@ -1,5 +1,6 @@
 import { AnalysisResult, RecordedMedia, Topic } from "@/types/models";
-import { validateBackendBaseUrl } from "@/config/backendConfig";
+import { isDevelopmentBuild, validateBackendBaseUrl } from "@/config/backendConfig";
+import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
 
 interface AnalyzeSpeechParams {
   backendBaseUrl: string;
@@ -31,11 +32,33 @@ export async function analyzeSpeechWithBackend({
   topic
 }: AnalyzeSpeechParams): Promise<AnalyzeSpeechResponse> {
   const baseUrl = validateBackendBaseUrl(backendBaseUrl);
+  const accessToken = await getDeviceAccessToken();
+  if (!accessToken && !isDevelopmentBuild()) {
+    throw new Error("Bu cihaz henüz etkinleştirilmedi. Ayarlar bölümünden davet kodunu gir.");
+  }
 
   const formData = new FormData();
   formData.append("topic", topic.title);
   formData.append("level", topic.level);
   formData.append("durationSeconds", String(media.durationSeconds));
+  if (topic.grammarFocus) {
+    formData.append("grammarCefrLevel", topic.grammarFocus.cefrLevel);
+    formData.append("grammarTopic", topic.grammarFocus.grammarTopic);
+    formData.append("expectedGrammarStructures", topic.grammarFocus.expectedStructures.join("; "));
+    formData.append("speakingPrompt", topic.grammarFocus.speakingPrompt);
+  }
+  if (topic.picturePromptContext) {
+    formData.append("mode", topic.picturePromptContext.mode);
+    formData.append("picturePromptId", topic.picturePromptContext.promptId);
+    formData.append("pictureDescriptionTarget", topic.picturePromptContext.sceneDescriptionForAI);
+    formData.append("pictureLearnerInstructions", topic.picturePromptContext.learnerInstructions.join("; "));
+    formData.append("pictureDetailChecklist", topic.picturePromptContext.detailChecklist.join("; "));
+    formData.append("picturePossibleInferences", topic.picturePromptContext.possibleInferences.join("; "));
+    formData.append("pictureCommonMistakes", topic.picturePromptContext.commonMistakes.join("; "));
+    formData.append("expectedVocabularyCategories", topic.picturePromptContext.suggestedVocabulary.join("; "));
+    formData.append("expectedGrammarStructures", topic.picturePromptContext.targetGrammar.join("; "));
+    formData.append("speakingPrompt", topic.picturePromptContext.speakingQuestions.join(" "));
+  }
   formData.append("file", {
     uri: media.uri,
     name: getUploadName(media),
@@ -47,7 +70,8 @@ export async function analyzeSpeechWithBackend({
     response = await fetch(`${baseUrl}/api/analyze-speech`, {
       method: "POST",
       headers: {
-        "X-Client-Id": clientId
+        "X-Client-Id": clientId,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
       },
       body: formData
     });
@@ -65,10 +89,13 @@ export async function analyzeSpeechWithBackend({
 
   if (!response.ok) {
     const error = (json as ErrorResponse).error;
+    if (response.status === 401) {
+      throw new Error("Cihaz yetkisi geçersiz veya süresi dolmuş. Ayarlar bölümünden tekrar etkinleştir.");
+    }
     if (error?.code === "openai_not_configured") {
       throw new Error(
         error.message ||
-          "Backend reached, but speech analysis is not configured. Add OPENAI_API_KEY to backend/.env and restart the backend."
+          "Backend reached, but speech analysis is not configured. Add the backend API key to backend/.env and restart the backend."
       );
     }
     throw new Error(error?.message || "Speech analysis failed.");

@@ -1,12 +1,17 @@
 import React from "react";
 import { StyleSheet, Text } from "react-native";
-import { colors, spacing } from "@/theme/colors";
+import { AppColors, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 export function SectionTitle({ children }: { children: string }): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   return <Text style={styles.title}>{children}</Text>;
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   title: {
     color: colors.ink,
     fontSize: 18,
@@ -14,4 +19,5 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: spacing.sm
   }
-});
+  });
+}

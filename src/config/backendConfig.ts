@@ -1,11 +1,16 @@
 const developmentBackendBaseUrl = "http://localhost:3001";
 
-function readPublicEnv(name: string): string {
-  return process.env[name]?.trim() ?? "";
-}
-
 function readBackendBaseUrlFromEnv(): string {
-  return readPublicEnv("EXPO_PUBLIC_BACKEND_API_URL") || readPublicEnv("EXPO_PUBLIC_BACKEND_BASE_URL");
+  // Expo replaces EXPO_PUBLIC_* values in production bundles only when they are
+  // referenced directly. Set EXPO_PUBLIC_API_URL to the Render HTTPS origin in
+  // the EAS production environment. Do not put API keys in EXPO_PUBLIC_* values.
+  return (
+    process.env.EXPO_PUBLIC_API_URL?.trim() ||
+    // Legacy fallbacks keep older local/EAS configurations working.
+    process.env.EXPO_PUBLIC_BACKEND_API_URL?.trim() ||
+    process.env.EXPO_PUBLIC_BACKEND_BASE_URL?.trim() ||
+    ""
+  );
 }
 
 function parseOriginList(value: string): string[] {
@@ -36,7 +41,12 @@ export function getConfiguredBackendBaseUrl(): string {
 }
 
 export function getProductionBackendOriginAllowlist(): string[] {
-  return parseOriginList(readPublicEnv("EXPO_PUBLIC_ALLOWED_BACKEND_ORIGINS"));
+  return Array.from(
+    new Set([
+      ...parseOriginList(process.env.EXPO_PUBLIC_API_URL?.trim() ?? ""),
+      ...parseOriginList(process.env.EXPO_PUBLIC_ALLOWED_BACKEND_ORIGINS?.trim() ?? "")
+    ])
+  );
 }
 
 function isPrivateOrLocalHostname(hostname: string): boolean {

@@ -6,13 +6,15 @@ const cors = require("cors");
 const helmet = require("helmet");
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
-const { config } = require("./config");
+const { config, validateRuntimeConfig } = require("./config");
+const { registerDevice, requireAuth, revokeDevice } = require("./auth");
 const { HttpError, isHttpError } = require("./errors");
 const { logError, logInfo, logWarn } = require("./logger");
 const { assertDailyLimit } = require("./dailyLimitStore");
 const {
   validateDurationSeconds,
   validateLevel,
+  validateOptionalTextField,
   validateTextField,
   validateUploadedFile
 } = require("./validation");
@@ -38,8 +40,10 @@ const upload = multer({
   storage,
   limits: {
     fileSize: config.maxFileSizeBytes,
+    fieldSize: 4096,
     files: 1,
-    fields: 4
+    fields: 16,
+    parts: 17
   }
 });
 
@@ -99,29 +103,145 @@ app.use(
   })
 );
 
+const registrationRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: "registration_rate_limited",
+      message: "Too many device registration attempts. Please try again later."
+    }
+  }
+});
+
+app.use("/api/auth", express.json({ limit: "4kb", strict: true }));
+
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
-    speechAnalysisConfigured: Boolean(config.openAiApiKey)
+    service: config.serviceName,
+    openaiConfigured: Boolean(config.openAiApiKey)
   });
 });
 
-app.post("/api/analyze-speech", upload.single("file"), async (req, res, next) => {
+app.post("/api/auth/register", registrationRateLimit, async (req, res, next) => {
+  try {
+    const result = await registerDevice(req.body?.inviteCode, req.body?.clientId);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/revoke", requireAuth, async (req, res, next) => {
+  try {
+    await revokeDevice(req.auth?.subject);
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+const analysisAuthentication = config.requireAppAuth
+  ? requireAuth
+  : (req, _res, next) => {
+      req.auth = null;
+      next();
+    };
+
+app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), async (req, res, next) => {
   const filePath = req.file?.path;
 
   try {
     const topic = validateTextField(req.body.topic, "topic", 200);
     const level = validateLevel(req.body.level);
-    validateDurationSeconds(req.body.durationSeconds);
+    const durationSeconds = validateDurationSeconds(req.body.durationSeconds);
+    const grammarCefrLevel = validateOptionalTextField(req.body.grammarCefrLevel, "grammarCefrLevel", 20);
+    const grammarTopic = validateOptionalTextField(req.body.grammarTopic, "grammarTopic", 120);
+    const expectedGrammarStructures = validateOptionalTextField(
+      req.body.expectedGrammarStructures,
+      "expectedGrammarStructures",
+      800
+    );
+    const speakingPrompt = validateOptionalTextField(req.body.speakingPrompt, "speakingPrompt", 300);
+    const mode = validateOptionalTextField(req.body.mode, "mode", 40);
+    if (mode && mode !== "picture_description") {
+      throw new HttpError(400, "invalid_input", "mode is invalid.");
+    }
+
+    const picturePromptId = validateOptionalTextField(req.body.picturePromptId, "picturePromptId", 120);
+    const pictureDescriptionTarget = validateOptionalTextField(
+      req.body.pictureDescriptionTarget,
+      "pictureDescriptionTarget",
+      1600
+    );
+    const pictureLearnerInstructions = validateOptionalTextField(
+      req.body.pictureLearnerInstructions,
+      "pictureLearnerInstructions",
+      1000
+    );
+    const pictureDetailChecklist = validateOptionalTextField(
+      req.body.pictureDetailChecklist,
+      "pictureDetailChecklist",
+      1000
+    );
+    const picturePossibleInferences = validateOptionalTextField(
+      req.body.picturePossibleInferences,
+      "picturePossibleInferences",
+      1000
+    );
+    const pictureCommonMistakes = validateOptionalTextField(
+      req.body.pictureCommonMistakes,
+      "pictureCommonMistakes",
+      1000
+    );
+    const expectedVocabularyCategories = validateOptionalTextField(
+      req.body.expectedVocabularyCategories,
+      "expectedVocabularyCategories",
+      800
+    );
     const fileInfo = await validateUploadedFile(req.file);
-    const dailyLimit = assertDailyLimit(req, config.maxDailyAnalysesPerUser);
+    const dailyLimit = await assertDailyLimit(req, config.maxDailyAnalysesPerUser);
 
     const transcript = await transcribeFile(req.file.path, fileInfo.mimeType, req.file.originalname);
     if (!transcript) {
       throw new HttpError(422, "empty_transcript", "Transcript could not be created from this recording.");
     }
 
-    const analysis = await analyzeTranscript(topic, transcript, level);
+    const grammarFocus =
+      grammarCefrLevel || grammarTopic || expectedGrammarStructures || speakingPrompt
+        ? {
+            cefrLevel: grammarCefrLevel,
+            grammarTopic,
+            expectedGrammarStructures,
+            speakingPrompt
+          }
+        : null;
+
+    const pictureDescription =
+      mode === "picture_description"
+        ? {
+            mode,
+            picturePromptId,
+            pictureDescriptionTarget,
+            pictureLearnerInstructions,
+            pictureDetailChecklist,
+            picturePossibleInferences,
+            pictureCommonMistakes,
+            expectedVocabularyCategories,
+            expectedGrammarStructures,
+            speakingPrompt
+          }
+        : null;
+
+    const analysisContext = {
+      grammarFocus,
+      pictureDescription
+    };
+
+    const analysis = await analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext);
 
     res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
     res.json({
@@ -139,9 +259,15 @@ app.post("/api/analyze-speech", upload.single("file"), async (req, res, next) =>
 
 app.use((error, req, res, _next) => {
   const multerFileSizeCode = error?.code === "LIMIT_FILE_SIZE";
+  const multerRequestLimitCode = ["LIMIT_FIELD_VALUE", "LIMIT_FIELD_COUNT", "LIMIT_PART_COUNT"].includes(
+    error?.code
+  );
+  const invalidJson = error?.type === "entity.parse.failed" || error?.type === "entity.too.large";
   const normalizedError = multerFileSizeCode
     ? new HttpError(400, "invalid_file_size", "File size is not allowed.")
-    : error;
+    : multerRequestLimitCode || invalidJson
+      ? new HttpError(400, "invalid_request", "Request payload is not allowed.")
+      : error;
 
   const status = isHttpError(normalizedError) ? normalizedError.status : 500;
   const code = isHttpError(normalizedError) ? normalizedError.code : "internal_error";
@@ -172,9 +298,11 @@ app.use((error, req, res, _next) => {
   });
 });
 
-ensureUploadDir()
+Promise.resolve()
+  .then(() => validateRuntimeConfig())
+  .then(() => ensureUploadDir())
   .then(() => {
-    app.listen(config.port, () => {
+    app.listen(config.port, "0.0.0.0", () => {
       logInfo("backend_started", { status: 200, code: "started", path: `:${config.port}` });
     });
   })

@@ -1,6 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -21,6 +22,9 @@ export function AppButton({
   loading = false,
   style
 }: AppButtonProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -41,7 +45,8 @@ export function AppButton({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   base: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -80,4 +85,5 @@ const styles = StyleSheet.create({
   ghostLabel: {
     color: colors.primaryDark
   }
-});
+  });
+}

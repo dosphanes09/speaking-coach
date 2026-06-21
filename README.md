@@ -2,43 +2,39 @@
 
 Expo / React Native mobil uygulama ve Node.js / Express backend ile guvenli speaking analizi MVP'si.
 
-## Guvenli Mimari
+## Mimari
 
-```
-Expo React Native App
-  -> kendi backend API
+```text
+Mobile App
+  -> Local backend veya Render HTTPS backend
   -> OpenAI API
 ```
 
+Local gelistirme icin PC'de calisan backend kullanilabilir. Ben ve sevgilim gibi farkli telefonlardan ayni backend'i kullanmak icin backend Render Free Web Service olarak deploy edilebilir.
+
 Mobil uygulama OpenAI API key tutmaz, OpenAI endpointlerine dogrudan istek atmaz ve `EXPO_PUBLIC_OPENAI_API_KEY` gibi public secret kullanmaz. OpenAI API key yalnizca backend tarafinda `backend/.env` dosyasindaki `OPENAI_API_KEY` olarak bulunur.
-
-## Tespit Edilen Eski Riskler
-
-- Mobil tarafta OpenAI API key girilen Settings alani vardi.
-- API key `expo-secure-store` ile mobil cihazda tutuluyordu.
-- Frontend `https://api.openai.com` endpointlerine dogrudan istek atiyordu.
-- Transkript, analiz ve chat icin frontend OpenAI servisleri bulunuyordu.
-
-Bu akisim kaldirildi. Frontend artik yalnizca kendi backend endpointine dosya yukler.
 
 ## Proje Yapisi
 
 - `App.tsx`: mobil ekran akisi.
-- `src/screens`: Home, Recording, Transcript/Secure Analysis, Analysis, History, Progress, Settings, Chat.
+- `src/screens`: Home, Grammar Roadmap, Recording, Transcript/Secure Analysis, Analysis, History, Progress, Settings, Chat.
+- `src/data/grammarRoadmap.ts`: A1-C2 tense content and level speaking challenges.
 - `src/services/backend/analyzeSpeechService.ts`: mobil uygulamanin backend `/api/analyze-speech` istemcisi.
 - `src/services/storage`: yerel kayitlar, ayarlar ve anonim client id.
 - `backend/src/server.js`: Express API.
 - `backend/src/openaiClient.js`: OpenAI istekleri sadece backend tarafinda.
 - `backend/src/validation.js`: upload, MIME, extension, sure ve input validasyonu.
-- `backend/src/dailyLimitStore.js`: kullanici basina gunluk limit.
+- `backend/src/auth.js`: davet kodu kaydi, imzali token dogrulama ve cihaz yetkilendirme.
+- `backend/src/dailyLimitStore.js`: Redis uzerinde dogrulanmis cihaz basina kalici gunluk limit.
 
 ## Backend Guvenlik Kontrolleri
 
 `POST /api/analyze-speech`:
 
 - `OPENAI_API_KEY` sadece backend `.env` icinden okunur.
-- `express-rate-limit` ile endpoint rate limit altindadir.
-- `X-Client-Id` uzerinden kullanici basina gunluk analiz limiti uygulanir.
+- `express-rate-limit` ile endpoint ve aktivasyon denemeleri rate limit altindadir.
+- Ucretli analiz endpoint'i imzali Bearer token olmadan calismaz.
+- Davet kodu, aktif cihaz kaydi ve gunluk analiz kotasi Upstash Redis'te tutulur.
 - Dosya boyutu `MAX_FILE_SIZE_BYTES` ile sinirlidir.
 - Kayit suresi `MAX_AUDIO_DURATION_SECONDS` ile sinirlidir.
 - Sadece izin verilen extension ve MIME type kabul edilir.
@@ -49,118 +45,18 @@ Bu akisim kaldirildi. Frontend artik yalnizca kendi backend endpointine dosya yu
 - Hata cevaplari API key, stack trace veya internal server detayi dondurmez.
 - Loglar Authorization header, raw audio veya kisisel veri yazmaz.
 - CORS `FRONTEND_ORIGINS` ile sinirlandirilir.
-- Production deploy icin `REQUIRE_HTTPS=true` kullanilabilir.
 
-Not: In-memory gunluk limit MVP icindir. Production icin Redis veya kalici rate-limit store kullanilmalidir.
+Production'da gunluk analiz kotasi dogrulanmis cihaz token'ina gore Upstash Redis'te kalici tutulur. Development auth kapaliysa yalnizca yerel in-memory fallback kullanilir.
 
-## Mobil Kurulum
+## Local Kurulum
+
+Root mobil bagimliliklari:
 
 ```bash
 npm install
-npm run start:clear
 ```
 
-### Development Backend URL
-
-Development buildlerde `Settings > Backend API URL` alani duzenlenebilir. Telefonla Expo Go kullanirken backend URL olarak bilgisayarinin LAN adresini kullan:
-
-```text
-http://192.168.x.x:3001
-```
-
-Development modunda `http://localhost`, `127.0.0.1` ve private LAN adresleri kabul edilir. URL'yi girdikten sonra `Save` ile kaydet. Settings ekranindaki `Aktif Backend URL`, analiz ekraninin kullanacagi kaydedilmis degeri gosterir. `Test Connection` butonu ayni URL ile `GET /health` istegi atar; telefon tarayicisinda `http://192.168.x.x:3001/health` aciliyorsa bu test de basarili olmalidir.
-
-### Production Backend URL
-
-Production buildlerde backend URL kullanici tarafindan degistirilemez. URL build-time public config ile verilir:
-
-```bash
-EXPO_PUBLIC_BACKEND_API_URL=https://api.example.com
-EXPO_PUBLIC_ALLOWED_BACKEND_ORIGINS=https://api.example.com
-```
-
-Bu degerler secret degildir; sadece hangi backend domaininin kullanilacagini belirler. Production'da sadece allowlist icindeki HTTPS origin kabul edilir. `localhost`, `127.0.0.1`, `192.168.x.x`, `10.x.x.x`, `172.16-31.x.x` ve diger local/private adresler production'da reddedilir. Hatalı URL durumunda uygulama ses dosyasini gondermeden hata verir.
-
-`EXPO_PUBLIC_BACKEND_BASE_URL` eski ad olarak desteklenir, ancak yeni buildlerde `EXPO_PUBLIC_BACKEND_API_URL` kullan.
-
-### PC'siz Tam Kullanim
-
-Telefon uygulamasinin speech analysis ozelligini bilgisayarda backend calistirmadan kullanmak icin backend public HTTPS bir web service olarak deploy edilmelidir.
-
-Onerilen basit akıs Render Web Service:
-
-1. Bu projeyi GitHub'a push et.
-2. Render Dashboard'da `New > Blueprint` sec ve repo'yu bagla.
-3. Repo kokundeki `render.yaml` backend servisini `backend` klasorunden kurar.
-4. Render environment variables icinde `OPENAI_API_KEY` degerini gir.
-5. `REQUIRE_HTTPS=true` blueprint ile gelir.
-6. Deploy bitince Render URL'sini al:
-
-```text
-https://daily-speaking-coach-backend.onrender.com
-```
-
-Deploy saglik kontrolu:
-
-```bash
-curl https://daily-speaking-coach-backend.onrender.com/health
-```
-
-Beklenen cevap:
-
-```json
-{ "ok": true, "speechAnalysisConfigured": true }
-```
-
-`speechAnalysisConfigured:false` gorursen backend ayakta ama `OPENAI_API_KEY` Render ortaminda eksik ya da servis yeniden baslatilmamis demektir.
-
-Render disinda baska bir Node host kullanirsan ayni backend ayarlari yeterlidir:
-
-```bash
-cd backend
-npm ci
-npm start
-```
-
-Host tarafinda `OPENAI_API_KEY`, `NODE_ENV=production` ve `REQUIRE_HTTPS=true` tanimli olmalidir. Backend public HTTPS URL verdikten sonra APK'yi bu URL ile yeniden build et.
-
-### Android APK (Expo Go'suz)
-
-Telefona ikonla acilan APK kurmak icin EAS Build kullanilir. APK build Expo Go gerektirmez; mobil uygulama yine sadece kendi backend'ine istek atar.
-
-Ilk kez kullanirken Expo hesabina gir:
-
-```bash
-npx eas-cli@latest login
-```
-
-Preview APK, production kurallariyla calisir. Bu nedenle backend URL HTTPS olmali ve allowlist ile ayni origin'e sahip olmalidir:
-
-```bash
-npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_BACKEND_API_URL --value https://daily-speaking-coach-backend.onrender.com --visibility plaintext --force --non-interactive
-npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_ALLOWED_BACKEND_ORIGINS --value https://daily-speaking-coach-backend.onrender.com --visibility plaintext --force --non-interactive
-npx eas-cli@latest build --platform android --profile preview
-```
-
-EAS preview environment kontrolu:
-
-```bash
-npx eas-cli@latest env:list --environment preview
-```
-
-Bu listede `EXPO_PUBLIC_BACKEND_API_URL` ve `EXPO_PUBLIC_ALLOWED_BACKEND_ORIGINS` gorunmelidir. Deger olarak kendi Render URL'ni kullan; `OPENAI_API_KEY` burada asla olmamalidir.
-
-Build bitince EAS'in verdigi linkten `.apk` dosyasini indir. Android telefonda dosyayi ac, gerekirse `Install unknown apps` izni ver ve kur. Kurulumdan sonra uygulama telefonda normal ikonla acilir.
-
-Local LAN backend (`http://192.168.x.x:3001`) destegi development akisi icin korunur. Expo Go yerine development build kullanmak istersen:
-
-```bash
-npx eas-cli@latest build --platform android --profile development
-```
-
-Bu profil Expo Go gerektirmez, ancak development client olarak kullanilir. Production veya preview APK icin local/private backend adresleri kabul edilmez.
-
-## Backend Kurulum
+Backend bagimliliklari:
 
 ```bash
 cd backend
@@ -174,15 +70,18 @@ cp .env.example .env
 OPENAI_API_KEY=<your-openai-api-key>
 ```
 
-`Speech analysis service is not configured` hatasi gelirse mobil app backend'e ulasmistir, ancak backend `OPENAI_API_KEY` degerini okuyamiyordur. `backend/.env` dosyasini kontrol et ve backend'i yeniden baslat.
+API key mobil uygulamaya, Expo public env degiskenlerine veya GitHub'a eklenmez.
 
-Backend'i calistir:
+## Local Calistirma
+
+1. Backend'i baslat:
 
 ```bash
+cd backend
 npm run dev
 ```
 
-Saglik kontrolu:
+2. Backend saglik kontrolu:
 
 ```bash
 curl http://localhost:3001/health
@@ -191,23 +90,238 @@ curl http://localhost:3001/health
 Beklenen cevap:
 
 ```json
-{ "ok": true, "speechAnalysisConfigured": true }
+{ "ok": true }
 ```
 
-Backend audit kontrolu:
-
-```bash
-npm audit
-```
-
-Root Expo projesi icin audit:
+3. Mobil uygulamayi baslat:
 
 ```bash
 cd ..
-npm audit
+npm run start:clear
 ```
 
-Not: Root Expo audit bulgulari Expo SDK zincirinden gelebilir. SDK major upgrade Expo Go uyumlulugunu etkileyebilecegi icin ayrica planlanmalidir.
+Expo Go ile QR okut. Port sorarsa yeni portu kabul edebilirsin.
+
+## Practice Flow
+
+`Think` ekraninda 30 saniyelik hazirlik suresinde kisa notlar yazabilirsin. Bu notlar sadece cihaz ekraninda tutulur; ses/video kaydina, backend analizine, gecmis kayitlara veya PDF'e gonderilmez.
+
+`Record` ekraninda hazirlik notlari okunabilir sekilde gosterilir. Konusma suresi konu uzunlugu, seviye ve hedef grammar yapilarina gore otomatik secilir:
+
+- minimum: 60 saniye
+- orta zorluk: 90 saniye
+- maksimum: 120 saniye
+
+Backend guvenlik siniri de `MAX_AUDIO_DURATION_SECONDS=120` olacak sekilde ayarlanmistir. Eger kendi `backend/.env` dosyanda eski `75` degeri varsa 120 olarak guncelle ve backend'i yeniden baslat.
+
+Android'de alt sistem navigasyon tuslari uygulama acikken gizlenmeye calisilir. Bazi cihazlarda kenardan kaydirinca gecici olarak tekrar gorunebilir; uygulama aktif olunca yeniden gizlenir.
+
+## Tema ve Konu Cesitliligi
+
+`Settings` ekranindan `light` veya `dark` tema secilebilir. Tema tercihi local settings icinde saklanir.
+
+Gundelik speaking konulari son 14 gunde tamamlanan kayitlara gore filtrelenir. Ayni speaking konusu iki hafta icinde tekrar onerilmez; ilgili seviyedeki taze konu havuzu biterse uygulama bos kalmamak icin tekrar havuzuna geri doner. A2, B1, B2 ve C1 konu havuzlari iki haftalik cesitlilik icin genisletilmistir.
+
+## Windows Tek Tik Development
+
+Proje root klasorunde development icin uc yardimci `.bat` dosyasi vardir:
+
+- `start-backend.bat`: yeni bir terminal acar, `backend` klasorunde `npm run dev` calistirir.
+- `start-expo.bat`: proje root klasorunde `npm run start:lan` calistirir ve QR kodu ayni pencerede gosterir.
+- `start-app.bat`: backend'i ayri pencerede baslatir, Expo'yu ise tikladigin ana pencerede acar; QR kod burada gorunur.
+
+Tek tikla local backend + Expo baslatmak icin:
+
+```text
+start-app.bat
+```
+
+Bu scriptler sadece development kolayligi icindir. Production build, Android APK sureci ve backend guvenlik mimarisini etkilemez. Ek dependency eklenmedi; `concurrently` yerine Windows'un kendi terminal baslatma komutu kullanilir.
+
+QR kod gorunmezse `Daily Speaking Expo` penceresinin acik oldugunu kontrol et veya root klasorde su komutu calistir:
+
+```bash
+npm run start:lan
+```
+
+## Render Free Backend Deploy
+
+Render Web Service ayarlari root `render.yaml` icindedir:
+
+- `rootDir`: `backend`
+- `buildCommand`: `npm ci`
+- `startCommand`: `npm start`
+- `healthCheckPath`: `/health`
+- `plan`: `free`
+
+Render deploy adimlari:
+
+1. Kodu GitHub'a push et. `.env`, `backend/.env`, API key veya token push etme.
+2. Render Dashboard'da `New` > `Blueprint` sec ve repoyu bagla.
+3. Root'taki `render.yaml` dosyasini sec.
+4. Render env var ekraninda `sync: false` olan degerleri gir:
+
+```text
+OPENAI_API_KEY=<your-openai-api-key>
+AUTH_TOKEN_SECRET=<generated-backend-secret>
+APP_INVITE_CODES=<comma-separated-private-codes>
+UPSTASH_REDIS_REST_URL=<upstash-rest-url>
+UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
+```
+
+Native Android/iOS istekleri genelde browser `Origin` header'i gondermez. Bu yuzden `FRONTEND_ORIGINS` bos kalabilir. Expo Web veya browser tabanli bir frontend kullanirsan virgulle ayrilmis HTTPS originlerini ekle.
+
+Render production icin onerilen env var listesi:
+
+```text
+NODE_ENV=production
+SERVICE_NAME=daily-speaking-coach-api
+OPENAI_API_KEY=<Render secret env var>
+FRONTEND_ORIGINS=
+REQUIRE_HTTPS=true
+REQUIRE_APP_AUTH=true
+MAX_FILE_SIZE_BYTES=12582912
+MAX_AUDIO_DURATION_SECONDS=120
+MAX_DAILY_ANALYSES_PER_USER=10
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=30
+OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+OPENAI_ANALYSIS_MODEL=gpt-5.4-mini
+OPENAI_TIMEOUT_MS=30000
+OPENAI_MAX_RETRIES=1
+OPENAI_MAX_OUTPUT_TOKENS=8000
+```
+
+Deploy sonrasi Render URL'i su formatta olur:
+
+```text
+https://daily-speaking-coach-api.onrender.com
+```
+
+Kendi Render URL'inle health check yap:
+
+```bash
+curl https://your-render-service.onrender.com/health
+```
+
+Beklenen cevap:
+
+```json
+{ "ok": true, "service": "daily-speaking-coach-api", "openaiConfigured": true }
+```
+
+Production backend gerekli auth, Redis veya OpenAI secret'lari eksikse baslamaz ve Render health check basarisiz olur.
+
+Render ephemeral disk notu: Backend upload dosyasini sadece gecici olarak `backend/tmp/uploads` altina yazar. Analiz basarili veya basarisiz olsa da `finally` blogunda dosya silinir. Render Free disk kalici depolama olarak kullanilmaz.
+
+Ucretsiz Render servisleri uykuya gecebilir; ilk istek gec cevap verebilir. Gunluk cihaz kotasi Upstash Redis'te kalici tutulur ve Render yeniden baslasa da kaybolmaz.
+
+## Production APK ile Render Backend Kullanimi
+
+Mobil uygulama production build'de backend URL'ini sadece build-time public config'ten okur. Bu deger secret degildir; sadece backend adresidir.
+
+Yeni APK almadan once EAS/Expo build ortaminda su public env degerlerini ayarla:
+
+```text
+EXPO_PUBLIC_API_URL=https://your-render-service.onrender.com
+```
+
+EAS CLI ile production ortamina eklemek icin:
+
+```bash
+eas env:create --name EXPO_PUBLIC_API_URL --value https://your-render-service.onrender.com --environment production --visibility plaintext
+```
+
+Sonra APK build al:
+
+```bash
+eas build --platform android --profile apk
+```
+
+`apk` profili paylasilabilir bir Android APK uretir ve production EAS environment degerlerini kullanir. Production/preview build'de Settings ekraninda backend URL kullanici tarafindan degistirilemez. Development modunda local IP veya localhost girilebilir.
+
+## Telefonla Local Backend Kullanimi
+
+Telefon ve PC ayni Wi-Fi aginda olmali. PC'nin LAN IP adresini bul:
+
+```powershell
+ipconfig
+```
+
+Genelde `IPv4 Address` su sekildedir:
+
+```text
+192.168.x.x
+```
+
+Telefondan tarayicida test et:
+
+```text
+http://192.168.x.x:3001/health
+```
+
+Beklenen:
+
+```json
+{ "ok": true }
+```
+
+Uygulamada:
+
+1. `Settings` ekranina gir.
+2. `Backend API URL` alanina `http://192.168.x.x:3001` yaz.
+3. `Test Connection` butonuna bas.
+4. `Connection OK` gorunce `Save` bas.
+5. Kayit alip analizi dene.
+
+Development modunda `http://localhost`, `127.0.0.1` ve private LAN adresleri kabul edilir. Production/preview build'de sadece HTTPS allowlist Render origin kabul edilir.
+
+## Grammar Roadmap
+
+Ana ekrandaki `Ogrenme Alani` butonu ayri Learning ekranini acar. Bu ekrandaki `Open Grammar Roadmap` butonu A1-C2 seviyelerine gore tense odakli grammar calisma ekranini acar. Her seviyede:
+
+- tense topic kartlari
+- core feeling, structure, usage, examples, common mistakes
+- speaking patterns ve mini challenge
+- level speaking challenges
+
+Level ekraninda tek bir aktif speaking sorusu gosterilir. `Yeni Soru` ile ayni seviyede farkli bir soru alabilir, `Start Speaking Practice` ile mevcut speaking akisina gecebilirsin:
+
+```text
+Grammar challenge -> Thinking -> Recording -> Transcript -> Backend analysis
+```
+
+Grammar challenge context'i mobil uygulamada sadece normal form verisi olarak backend'e gonderilir:
+
+- `grammarCefrLevel`
+- `grammarTopic`
+- `expectedGrammarStructures`
+- `speakingPrompt`
+
+Bu bilgiler secret degildir. OpenAI API key yine yalnizca backend `.env` icindedir. Backend context varsa grammar hedefini de analiz eder; context yoksa eski genel speech analysis akisi aynen calisir.
+
+## PDF Raporu
+
+Analiz sonucu geldikten sonra `PDF Raporu Oluştur` butonu gorunur. Bu islem backend'e yeni istek atmaz; mevcut transcript ve analysis sonucundan cihaz uzerinde PDF olusturur ve Android paylasim ekranini acar.
+
+PDF raporu:
+
+- speaking konusu, tarih ve transcript
+- seviye tahmini ve skorlar
+- grammar corrections
+- vocabulary suggestions
+- pronunciation ve fluency feedback
+- native-like improved answer
+- kisiye ozel alistirmalar
+- `Bugünün Kişisel Çalışma Planı` bolumu
+
+PDF icin OpenAI key, backend secret veya ekstra kullanici verisi mobil uygulamaya tasinmaz.
+
+## Opsiyonel Public Config
+
+Root `.env.example` dosyasindaki `EXPO_PUBLIC_API_URL` secret degildir. EAS production ortaminda Render HTTPS origin'ine ayarlanir. Local gelistirmede bos birakilabilir; uygulama Settings ekranina kaydedilen URL'yi kullanir.
+
+Bu public env degiskenleri sadece ileride production/APK build dusunulurse backend URL sabitlemek icin vardir. OpenAI key icin kullanilmaz.
 
 ## Backend Endpoint
 
@@ -217,12 +331,16 @@ Form data:
 
 - `file`: `.m4a`, `.mp3`, `.mp4`, `.mpeg`, `.mpga`, `.wav`, `.webm`
 - `topic`: speaking konusu
-- `level`: `A2`, `B1`, `B2`, `C1`
+- `level`: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`
 - `durationSeconds`: mobil uygulamadaki kayit suresi
+- `grammarCefrLevel` (opsiyonel): grammar challenge seviyesi
+- `grammarTopic` (opsiyonel): hedef grammar konusu
+- `expectedGrammarStructures` (opsiyonel): beklenen grammar yapilari
+- `speakingPrompt` (opsiyonel): grammar challenge prompt'u
 
 Header:
 
-- `X-Client-Id`: mobil uygulamanin olusturdugu anonim cihaz id'si
+- `Authorization: Bearer <signed-device-token>`: aktivasyon sonrasi SecureStore'da tutulan cihaz token'i
 
 Basarili cevap:
 
@@ -238,12 +356,19 @@ Basarili cevap:
     "sentenceStructureSuggestions": [],
     "speakingFeedback": {},
     "scores": {},
+    "speakingAnalytics": {},
+    "errorPatterns": [],
+    "progressTags": [],
+    "repeatedMistakeCandidates": [],
+    "grammarFocusFeedback": {},
     "improvementPlan": {},
     "generatedBy": "backend",
     "createdAt": "2026-05-24T..."
   }
 }
 ```
+
+Backend analiz skorlarini 0-100 formatinda uretir. Mobil uygulama eski 1-10 kayitlari da desteklemek icin skorları ekranda normalize eder.
 
 ## Secret Kurallari
 
@@ -253,7 +378,20 @@ Basarili cevap:
 - Mobil uygulamada OpenAI key alani yoktur.
 - Public Expo env degiskenleri secret icin kullanilmaz.
 
-## OpenAI Kaynaklari
+## Kontroller
 
-- [OpenAI Responses API](https://platform.openai.com/docs/api-reference/responses)
-- [OpenAI audio transcriptions](https://platform.openai.com/docs/api-reference/audio/createTranscription)
+Backend audit:
+
+```bash
+cd backend
+npm audit
+```
+
+Root Expo audit:
+
+```bash
+cd ..
+npm audit
+```
+
+Not: Root Expo audit bulgulari Expo SDK zincirinden gelebilir. SDK major upgrade Expo Go uyumlulugunu etkileyebilecegi icin ayrica planlanmalidir.

@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface SegmentedControlProps<T extends string> {
   options: T[];
@@ -13,6 +14,9 @@ export function SegmentedControl<T extends string>({
   value,
   onChange
 }: SegmentedControlProps<T>): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container}>
       {options.map((option) => {
@@ -33,7 +37,8 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   container: {
     flexDirection: "row",
     backgroundColor: colors.surfaceMuted,
@@ -59,4 +64,5 @@ const styles = StyleSheet.create({
   selectedLabel: {
     color: colors.ink
   }
-});
+  });
+}

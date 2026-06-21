@@ -23,9 +23,21 @@ function validateTextField(value, fieldName, maxLength) {
   return normalized;
 }
 
+function validateOptionalTextField(value, fieldName, maxLength) {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  const normalized = String(value).trim();
+  if (normalized.length > maxLength) {
+    throw new HttpError(400, "invalid_input", `${fieldName} is invalid.`);
+  }
+  return normalized;
+}
+
 function validateLevel(value) {
   const normalized = String(value || "B1").trim().toUpperCase();
-  if (!["A2", "B1", "B2", "C1"].includes(normalized)) {
+  if (!["A1", "A2", "B1", "B2", "C1", "C2"].includes(normalized)) {
     throw new HttpError(400, "invalid_input", "level is invalid.");
   }
   return normalized;
@@ -93,6 +105,7 @@ async function validateUploadedFile(file) {
 
 module.exports = {
   validateTextField,
+  validateOptionalTextField,
   validateLevel,
   validateDurationSeconds,
   validateUploadedFile

@@ -16,7 +16,9 @@
           "microphonePermission": "Daily Speaking Coach records your one-minute speaking practice.",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-notifications",
+      "expo-secure-store"
     ],
     "assetBundlePatterns": [
       "**/*"
@@ -31,17 +33,20 @@
     "android": {
       "package": "com.yagiz.dailyspeakingcoach",
       "versionCode": 1,
+      "allowBackup": false,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "extra": {
       "eas": {
-        "projectId": "3433f827-4edf-4065-b2a0-c14ac1887d36"
+        "projectId": "46dada26-4a1e-4c13-8dd9-c49b68bd9ceb"
       }
-    }
+    },
+    "owner": "dosphanes"
   }
 }

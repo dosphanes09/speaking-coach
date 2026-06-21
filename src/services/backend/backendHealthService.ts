@@ -2,18 +2,21 @@ import { validateBackendBaseUrl } from "@/config/backendConfig";
 
 interface HealthResponse {
   ok?: boolean;
-  speechAnalysisConfigured?: boolean;
+  service?: string;
+  openaiConfigured?: boolean;
 }
 
 export interface BackendConnectionTestResult {
   baseUrl: string;
-  speechAnalysisConfigured: boolean | null;
+  service: string | null;
+  openaiConfigured: boolean | null;
 }
 
 export async function testBackendConnection(backendBaseUrl: string): Promise<BackendConnectionTestResult> {
   const baseUrl = validateBackendBaseUrl(backendBaseUrl);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  // Free cloud services can need extra time for their first request after sleeping.
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
     const response = await fetch(`${baseUrl}/health`, {
@@ -29,12 +32,12 @@ export async function testBackendConnection(backendBaseUrl: string): Promise<Bac
 
     return {
       baseUrl,
-      speechAnalysisConfigured:
-        typeof json.speechAnalysisConfigured === "boolean" ? json.speechAnalysisConfigured : null
+      service: typeof json.service === "string" ? json.service : null,
+      openaiConfigured: typeof json.openaiConfigured === "boolean" ? json.openaiConfigured : null
     };
   } catch (caughtError) {
     if (caughtError instanceof Error && caughtError.name === "AbortError") {
-      throw new Error("Backend connection timed out. Check that your phone and computer are on the same network.");
+      throw new Error("Backend connection timed out. Confirm the online service is running and retry.");
     }
 
     if (
