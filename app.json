@@ -31,8 +31,8 @@
       }
     },
     "android": {
-      "package": "com.yagiz.dailyspeakingcoach",
-      "versionCode": 1,
+      "package": "com.yagiz.dailyspeakingcoach.render",
+      "versionCode": 2,
       "allowBackup": false,
       "permissions": [
         "CAMERA",
