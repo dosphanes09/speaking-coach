@@ -21,6 +21,7 @@ const {
 const { analyzeTranscript, transcribeFile } = require("./openaiClient");
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
 async function ensureUploadDir() {
   await fs.mkdir(config.uploadDir, { recursive: true });
@@ -302,8 +303,8 @@ Promise.resolve()
   .then(() => validateRuntimeConfig())
   .then(() => ensureUploadDir())
   .then(() => {
-    app.listen(config.port, "0.0.0.0", () => {
-      logInfo("backend_started", { status: 200, code: "started", path: `:${config.port}` });
+    app.listen(PORT, "0.0.0.0", () => {
+      logInfo("backend_started", { status: 200, code: "started", path: `:${PORT}` });
     });
   })
   .catch((error) => {
