@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: daily-speaking-coach-api
+    name: daily-speaking-coach
     runtime: node
     plan: free
     rootDir: backend

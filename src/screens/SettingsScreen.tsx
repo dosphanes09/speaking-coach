@@ -7,7 +7,6 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { AppColors, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { AppSettings, ThemeMode, TopicLevel } from "@/types/models";
-import { getProductionBackendOriginAllowlist, isDevelopmentBuild } from "@/config/backendConfig";
 import { testBackendConnection } from "@/services/backend/backendHealthService";
 import {
   activateDevice,
@@ -36,8 +35,6 @@ export function SettingsScreen({
   const [isChangingActivation, setIsChangingActivation] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isStatusError, setIsStatusError] = useState(false);
-  const canEditBackendUrl = isDevelopmentBuild();
-  const productionAllowedOrigins = getProductionBackendOriginAllowlist();
 
   useEffect(() => {
     setDraftSettings(settings);
@@ -148,37 +145,9 @@ export function SettingsScreen({
           <Text style={styles.label}>Aktif Backend URL</Text>
           <Text style={styles.lockedValue}>{settings.backendBaseUrl || "Kaydedilmedi"}</Text>
           <Text style={styles.helpText}>
-            Analysis and voice chat use this saved URL. Edit the field below in development, then tap Save.
+            Tüm analiz, aktivasyon ve bağlantı kontrolleri bu kilitli Render HTTPS adresini kullanır.
           </Text>
         </Card>
-
-        {canEditBackendUrl ? (
-          <Card style={styles.card}>
-            <Text style={styles.label}>Backend API URL</Text>
-            <TextInput
-              value={draftSettings.backendBaseUrl}
-              onChangeText={(backendBaseUrl) =>
-                setDraftSettings((current) => ({ ...current, backendBaseUrl }))
-              }
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="https://api.example.com"
-              placeholderTextColor={colors.muted}
-              style={styles.input}
-            />
-            <Text style={styles.helpText}>
-              Development builds may use localhost or private LAN URLs. Production builds lock this value at build time.
-            </Text>
-          </Card>
-        ) : (
-          <Card style={styles.card}>
-            <Text style={styles.label}>Production Backend</Text>
-            <Text style={styles.lockedValue}>{draftSettings.backendBaseUrl || "Not configured"}</Text>
-            <Text style={styles.helpText}>
-              Backend URL is locked in production. Allowed origins: {productionAllowedOrigins.join(", ") || "none configured"}.
-            </Text>
-          </Card>
-        )}
 
         <Card style={styles.card}>
           <Text style={styles.label}>Güvenli Cihaz Erişimi</Text>

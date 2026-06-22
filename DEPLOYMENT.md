@@ -51,8 +51,8 @@ The repository ignores `.env`, `backend/.env`, signing files, and local Codex/Ex
    - `APP_INVITE_CODES`
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
-5. Deploy and copy the generated HTTPS service URL.
-6. Open `https://YOUR-SERVICE.onrender.com/health` and confirm:
+5. Deploy the service at `https://daily-speaking-coach.onrender.com`.
+6. Open `https://daily-speaking-coach.onrender.com/health` and confirm:
 
 ```json
 {
@@ -79,10 +79,10 @@ npx.cmd eas-cli@latest init
 
 ## 5. Configure the public production backend URL
 
-Replace the example with the exact Render HTTPS origin. Do not include `/health`, `/api`, or a trailing slash.
+Use the exact Render HTTPS origin below. Do not include `/health`, `/api`, or a trailing slash.
 
 ```bat
-set "BACKEND_URL=https://YOUR-SERVICE.onrender.com"
+set "BACKEND_URL=https://daily-speaking-coach.onrender.com"
 npx.cmd eas-cli@latest env:create --name EXPO_PUBLIC_API_URL --value "%BACKEND_URL%" --environment production --visibility plaintext
 npx.cmd eas-cli@latest env:list --environment production
 ```

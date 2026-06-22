@@ -195,13 +195,13 @@ OPENAI_MAX_OUTPUT_TOKENS=8000
 Deploy sonrasi Render URL'i su formatta olur:
 
 ```text
-https://daily-speaking-coach-api.onrender.com
+https://daily-speaking-coach.onrender.com
 ```
 
 Kendi Render URL'inle health check yap:
 
 ```bash
-curl https://your-render-service.onrender.com/health
+curl https://daily-speaking-coach.onrender.com/health
 ```
 
 Beklenen cevap:
@@ -223,13 +223,13 @@ Mobil uygulama production build'de backend URL'ini sadece build-time public conf
 Yeni APK almadan once EAS/Expo build ortaminda su public env degerlerini ayarla:
 
 ```text
-EXPO_PUBLIC_API_URL=https://your-render-service.onrender.com
+EXPO_PUBLIC_API_URL=https://daily-speaking-coach.onrender.com
 ```
 
 EAS CLI ile production ortamina eklemek icin:
 
 ```bash
-eas env:create --name EXPO_PUBLIC_API_URL --value https://your-render-service.onrender.com --environment production --visibility plaintext
+eas env:create --name EXPO_PUBLIC_API_URL --value https://daily-speaking-coach.onrender.com --environment production --visibility plaintext
 ```
 
 Sonra APK build al:
@@ -238,43 +238,7 @@ Sonra APK build al:
 eas build --platform android --profile apk
 ```
 
-`apk` profili paylasilabilir bir Android APK uretir ve production EAS environment degerlerini kullanir. Production/preview build'de Settings ekraninda backend URL kullanici tarafindan degistirilemez. Development modunda local IP veya localhost girilebilir.
-
-## Telefonla Local Backend Kullanimi
-
-Telefon ve PC ayni Wi-Fi aginda olmali. PC'nin LAN IP adresini bul:
-
-```powershell
-ipconfig
-```
-
-Genelde `IPv4 Address` su sekildedir:
-
-```text
-192.168.x.x
-```
-
-Telefondan tarayicida test et:
-
-```text
-http://192.168.x.x:3001/health
-```
-
-Beklenen:
-
-```json
-{ "ok": true }
-```
-
-Uygulamada:
-
-1. `Settings` ekranina gir.
-2. `Backend API URL` alanina `http://192.168.x.x:3001` yaz.
-3. `Test Connection` butonuna bas.
-4. `Connection OK` gorunce `Save` bas.
-5. Kayit alip analizi dene.
-
-Development modunda `http://localhost`, `127.0.0.1` ve private LAN adresleri kabul edilir. Production/preview build'de sadece HTTPS allowlist Render origin kabul edilir.
+`apk` profili paylasilabilir bir Android APK uretir ve production EAS environment degerlerini kullanir. Backend URL tum build'lerde `https://daily-speaking-coach.onrender.com` olarak kilitlidir; kayitli eski localhost veya LAN ayarlari otomatik olarak degistirilir.
 
 ## Grammar Roadmap
 
@@ -319,7 +283,7 @@ PDF icin OpenAI key, backend secret veya ekstra kullanici verisi mobil uygulamay
 
 ## Opsiyonel Public Config
 
-Root `.env.example` dosyasindaki `EXPO_PUBLIC_API_URL` secret degildir. EAS production ortaminda Render HTTPS origin'ine ayarlanir. Local gelistirmede bos birakilabilir; uygulama Settings ekranina kaydedilen URL'yi kullanir.
+Root `.env.example` dosyasindaki `EXPO_PUBLIC_API_URL` secret degildir ve `https://daily-speaking-coach.onrender.com` degerine ayarlanmistir. Uygulama eski kayitli URL'leri kullanmaz; tum mobil API istekleri bu HTTPS origin'ine gider.
 
 Bu public env degiskenleri sadece ileride production/APK build dusunulurse backend URL sabitlemek icin vardir. OpenAI key icin kullanilmaz.
 

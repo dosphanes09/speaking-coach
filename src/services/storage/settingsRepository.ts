@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppSettings } from "@/types/models";
-import { getConfiguredBackendBaseUrl, isDevelopmentBuild } from "@/config/backendConfig";
+import { getConfiguredBackendBaseUrl } from "@/config/backendConfig";
 
 const SETTINGS_KEY = "daily-speaking-coach:settings:v1";
 
@@ -14,18 +14,10 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
   const normalizedSettings: AppSettings = {
     ...defaultSettings,
     ...settings,
-    backendBaseUrl: String(settings.backendBaseUrl || "").trim(),
+    backendBaseUrl: getConfiguredBackendBaseUrl(),
     themeMode: settings.themeMode === "dark" ? "dark" : "light"
   };
-
-  if (isDevelopmentBuild()) {
-    return normalizedSettings;
-  }
-
-  return {
-    ...normalizedSettings,
-    backendBaseUrl: getConfiguredBackendBaseUrl()
-  };
+  return normalizedSettings;
 }
 
 export async function loadSettings(): Promise<AppSettings> {
