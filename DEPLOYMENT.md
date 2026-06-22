@@ -98,9 +98,20 @@ npm.cmd run typecheck
 npx.cmd eas-cli@latest build --platform android --profile apk
 ```
 
-On the first build, allow EAS to generate and manage a new Android keystore. Keep using the same EAS project and keystore so future APKs can update the installed app.
+The `apk` profile is a production release build, uses EAS-managed remote credentials, and produces an installable APK rather than an AAB or development client. On the first build, allow EAS to generate and manage a new Android keystore. Keep using the same EAS project and keystore so future APKs can update the installed app.
 
-When the build finishes, open the EAS build link on each Android phone, download the APK, and approve installation from that browser. The installed app runs independently of Expo Go.
+When the build finishes, copy the APK URL from the EAS build page. Download it reliably on Windows CMD, then verify that the file is complete and contains an Android release signature before sharing it:
+
+```bat
+cd /d "C:\Projects\English Speaking"
+set "APK_URL=PASTE_THE_EAS_APK_URL_HERE"
+curl.exe -L --fail --retry 5 --retry-all-errors --output "%USERPROFILE%\Downloads\DailySpeakingCoach.apk" "%APK_URL%"
+npm.cmd run check:apk -- "%USERPROFILE%\Downloads\DailySpeakingCoach.apk"
+```
+
+Do not share the file unless `check:apk` prints `APK structure: valid`. A partially downloaded APK can look normal in the Downloads folder but Android will reject it as an invalid package. Copy the verified file to each phone, open it, and approve installation from the browser or file manager. The installed app runs independently of Expo Go.
+
+On Samsung devices, allow **Install unknown apps** for the browser or file manager used to open the APK. If Samsung **Auto Blocker** explicitly blocks the installation, temporarily turn it off, install the verified APK, and turn it on again. If Android reports a package/signature conflict, remove the older `Daily Speaking Coach` installation with package `com.yagiz.dailyspeakingcoach.render` before retrying; uninstalling removes that app's local data.
 
 On first use, open **Settings > Güvenli Cihaz Erişimi**, enter that phone's private invite code, and activate it. The invite code is not stored on the phone.
 
