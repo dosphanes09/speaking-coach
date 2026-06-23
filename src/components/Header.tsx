@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppColors, radius, spacing } from "@/theme/colors";
-import { useThemeColors } from "@/theme/ThemeProvider";
+import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 
 interface HeaderProps {
   title: string;
@@ -21,6 +21,7 @@ export function Header({
   onRightPress
 }: HeaderProps): React.JSX.Element {
   const colors = useThemeColors();
+  const themeMode = useThemeMode();
   const styles = createStyles(colors);
   const resolvedRightIcon = rightIcon ?? resolveActionIcon(rightLabel);
 
@@ -56,7 +57,10 @@ export function Header({
           <View style={styles.navPlaceholder} />
         )}
       </View>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{title}</Text>
+        {themeMode === "love" ? <Text style={styles.titleHeart}>♥</Text> : null}
+      </View>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -135,11 +139,23 @@ function createStyles(colors: AppColors) {
     navPlaceholder: {
       minWidth: 88
     },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs
+    },
     title: {
+      flexShrink: 1,
       color: colors.ink,
       fontSize: 30,
       lineHeight: 36,
       fontWeight: "800"
+    },
+    titleHeart: {
+      color: colors.accent,
+      fontSize: 21,
+      lineHeight: 28,
+      fontWeight: "900"
     },
     subtitle: {
       color: colors.muted,

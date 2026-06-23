@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from "react";
-import { AppColors, darkColors, lightColors, ThemeMode } from "./colors";
+import { AppColors, darkColors, lightColors, loveColors, ThemeMode } from "./colors";
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -20,12 +20,22 @@ export function ThemeProvider({ mode, children }: ThemeProviderProps): React.JSX
   const value = useMemo<ThemeContextValue>(
     () => ({
       mode,
-      colors: mode === "dark" ? darkColors : lightColors
+      colors: resolveThemeColors(mode)
     }),
     [mode]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+function resolveThemeColors(mode: ThemeMode): AppColors {
+  if (mode === "dark") {
+    return darkColors;
+  }
+  if (mode === "love") {
+    return loveColors;
+  }
+  return lightColors;
 }
 
 export function useThemeColors(): AppColors {

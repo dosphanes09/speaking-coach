@@ -2,7 +2,7 @@ export type TopicLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
 export type GrammarLevel = TopicLevel;
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "love";
 
 export type RecordingType = "audio" | "video";
 

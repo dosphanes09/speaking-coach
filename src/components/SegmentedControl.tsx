@@ -7,12 +7,14 @@ interface SegmentedControlProps<T extends string> {
   options: T[];
   value: T;
   onChange: (value: T) => void;
+  labels?: Partial<Record<T, string>>;
 }
 
 export function SegmentedControl<T extends string>({
   options,
   value,
-  onChange
+  onChange,
+  labels
 }: SegmentedControlProps<T>): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
@@ -29,7 +31,7 @@ export function SegmentedControl<T extends string>({
             onPress={() => onChange(option)}
             style={[styles.option, selected && styles.selected]}
           >
-            <Text style={[styles.label, selected && styles.selectedLabel]}>{option}</Text>
+            <Text style={[styles.label, selected && styles.selectedLabel]}>{labels?.[option] ?? option}</Text>
           </Pressable>
         );
       })}

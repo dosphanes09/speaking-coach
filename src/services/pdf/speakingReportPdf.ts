@@ -17,7 +17,7 @@ interface SpeakingReportPdfInput {
 }
 
 const LOW_SCORE_THRESHOLD = 65;
-const REPORT_OWNER_NAME = "Yağız Ali Küçük";
+const REPORT_OWNER_NAME = "Daily Speaking Coach";
 
 export async function createSpeakingReportPdf(input: SpeakingReportPdfInput): Promise<string> {
   const html = buildSpeakingReportHtml(input);

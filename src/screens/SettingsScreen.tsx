@@ -176,10 +176,14 @@ export function SettingsScreen({
         <Card style={styles.card}>
           <Text style={styles.label}>Tema</Text>
           <SegmentedControl<ThemeMode>
-            options={["light", "dark"]}
+            options={["light", "dark", "love"]}
+            labels={{ light: "Light", dark: "Dark", love: "Love / Aşk ❤️" }}
             value={draftSettings.themeMode}
             onChange={(themeMode) => setDraftSettings((current) => ({ ...current, themeMode }))}
           />
+          <Text style={styles.helpText}>
+            Love Mode / Aşk Mode; Dark Mode'dan ayrı, daha sıcak pembe/kırmızı vurgular ve yumuşak bir görsel ton kullanır.
+          </Text>
         </Card>
 
         <Card style={styles.card}>

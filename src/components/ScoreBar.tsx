@@ -1,7 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { DimensionValue } from "react-native";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface ScoreBarProps {
   label: string;
@@ -9,6 +10,8 @@ interface ScoreBarProps {
 }
 
 export function ScoreBar({ label, value }: ScoreBarProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
   const width = `${Math.max(0, Math.min(10, value)) * 10}%` as DimensionValue;
 
   return (
@@ -24,7 +27,8 @@ export function ScoreBar({ label, value }: ScoreBarProps): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   container: {
     gap: spacing.xs
   },
@@ -53,4 +57,5 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: colors.primary
   }
-});
+  });
+}

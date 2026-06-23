@@ -5,7 +5,8 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { MediaPreview } from "@/components/MediaPreview";
 import { AnalysisResult, AppSettings, RecordedMedia, Topic } from "@/types/models";
-import { colors, spacing } from "@/theme/colors";
+import { AppColors, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 import { analyzeSpeechWithBackend } from "@/services/backend/analyzeSpeechService";
 import { getClientId } from "@/services/storage/clientIdentity";
 
@@ -26,6 +27,8 @@ export function TranscriptScreen({
   onOpenSettings,
   onContinue
 }: TranscriptScreenProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -129,47 +132,49 @@ export function TranscriptScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1
-  },
-  content: {
-    padding: spacing.md,
-    gap: spacing.md
-  },
-  card: {
-    gap: spacing.sm
-  },
-  cardTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: "800"
-  },
-  transcriptBox: {
-    minHeight: 180,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 8,
-    padding: spacing.md,
-    backgroundColor: colors.background,
-    justifyContent: "center"
-  },
-  transcriptText: {
-    color: colors.ink,
-    fontSize: 16,
-    lineHeight: 23
-  },
-  statusText: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  error: {
-    color: colors.danger,
-    fontWeight: "700",
-    lineHeight: 20
-  },
-  actions: {
-    gap: spacing.sm
-  }
-});
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1
+    },
+    content: {
+      padding: spacing.md,
+      gap: spacing.md
+    },
+    card: {
+      gap: spacing.sm
+    },
+    cardTitle: {
+      color: colors.ink,
+      fontSize: 18,
+      fontWeight: "800"
+    },
+    transcriptBox: {
+      minHeight: 180,
+      borderWidth: 1,
+      borderColor: colors.line,
+      borderRadius: 8,
+      padding: spacing.md,
+      backgroundColor: colors.background,
+      justifyContent: "center"
+    },
+    transcriptText: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23
+    },
+    statusText: {
+      color: colors.muted,
+      fontSize: 15,
+      lineHeight: 22
+    },
+    error: {
+      color: colors.danger,
+      fontWeight: "700",
+      lineHeight: 20
+    },
+    actions: {
+      gap: spacing.sm
+    }
+  });
+}

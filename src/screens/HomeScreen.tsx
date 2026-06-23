@@ -5,7 +5,7 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SpeakingRecord, Topic } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
-import { useThemeColors } from "@/theme/ThemeProvider";
+import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
 import { StreakSummary } from "@/services/streak/streakService";
@@ -38,7 +38,9 @@ export function HomeScreen({
   onSettings
 }: HomeScreenProps): React.JSX.Element {
   const colors = useThemeColors();
+  const themeMode = useThemeMode();
   const styles = createStyles(colors);
+  const isLoveMode = themeMode === "love";
   const latestRecord = records[0];
   const latestOverallScore = latestRecord ? normalizeScores(latestRecord.scores).overall : 0;
 
@@ -47,6 +49,13 @@ export function HomeScreen({
       <Header title="Daily Speaking Coach" rightLabel="Settings" onRightPress={onSettings} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {isLoveMode ? (
+          <View style={styles.loveBanner}>
+            <Text style={styles.loveBannerIcon}>❤️</Text>
+            <Text style={styles.loveBannerText}>Her pratik biraz daha sevgiyle, biraz daha güvenle.</Text>
+          </View>
+        ) : null}
+
         <View style={styles.quickActions}>
           <HomeShortcut
             label="Kayıtlar"
@@ -116,7 +125,7 @@ export function HomeScreen({
           <AppButton label="Practice Modes" onPress={onPracticeModes} variant="ghost" />
         </View>
 
-        <Text style={styles.signature}>Made by Yağız</Text>
+        <Text style={styles.signature}>made by seni çok seven Yağız ❤️</Text>
       </ScrollView>
     </View>
   );
@@ -187,6 +196,28 @@ function createStyles(colors: AppColors) {
     quickActions: {
       flexDirection: "row",
       gap: spacing.sm
+    },
+    loveBanner: {
+      minHeight: 48,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm
+    },
+    loveBannerIcon: {
+      fontSize: 18
+    },
+    loveBannerText: {
+      flex: 1,
+      color: colors.primaryDark,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "800"
     },
     shortcut: {
       flex: 1,

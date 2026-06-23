@@ -3,13 +3,16 @@ import { StyleSheet, Text, View } from "react-native";
 import { Audio, ResizeMode, Video } from "expo-av";
 import { AppButton } from "./AppButton";
 import { RecordedMedia } from "@/types/models";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface MediaPreviewProps {
   media: RecordedMedia;
 }
 
 export function MediaPreview({ media }: MediaPreviewProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
   const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -67,7 +70,8 @@ export function MediaPreview({ media }: MediaPreviewProps): React.JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   video: {
     width: "100%",
     aspectRatio: 9 / 12,
@@ -90,4 +94,5 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontWeight: "800"
   }
-});
+  });
+}

@@ -12,7 +12,7 @@ import {
   SpeakingRecord,
   Topic
 } from "@/types/models";
-import { darkColors, lightColors, spacing } from "@/theme/colors";
+import { darkColors, lightColors, loveColors, spacing, ThemeMode } from "@/theme/colors";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { getDailyTopic, getRandomTopic } from "@/data/topics";
 import { defaultSettings, loadSettings, saveSettings } from "@/services/storage/settingsRepository";
@@ -57,8 +57,8 @@ export default function App(): React.JSX.Element {
   const [topicOverride, setTopicOverride] = useState<Topic | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const themeColors = settings.themeMode === "dark" ? darkColors : lightColors;
-  const statusBarStyle = settings.themeMode === "dark" ? "light" : "dark";
+  const themeColors = getThemeColors(settings.themeMode);
+  const statusBarStyle = settings.themeMode === "light" ? "dark" : "light";
   const freeSpeakingRecords = useMemo(
     () => records.filter((record) => !isGrammarPracticeRecord(record) && !isPictureDescriptionRecord(record)),
     [records]
@@ -456,4 +456,14 @@ function getRecentGrammarChallengeIdsByLevel(records: SpeakingRecord[]): Record<
   }
 
   return result;
+}
+
+function getThemeColors(themeMode: ThemeMode) {
+  if (themeMode === "dark") {
+    return darkColors;
+  }
+  if (themeMode === "love") {
+    return loveColors;
+  }
+  return lightColors;
 }

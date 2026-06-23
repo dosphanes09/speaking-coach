@@ -30,9 +30,25 @@ export const darkColors: AppColors = {
   warning: "#E3B552"
 };
 
+export const loveColors: AppColors = {
+  background: "#211018",
+  surface: "#351B28",
+  surfaceMuted: "#482335",
+  ink: "#FFF3F6",
+  muted: "#E9B9C6",
+  line: "#6A334A",
+  primary: "#E94B7A",
+  primaryDark: "#FF8DAA",
+  secondary: "#F2A07B",
+  accent: "#FF6F9F",
+  danger: "#FF5C78",
+  success: "#F4A7B9",
+  warning: "#F4C06A"
+};
+
 export type AppColors = typeof lightColors;
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "love";
 
 export const colors = lightColors;
 

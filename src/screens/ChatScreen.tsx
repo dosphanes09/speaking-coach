@@ -13,7 +13,8 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppSettings, ChatMessage, RecordedMedia } from "@/types/models";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 import { createMockChatReply } from "@/services/chat/mockChatService";
 import {
   clearChatMessages,
@@ -33,6 +34,8 @@ interface ChatScreenProps {
 }
 
 export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
@@ -391,7 +394,8 @@ export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Ele
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -480,4 +484,5 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1
   }
-});
+  });
+}

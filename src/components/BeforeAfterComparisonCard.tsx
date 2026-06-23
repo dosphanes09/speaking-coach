@@ -2,7 +2,8 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SCORE_LABELS } from "@/services/progress/scoreUtils";
 import { BeforeAfterComparison } from "@/services/progress/beforeAfterService";
-import { colors, radius, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
 interface BeforeAfterComparisonCardProps {
@@ -12,6 +13,8 @@ interface BeforeAfterComparisonCardProps {
 export function BeforeAfterComparisonCard({
   comparison
 }: BeforeAfterComparisonCardProps): React.JSX.Element {
+  const colors = useThemeColors();
+  const styles = createStyles(colors);
   const visibleScores = comparison.scoreChanges;
 
   return (
@@ -44,11 +47,13 @@ export function BeforeAfterComparisonCard({
           value={`${comparison.beforeErrorPatternCount} -> ${comparison.afterErrorPatternCount}`}
           delta={comparison.errorPatternDelta}
           lowerIsBetter
+          styles={styles}
         />
         <InsightLine
           label="Transcript length"
           value={`${comparison.beforeTranscriptWordCount} -> ${comparison.afterTranscriptWordCount} words`}
           delta={comparison.transcriptWordCountDelta}
+          styles={styles}
         />
         <InsightLine
           label="Words per minute"
@@ -56,6 +61,7 @@ export function BeforeAfterComparisonCard({
             comparison.afterWordsPerMinute
           )} WPM`}
           delta={comparison.wordsPerMinuteDelta}
+          styles={styles}
         />
       </View>
     </Card>
@@ -66,12 +72,14 @@ function InsightLine({
   label,
   value,
   delta,
-  lowerIsBetter = false
+  lowerIsBetter = false,
+  styles
 }: {
   label: string;
   value: string;
   delta: number;
   lowerIsBetter?: boolean;
+  styles: ReturnType<typeof createStyles>;
 }): React.JSX.Element {
   const isPositive = lowerIsBetter ? delta <= 0 : delta >= 0;
 
@@ -117,7 +125,8 @@ function formatDate(value: string): string {
   });
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
     gap: spacing.md
   },
@@ -197,4 +206,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700"
   }
-});
+  });
+}

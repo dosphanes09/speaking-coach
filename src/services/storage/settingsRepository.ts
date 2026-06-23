@@ -11,11 +11,13 @@ export const defaultSettings: AppSettings = {
 };
 
 export function normalizeSettings(settings: AppSettings): AppSettings {
+  const supportedThemeMode =
+    settings.themeMode === "dark" || settings.themeMode === "love" ? settings.themeMode : "light";
   const normalizedSettings: AppSettings = {
     ...defaultSettings,
     ...settings,
     backendBaseUrl: getConfiguredBackendBaseUrl(),
-    themeMode: settings.themeMode === "dark" ? "dark" : "light"
+    themeMode: supportedThemeMode
   };
   return normalizedSettings;
 }
