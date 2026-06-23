@@ -1,5 +1,5 @@
 import { AnalysisResult, RecordedMedia, Topic } from "@/types/models";
-import { isDevelopmentBuild, validateBackendBaseUrl } from "@/config/backendConfig";
+import { validateBackendBaseUrl } from "@/config/backendConfig";
 import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
 
 interface AnalyzeSpeechParams {
@@ -33,9 +33,9 @@ export async function analyzeSpeechWithBackend({
 }: AnalyzeSpeechParams): Promise<AnalyzeSpeechResponse> {
   const baseUrl = validateBackendBaseUrl(backendBaseUrl);
   const accessToken = await getDeviceAccessToken();
-  if (!accessToken && !isDevelopmentBuild()) {
-    throw new Error("Bu cihaz henüz etkinleştirilmedi. Ayarlar bölümünden davet kodunu gir.");
-  }
+  // Do not block locally when there is no activation token. The backend is the
+  // source of truth: REQUIRE_APP_AUTH=false accepts this request, while future
+  // invite-code deployments can still reject it with 401.
 
   const formData = new FormData();
   formData.append("topic", topic.title);
@@ -90,7 +90,10 @@ export async function analyzeSpeechWithBackend({
   if (!response.ok) {
     const error = (json as ErrorResponse).error;
     if (response.status === 401) {
-      throw new Error("Cihaz yetkisi geçersiz veya süresi dolmuş. Ayarlar bölümünden tekrar etkinleştir.");
+      throw new Error(
+        error?.message ||
+          "Backend bu analiz için cihaz aktivasyonu istiyor. Ayarlar bölümünden davet koduyla etkinleştir."
+      );
     }
     if (error?.code === "openai_not_configured") {
       throw new Error(
