@@ -2,7 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { validateBackendBaseUrl } from "@/config/backendConfig";
 import { getClientId } from "@/services/storage/clientIdentity";
 
-const ACCESS_TOKEN_KEY = "daily-speaking-coach:access-token:v1";
+const ACCESS_TOKEN_KEY = "daily-speaking-coach.access-token.v1";
 
 interface RegisterResponse {
   token?: string;
