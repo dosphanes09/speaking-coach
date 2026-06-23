@@ -89,3 +89,7 @@ export async function deactivateDevice(backendBaseUrl: string): Promise<void> {
 
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
 }
+
+export async function clearDeviceActivation(): Promise<void> {
+  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+}

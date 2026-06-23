@@ -30,3 +30,7 @@ export async function deleteRecord(recordId: string): Promise<SpeakingRecord[]> 
   await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(nextRecords));
   return nextRecords;
 }
+
+export async function clearRecords(): Promise<void> {
+  await AsyncStorage.removeItem(RECORDS_KEY);
+}

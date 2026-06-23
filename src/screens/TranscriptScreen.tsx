@@ -110,8 +110,9 @@ export function TranscriptScreen({
             onPress={handleAnalyzeSpeech}
             loading={isProcessing}
             variant="secondary"
+            icon="↻"
           />
-          <AppButton label="Open Settings" onPress={onOpenSettings} variant="ghost" />
+          <AppButton label="Open Settings" onPress={onOpenSettings} variant="ghost" icon="⚙" />
           <AppButton
             label="Show Feedback"
             onPress={() => {
@@ -120,6 +121,7 @@ export function TranscriptScreen({
               }
             }}
             disabled={!analysis || isProcessing}
+            icon="→"
           />
         </View>
       </ScrollView>

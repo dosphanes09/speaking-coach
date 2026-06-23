@@ -23,3 +23,7 @@ export async function saveListeningResult(result: ListeningGameResult): Promise<
   await AsyncStorage.setItem(LISTENING_RESULTS_KEY, JSON.stringify(nextResults));
   return nextResults;
 }
+
+export async function clearListeningResults(): Promise<void> {
+  await AsyncStorage.removeItem(LISTENING_RESULTS_KEY);
+}

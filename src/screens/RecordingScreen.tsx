@@ -250,8 +250,8 @@ export function RecordingScreen({
         ) : null}
         {status === "finished" && recordedMedia ? (
           <>
-            <AppButton label="Save and Continue" onPress={() => onRecorded(recordedMedia)} />
-            <AppButton label="Retry" onPress={retry} variant="ghost" />
+            <AppButton label="Save and Continue" onPress={() => onRecorded(recordedMedia)} icon="→" />
+            <AppButton label="Retry" onPress={retry} variant="ghost" icon="↻" />
           </>
         ) : null}
       </View>

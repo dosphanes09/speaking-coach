@@ -38,3 +38,9 @@ export async function saveSettings(settings: AppSettings): Promise<AppSettings> 
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(normalizedSettings));
   return normalizedSettings;
 }
+
+export async function resetSettings(): Promise<AppSettings> {
+  const normalizedSettings = normalizeSettings(defaultSettings);
+  await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(normalizedSettings));
+  return normalizedSettings;
+}

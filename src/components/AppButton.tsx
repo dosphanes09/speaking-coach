@@ -1,89 +1,129 @@
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonSize = "regular" | "compact";
 
 interface AppButtonProps {
   label: string;
   onPress: () => void;
   variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: string;
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function AppButton({
   label,
   onPress,
   variant = "primary",
+  size = "regular",
+  icon,
   disabled = false,
   loading = false,
+  accessibilityLabel,
   style
 }: AppButtonProps): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
+  const isDisabled = disabled || loading;
+  const isGhost = variant === "ghost";
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: disabled || loading }}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={onPress}
-      disabled={disabled || loading}
+      disabled={isDisabled}
+      hitSlop={4}
       style={({ pressed }) => [
         styles.base,
+        styles[size],
         styles[variant],
-        (disabled || loading) && styles.disabled,
-        pressed && !disabled && styles.pressed,
+        isDisabled && styles.disabled,
+        pressed && !isDisabled && styles.pressed,
         style
       ]}
     >
-      {loading ? <ActivityIndicator color={variant === "ghost" ? colors.primary : "#FFFFFF"} /> : null}
-      <Text style={[styles.label, variant === "ghost" && styles.ghostLabel]}>{label}</Text>
+      {loading ? <ActivityIndicator color={isGhost ? colors.primaryDark : "#FFFFFF"} /> : null}
+      {!loading && icon ? (
+        <Text style={[styles.icon, isGhost && styles.ghostLabel]}>{icon}</Text>
+      ) : null}
+      <Text style={[styles.label, isGhost && styles.ghostLabel]}>{label}</Text>
     </Pressable>
   );
 }
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  base: {
-    minHeight: 48,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: spacing.sm
-  },
-  primary: {
-    backgroundColor: colors.primary
-  },
-  secondary: {
-    backgroundColor: colors.accent
-  },
-  ghost: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: colors.line
-  },
-  danger: {
-    backgroundColor: colors.danger
-  },
-  disabled: {
-    opacity: 0.5
-  },
-  pressed: {
-    opacity: 0.84
-  },
-  label: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "center"
-  },
-  ghostLabel: {
-    color: colors.primaryDark
-  }
+    base: {
+      borderRadius: radius.lg,
+      paddingHorizontal: spacing.lg,
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "row",
+      gap: spacing.sm,
+      borderWidth: 1,
+      shadowColor: "#000000",
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2
+    },
+    regular: {
+      minHeight: 52,
+      paddingVertical: spacing.sm
+    },
+    compact: {
+      minHeight: 44,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.md
+    },
+    primary: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary
+    },
+    secondary: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent
+    },
+    ghost: {
+      backgroundColor: colors.surface,
+      borderColor: colors.line,
+      shadowOpacity: 0.04,
+      elevation: 1
+    },
+    danger: {
+      backgroundColor: colors.danger,
+      borderColor: colors.danger
+    },
+    disabled: {
+      opacity: 0.5
+    },
+    pressed: {
+      opacity: 0.88,
+      transform: [{ scale: 0.985 }]
+    },
+    label: {
+      color: "#FFFFFF",
+      fontSize: 16,
+      fontWeight: "800",
+      letterSpacing: 0.1,
+      textAlign: "center"
+    },
+    icon: {
+      color: "#FFFFFF",
+      fontSize: 16,
+      fontWeight: "900"
+    },
+    ghostLabel: {
+      color: colors.primaryDark
+    }
   });
 }

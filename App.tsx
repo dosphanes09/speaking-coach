@@ -18,6 +18,7 @@ import { getDailyTopic, getRandomTopic } from "@/data/topics";
 import { defaultSettings, loadSettings, saveSettings } from "@/services/storage/settingsRepository";
 import { deleteRecord, listRecords, saveRecord } from "@/services/storage/recordsRepository";
 import { listListeningResults, saveListeningResult } from "@/services/storage/listeningResultsRepository";
+import { resetAllLocalProgress } from "@/services/storage/resetProgressService";
 import { deleteMedia } from "@/services/media/mediaStorage";
 import { deleteSpeakingReportPdf } from "@/services/pdf/speakingReportPdf";
 import {
@@ -140,6 +141,15 @@ export default function App(): React.JSX.Element {
     setSettings(savedSettings);
     setTopicOverride(null);
     return savedSettings;
+  }
+
+  async function handleResetProgress(): Promise<AppSettings> {
+    const result = await resetAllLocalProgress();
+    setSettings(result.settings);
+    setRecords([]);
+    setListeningResults([]);
+    setTopicOverride(null);
+    return result.settings;
   }
 
   function showNewTopic(): void {
@@ -347,6 +357,7 @@ export default function App(): React.JSX.Element {
             settings={settings}
             onBack={() => setRoute(route.returnTo ?? { name: "home" })}
             onSave={handleSaveSettings}
+            onResetProgress={handleResetProgress}
           />
         );
       default:

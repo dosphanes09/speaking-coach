@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
@@ -18,12 +18,14 @@ interface SettingsScreenProps {
   settings: AppSettings;
   onBack: () => void;
   onSave: (settings: AppSettings) => Promise<AppSettings>;
+  onResetProgress: () => Promise<AppSettings>;
 }
 
 export function SettingsScreen({
   settings,
   onBack,
-  onSave
+  onSave,
+  onResetProgress
 }: SettingsScreenProps): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
@@ -33,6 +35,7 @@ export function SettingsScreen({
   const [inviteCode, setInviteCode] = useState("");
   const [activationStatus, setActivationStatus] = useState<"checking" | "active" | "inactive">("checking");
   const [isChangingActivation, setIsChangingActivation] = useState(false);
+  const [isResettingProgress, setIsResettingProgress] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isStatusError, setIsStatusError] = useState(false);
 
@@ -112,6 +115,44 @@ export function SettingsScreen({
       setStatusMessage(caughtError instanceof Error ? caughtError.message : "Cihaz yetkisi kaldırılamadı.");
     } finally {
       setIsChangingActivation(false);
+    }
+  }
+
+  function confirmResetProgress(): void {
+    Alert.alert(
+      "Clear all progress?",
+      "This permanently deletes local speaking records, transcripts, feedback, scores, streak data, repeated mistakes, before/after progress, listening results, chat history, and device activation on this phone. The production backend URL will be kept.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Clear All Progress",
+          style: "destructive",
+          onPress: () => {
+            void resetProgress();
+          }
+        }
+      ]
+    );
+  }
+
+  async function resetProgress(): Promise<void> {
+    try {
+      setStatusMessage("");
+      setIsStatusError(false);
+      setIsResettingProgress(true);
+      const resetSettings = await onResetProgress();
+      setDraftSettings(resetSettings);
+      setInviteCode("");
+      setActivationStatus("inactive");
+      setStatusMessage("Progress reset completed. The app is ready for a fresh start.");
+    } catch (caughtError) {
+      setIsStatusError(true);
+      setStatusMessage(caughtError instanceof Error ? caughtError.message : "Progress could not be reset.");
+    } finally {
+      setIsResettingProgress(false);
     }
   }
 
@@ -197,13 +238,32 @@ export function SettingsScreen({
             onPress={testConnection}
             loading={isTestingConnection}
             variant="secondary"
+            icon="↗"
           />
-          {statusMessage ? (
-            <Text style={isStatusError ? styles.errorText : styles.successText}>{statusMessage}</Text>
-          ) : null}
         </Card>
 
-        <AppButton label="Save" onPress={save} loading={isSaving} />
+        <Card style={styles.card}>
+          <Text style={styles.label}>Reset Progress</Text>
+          <Text style={styles.helpText}>
+            Fresh-start this phone by deleting local progress, transcripts, feedback, scores, streaks, chat history,
+            saved media references, and device activation. Your locked Render backend URL stays unchanged.
+          </Text>
+          <AppButton
+            label="Clear All Progress"
+            onPress={confirmResetProgress}
+            loading={isResettingProgress}
+            variant="danger"
+            icon="↺"
+          />
+        </Card>
+
+        {statusMessage ? (
+          <Card style={styles.card}>
+            <Text style={isStatusError ? styles.errorText : styles.successText}>{statusMessage}</Text>
+          </Card>
+        ) : null}
+
+        <AppButton label="Save" onPress={save} loading={isSaving} icon="✓" />
       </ScrollView>
     </KeyboardAvoidingView>
   );

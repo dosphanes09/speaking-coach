@@ -13,3 +13,7 @@ export async function getClientId(): Promise<string> {
   await AsyncStorage.setItem(CLIENT_ID_KEY, nextClientId);
   return nextClientId;
 }
+
+export async function resetClientId(): Promise<void> {
+  await AsyncStorage.removeItem(CLIENT_ID_KEY);
+}

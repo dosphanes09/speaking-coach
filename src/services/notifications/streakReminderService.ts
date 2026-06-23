@@ -54,6 +54,20 @@ export async function syncStreakReminder(records: SpeakingRecord[]): Promise<voi
   }
 }
 
+export async function clearStreakReminder(): Promise<void> {
+  if (Platform.OS === "web" || isExpoGo()) {
+    await AsyncStorage.removeItem(REMINDER_NOTIFICATION_KEY);
+    return;
+  }
+
+  try {
+    const Notifications = await loadNotificationsModule();
+    await cancelExistingReminder(Notifications);
+  } catch {
+    await AsyncStorage.removeItem(REMINDER_NOTIFICATION_KEY);
+  }
+}
+
 function isExpoGo(): boolean {
   return Constants.appOwnership === "expo";
 }
