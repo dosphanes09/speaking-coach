@@ -14,7 +14,7 @@ import {
 } from "@/types/models";
 import { darkColors, lightColors, loveColors, spacing, ThemeMode } from "@/theme/colors";
 import { ThemeProvider } from "@/theme/ThemeProvider";
-import { getDailyTopic, getRandomTopic } from "@/data/topics";
+import { getDailyTopic } from "@/data/topics";
 import { defaultSettings, loadSettings, saveSettings } from "@/services/storage/settingsRepository";
 import { deleteRecord, listRecords, saveRecord } from "@/services/storage/recordsRepository";
 import { listListeningResults, saveListeningResult } from "@/services/storage/listeningResultsRepository";
@@ -54,7 +54,6 @@ export default function App(): React.JSX.Element {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [records, setRecords] = useState<SpeakingRecord[]>([]);
   const [listeningResults, setListeningResults] = useState<ListeningGameResult[]>([]);
-  const [topicOverride, setTopicOverride] = useState<Topic | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const themeColors = getThemeColors(settings.themeMode);
@@ -75,8 +74,8 @@ export default function App(): React.JSX.Element {
   const streakSummary = useMemo(() => calculateStreak(records), [records]);
 
   const activeTopic = useMemo(
-    () => topicOverride ?? getDailyTopic(settings.targetLevel, new Date(), recentlyAskedTopicIds),
-    [recentlyAskedTopicIds, settings.targetLevel, topicOverride]
+    () => getDailyTopic(settings.targetLevel, new Date(), recentlyAskedTopicIds),
+    [recentlyAskedTopicIds, settings.targetLevel]
   );
 
   useEffect(() => {
@@ -139,7 +138,6 @@ export default function App(): React.JSX.Element {
   async function handleSaveSettings(nextSettings: AppSettings): Promise<AppSettings> {
     const savedSettings = await saveSettings(nextSettings);
     setSettings(savedSettings);
-    setTopicOverride(null);
     return savedSettings;
   }
 
@@ -148,12 +146,7 @@ export default function App(): React.JSX.Element {
     setSettings(result.settings);
     setRecords([]);
     setListeningResults([]);
-    setTopicOverride(null);
     return result.settings;
-  }
-
-  function showNewTopic(): void {
-    setTopicOverride(getRandomTopic(settings.targetLevel, activeTopic.id, recentlyAskedTopicIds));
   }
 
   function startGrammarSpeakingPractice(level: GrammarLevel, challenge: GrammarSpeakingChallenge): void {
@@ -202,11 +195,9 @@ export default function App(): React.JSX.Element {
   function renderHome(): React.JSX.Element {
     return (
       <HomeScreen
-        topic={activeTopic}
         records={freeSpeakingRecords}
         streakSummary={streakSummary}
         onStartThinking={() => setRoute({ name: "thinking", topic: activeTopic })}
-        onNewTopic={showNewTopic}
         onChat={() => setRoute({ name: "chat" })}
         onLearning={() => setRoute({ name: "learning" })}
         onPracticeModes={() => setRoute({ name: "practiceModes" })}
@@ -281,22 +272,28 @@ export default function App(): React.JSX.Element {
       case "thinking":
         return (
           <ThinkingScreen
-            topic={route.topic}
             initialNotes={route.thinkingNotes}
+            initialRecordingType={route.recordingType}
             onBack={() => setRoute({ name: "home" })}
-            onStartRecording={(thinkingNotes) =>
-              setRoute({ name: "recording", topic: route.topic, thinkingNotes })
+            onStartRecording={(thinkingNotes, recordingType) =>
+              setRoute({ name: "recording", topic: route.topic, thinkingNotes, recordingType, autoStart: true })
             }
           />
         );
       case "recording":
         return (
           <RecordingScreen
-            topic={route.topic}
             thinkingNotes={route.thinkingNotes}
+            initialRecordingType={route.recordingType}
+            autoStart={route.autoStart === true}
             recordingLimitSeconds={getRecommendedRecordingSeconds(route.topic)}
             onBack={() =>
-              setRoute({ name: "thinking", topic: route.topic, thinkingNotes: route.thinkingNotes })
+              setRoute({
+                name: "thinking",
+                topic: route.topic,
+                thinkingNotes: route.thinkingNotes,
+                recordingType: route.recordingType
+              })
             }
             onRecorded={(media) =>
               setRoute({ name: "transcript", topic: route.topic, media, thinkingNotes: route.thinkingNotes })
@@ -310,7 +307,12 @@ export default function App(): React.JSX.Element {
             media={route.media}
             settings={settings}
             onBack={() =>
-              setRoute({ name: "recording", topic: route.topic, thinkingNotes: route.thinkingNotes ?? "" })
+              setRoute({
+                name: "recording",
+                topic: route.topic,
+                thinkingNotes: route.thinkingNotes ?? "",
+                recordingType: route.media.type
+              })
             }
             onOpenSettings={() => setRoute({ name: "settings", returnTo: route })}
             onContinue={(transcript, analysisResult) =>

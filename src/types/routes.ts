@@ -1,4 +1,4 @@
-import { AnalysisResult, GrammarLevel, RecordedMedia, SpeakingRecord, Topic } from "./models";
+import { AnalysisResult, GrammarLevel, RecordedMedia, RecordingType, SpeakingRecord, Topic } from "./models";
 
 export type MainRoute =
   | { name: "home" }
@@ -9,8 +9,8 @@ export type MainRoute =
   | { name: "practiceModes" }
   | { name: "pictureDescription" }
   | { name: "listeningPictureGame" }
-  | { name: "thinking"; topic: Topic; thinkingNotes?: string }
-  | { name: "recording"; topic: Topic; thinkingNotes: string }
+  | { name: "thinking"; topic: Topic; thinkingNotes?: string; recordingType?: RecordingType }
+  | { name: "recording"; topic: Topic; thinkingNotes: string; recordingType?: RecordingType; autoStart?: boolean }
   | { name: "transcript"; topic: Topic; media: RecordedMedia; thinkingNotes?: string }
   | { name: "analysis"; topic: Topic; media: RecordedMedia; transcript: string; analysisResult: AnalysisResult }
   | { name: "history" }

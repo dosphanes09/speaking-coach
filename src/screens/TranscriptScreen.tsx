@@ -77,7 +77,7 @@ export function TranscriptScreen({
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Header title="Secure Analysis" subtitle={topic.title} onBack={onBack} />
+        <Header title="Secure Analysis" subtitle="Your backend is transcribing and analyzing the recording." onBack={onBack} />
 
         <MediaPreview media={media} />
 

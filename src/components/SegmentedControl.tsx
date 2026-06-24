@@ -8,13 +8,15 @@ interface SegmentedControlProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
   labels?: Partial<Record<T, string>>;
+  disabled?: boolean;
 }
 
 export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
-  labels
+  labels,
+  disabled = false
 }: SegmentedControlProps<T>): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
@@ -27,9 +29,10 @@ export function SegmentedControl<T extends string>({
           <Pressable
             key={option}
             accessibilityRole="button"
-            accessibilityState={{ selected }}
+            accessibilityState={{ selected, disabled }}
             onPress={() => onChange(option)}
-            style={[styles.option, selected && styles.selected]}
+            disabled={disabled}
+            style={[styles.option, selected && styles.selected, disabled && styles.disabled]}
           >
             <Text style={[styles.label, selected && styles.selectedLabel]}>{labels?.[option] ?? option}</Text>
           </Pressable>
@@ -58,6 +61,9 @@ function createStyles(colors: AppColors) {
   },
   selected: {
     backgroundColor: colors.surface
+  },
+  disabled: {
+    opacity: 0.55
   },
   label: {
     color: colors.muted,

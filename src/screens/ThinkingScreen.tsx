@@ -1,37 +1,51 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { useCountdown } from "@/hooks/useCountdown";
-import { Topic } from "@/types/models";
+import { RecordingType } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { THINKING_SECONDS } from "@/utils/practiceTiming";
 
 interface ThinkingScreenProps {
-  topic: Topic;
   initialNotes?: string;
+  initialRecordingType?: RecordingType;
   onBack: () => void;
-  onStartRecording: (thinkingNotes: string) => void;
+  onStartRecording: (thinkingNotes: string, recordingType: RecordingType) => void;
 }
 
 export function ThinkingScreen({
-  topic,
   initialNotes = "",
+  initialRecordingType = "audio",
   onBack,
   onStartRecording
 }: ThinkingScreenProps): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
-  const [isReady, setIsReady] = useState(false);
   const [thinkingNotes, setThinkingNotes] = useState(initialNotes);
-  const completeThinking = useCallback(() => setIsReady(true), []);
+  const [recordingType, setRecordingType] = useState<RecordingType>(initialRecordingType);
+  const thinkingNotesRef = useRef(thinkingNotes);
+  const recordingTypeRef = useRef(recordingType);
+
+  const completeThinking = useCallback(() => {
+    onStartRecording(thinkingNotesRef.current, recordingTypeRef.current);
+  }, [onStartRecording]);
   const countdown = useCountdown(THINKING_SECONDS, completeThinking);
 
   useEffect(() => {
     countdown.start();
   }, []);
+
+  useEffect(() => {
+    thinkingNotesRef.current = thinkingNotes;
+  }, [thinkingNotes]);
+
+  useEffect(() => {
+    recordingTypeRef.current = recordingType;
+  }, [recordingType]);
 
   return (
     <KeyboardAvoidingView
@@ -45,14 +59,23 @@ export function ThinkingScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Header title="Think" subtitle={topic.title} onBack={onBack} />
+        <Header title="Prepare" subtitle="Recording will start automatically after preparation." onBack={onBack} />
 
         <Card style={styles.timerCard}>
           <Text style={styles.timer}>{countdown.remainingSeconds}</Text>
           <Text style={styles.timerLabel}>seconds</Text>
+          <Text style={styles.autoStartText}>Recording starts automatically when the timer reaches 0.</Text>
         </Card>
 
         <Card style={styles.notesCard}>
+          <Text style={styles.notesTitle}>Recording type</Text>
+          <SegmentedControl<RecordingType>
+            options={["audio", "video"]}
+            labels={{ audio: "Audio", video: "Video" }}
+            value={recordingType}
+            onChange={setRecordingType}
+          />
+
           <Text style={styles.notesTitle}>Private prep notes</Text>
           <Text style={styles.notesHelp}>
             Write short ideas for the 30-second thinking time. These notes are not recorded or sent to analysis.
@@ -72,11 +95,7 @@ export function ThinkingScreen({
         </Card>
 
         <View style={styles.actions}>
-          {isReady ? (
-            <AppButton label="Kayda Başla" onPress={() => onStartRecording(thinkingNotes)} />
-          ) : (
-            <AppButton label="Düşünme Süresini Atla" onPress={countdown.skip} variant="ghost" />
-          )}
+          <AppButton label="Start Recording Now" onPress={countdown.skip} variant="ghost" icon="→" />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -98,7 +117,8 @@ function createStyles(colors: AppColors) {
       minHeight: 190,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.surface
+      backgroundColor: colors.surface,
+      gap: spacing.xs
     },
     timer: {
       color: colors.primaryDark,
@@ -110,6 +130,13 @@ function createStyles(colors: AppColors) {
       color: colors.muted,
       fontSize: 18,
       fontWeight: "700"
+    },
+    autoStartText: {
+      color: colors.primaryDark,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "800",
+      textAlign: "center"
     },
     notesCard: {
       gap: spacing.sm

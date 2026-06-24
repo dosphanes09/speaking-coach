@@ -123,7 +123,7 @@ export function AnalysisScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Header title="Analysis" subtitle={topic.title} onBack={onBack} />
+      <Header title="Analysis" subtitle="Feedback for this speaking practice" onBack={onBack} />
 
       {error ? (
         <Card style={styles.errorCard}>

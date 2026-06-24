@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
-import { SpeakingRecord, Topic } from "@/types/models";
+import { SpeakingRecord } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
@@ -11,11 +11,9 @@ import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils"
 import { StreakSummary } from "@/services/streak/streakService";
 
 interface HomeScreenProps {
-  topic: Topic;
   records: SpeakingRecord[];
   streakSummary: StreakSummary;
   onStartThinking: () => void;
-  onNewTopic: () => void;
   onChat: () => void;
   onLearning: () => void;
   onPracticeModes: () => void;
@@ -25,11 +23,9 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({
-  topic,
   records,
   streakSummary,
   onStartThinking,
-  onNewTopic,
   onChat,
   onLearning,
   onPracticeModes,
@@ -86,16 +82,13 @@ export function HomeScreen({
           <Text style={styles.streakHelp}>{streakSummary.helperTextTR}</Text>
         </Card>
 
-        <Card style={styles.topicCard}>
-          <View style={styles.topicMetaRow}>
-            <Text style={styles.meta}>{topic.level}</Text>
-            <Text style={styles.meta}>{topic.category}</Text>
-          </View>
-          <Text style={styles.topicTitle}>{topic.title}</Text>
-          <View style={styles.actions}>
-            <AppButton label="Düşünmeye Başla" onPress={onStartThinking} />
-            <AppButton label="Yeni Konu" onPress={onNewTopic} variant="ghost" />
-          </View>
+        <Card style={styles.practiceCard}>
+          <Text style={styles.practiceEyebrow}>Speaking practice</Text>
+          <Text style={styles.practiceTitle}>Hazırlan, konuş, geri bildirim al.</Text>
+          <Text style={styles.practiceHelp}>
+            Konu içeride seçilir ve analiz için kullanılır. Hazırlık süresi bitince kayıt otomatik başlar.
+          </Text>
+          <AppButton label="Pratiğe Başla" onPress={onStartThinking} icon="→" />
         </Card>
 
         <View style={styles.grid}>
@@ -114,18 +107,20 @@ export function HomeScreen({
         {latestRecord ? (
           <Card style={styles.latestCard}>
             <Text style={styles.latestTitle}>Son Pratik</Text>
-            <Text style={styles.latestTopic}>{latestRecord.topic.title}</Text>
+            <Text style={styles.latestTopic}>Son konuşma kaydın hazır.</Text>
             <Text style={styles.latestMeta}>{formatReadableDate(latestRecord.createdAt)}</Text>
           </Card>
         ) : null}
 
         <View style={styles.actions}>
           <AppButton label="Anlık Sohbet" onPress={onChat} variant="secondary" />
-          <AppButton label="Grammer Pratiği" onPress={onLearning} variant="ghost" />
+          <AppButton label="Gramer Pratiği" onPress={onLearning} variant="ghost" />
           <AppButton label="Practice Modes" onPress={onPracticeModes} variant="ghost" />
         </View>
 
-        <Text style={styles.signature}>made by seni çok seven Yağız ❤️</Text>
+        <Text style={styles.signature}>
+          {isLoveMode ? "made by seni çok seven Yağız ❤️" : "made by Yağız"}
+        </Text>
       </ScrollView>
     </View>
   );
@@ -342,24 +337,26 @@ function createStyles(colors: AppColors) {
     chartBarThree: {
       height: 22
     },
-    topicCard: {
+    practiceCard: {
       gap: spacing.md
     },
-    topicMetaRow: {
-      flexDirection: "row",
-      gap: spacing.sm
-    },
-    meta: {
+    practiceEyebrow: {
       color: colors.primaryDark,
       fontSize: 13,
-      fontWeight: "800",
+      fontWeight: "900",
       textTransform: "uppercase"
     },
-    topicTitle: {
+    practiceTitle: {
       color: colors.ink,
-      fontSize: 28,
-      lineHeight: 34,
+      fontSize: 26,
+      lineHeight: 32,
       fontWeight: "900"
+    },
+    practiceHelp: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "700"
     },
     actions: {
       gap: spacing.sm

@@ -6,25 +6,27 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { RecordedMedia, RecordingType, Topic } from "@/types/models";
+import { RecordedMedia, RecordingType } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { deleteMedia, getMimeType, persistRecording } from "@/services/media/mediaStorage";
 import { clampRecordingSeconds, formatPracticeDuration } from "@/utils/practiceTiming";
 
-type RecordingStatus = "idle" | "recording" | "finished";
+type RecordingStatus = "idle" | "starting" | "recording" | "finished";
 
 interface RecordingScreenProps {
-  topic: Topic;
   thinkingNotes: string;
+  initialRecordingType?: RecordingType;
+  autoStart?: boolean;
   recordingLimitSeconds: number;
   onBack: () => void;
   onRecorded: (media: RecordedMedia) => void;
 }
 
 export function RecordingScreen({
-  topic,
   thinkingNotes,
+  initialRecordingType = "audio",
+  autoStart = false,
   recordingLimitSeconds,
   onBack,
   onRecorded
@@ -32,16 +34,19 @@ export function RecordingScreen({
   const colors = useThemeColors();
   const styles = createStyles(colors);
   const maxRecordingSeconds = clampRecordingSeconds(recordingLimitSeconds);
-  const [mode, setMode] = useState<RecordingType>("audio");
+  const [mode, setMode] = useState<RecordingType>(initialRecordingType);
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [recordedMedia, setRecordedMedia] = useState<RecordedMedia | null>(null);
   const [error, setError] = useState("");
   const [isBusy, setIsBusy] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const audioRecordingRef = useRef<Audio.Recording | null>(null);
   const cameraRef = useRef<CameraView | null>(null);
+  const autoStartAttemptedRef = useRef(false);
+  const isCameraReadyRef = useRef(false);
   const stopInProgressRef = useRef(false);
   const startedAtRef = useRef<number | null>(null);
 
@@ -116,6 +121,19 @@ export function RecordingScreen({
     return () => clearInterval(timer);
   }, [maxRecordingSeconds, status, stopRecording]);
 
+  useEffect(() => {
+    if (!autoStart || autoStartAttemptedRef.current) {
+      return undefined;
+    }
+
+    autoStartAttemptedRef.current = true;
+    const timer = setTimeout(() => {
+      void startRecording();
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [autoStart]);
+
   async function startAudioRecording(): Promise<void> {
     const permission = await Audio.requestPermissionsAsync();
     if (!permission.granted) {
@@ -152,8 +170,19 @@ export function RecordingScreen({
     }
   }
 
+  async function waitForCameraReady(): Promise<void> {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (cameraRef.current && isCameraReadyRef.current) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    throw new Error("Camera is not ready yet.");
+  }
+
   async function startVideoRecording(): Promise<void> {
-    if (!cameraRef.current) {
+    if (!cameraRef.current || !isCameraReadyRef.current) {
       throw new Error("Camera is not ready yet.");
     }
 
@@ -164,19 +193,26 @@ export function RecordingScreen({
   }
 
   async function startRecording(): Promise<void> {
+    if (status !== "idle" || isBusy) {
+      return;
+    }
+
     setError("");
     setIsBusy(true);
     setElapsedSeconds(0);
     setRecordedMedia(null);
-    startedAtRef.current = Date.now();
+    setStatus("starting");
 
     try {
       if (mode === "audio") {
         await startAudioRecording();
+        startedAtRef.current = Date.now();
         setStatus("recording");
         setIsBusy(false);
       } else {
         await ensureVideoPermissions();
+        await waitForCameraReady();
+        startedAtRef.current = Date.now();
         setStatus("recording");
         setIsBusy(false);
         void startVideoRecording().catch((caughtError) => {
@@ -208,10 +244,13 @@ export function RecordingScreen({
 
   const remainingSeconds = maxRecordingSeconds - elapsedSeconds;
   const trimmedNotes = thinkingNotes.trim();
+  const startingLabel = mode === "video" && status === "starting" && !isCameraReady
+    ? "waiting for camera"
+    : "starting automatically";
 
   return (
     <View style={styles.screen}>
-      <Header title="Record" subtitle={topic.title} onBack={onBack} />
+      <Header title="Record" subtitle="Speak naturally until the timer ends." onBack={onBack} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -226,16 +265,34 @@ export function RecordingScreen({
         ) : null}
 
         <Card style={styles.controlCard}>
-          <SegmentedControl<RecordingType> options={["audio", "video"]} value={mode} onChange={setMode} />
+          <SegmentedControl<RecordingType>
+            options={["audio", "video"]}
+            labels={{ audio: "Audio", video: "Video" }}
+            value={mode}
+            onChange={setMode}
+            disabled={status !== "idle" || isBusy}
+          />
           {mode === "video" && status !== "finished" ? (
-            <CameraView ref={cameraRef} style={styles.camera} facing="front" mode="video" />
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing="front"
+              mode="video"
+              onCameraReady={() => {
+                isCameraReadyRef.current = true;
+                setIsCameraReady(true);
+              }}
+            />
           ) : null}
           <View style={styles.timerBox}>
             <Text style={styles.timer}>{remainingSeconds}</Text>
-            <Text style={styles.timerLabel}>seconds left</Text>
+            <Text style={styles.timerLabel}>{status === "starting" ? startingLabel : "seconds left"}</Text>
             <Text style={styles.durationHint}>
               Suggested time: {formatPracticeDuration(maxRecordingSeconds)}
             </Text>
+            {autoStart && status === "idle" && !error ? (
+              <Text style={styles.autoStartHint}>Recording will begin automatically.</Text>
+            ) : null}
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </Card>
@@ -244,6 +301,9 @@ export function RecordingScreen({
       <View style={styles.actions}>
         {status === "idle" ? (
           <AppButton label="Record" onPress={startRecording} loading={isBusy} />
+        ) : null}
+        {status === "starting" ? (
+          <AppButton label="Starting Recording" onPress={() => undefined} loading disabled />
         ) : null}
         {status === "recording" ? (
           <AppButton label="Stop" onPress={stopRecording} loading={isBusy} variant="danger" />
@@ -318,6 +378,13 @@ function createStyles(colors: AppColors) {
     fontSize: 13,
     lineHeight: 19,
     fontWeight: "700",
+    marginTop: spacing.xs
+  },
+  autoStartHint: {
+    color: colors.primaryDark,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "800",
     marginTop: spacing.xs
   },
   error: {
