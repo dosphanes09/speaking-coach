@@ -14,6 +14,8 @@ import {
   isDeviceActivated
 } from "@/services/auth/deviceAuthService";
 
+type AppAuthRequirement = "checking" | "required" | "not-required" | "unknown";
+
 interface SettingsScreenProps {
   settings: AppSettings;
   onBack: () => void;
@@ -34,6 +36,7 @@ export function SettingsScreen({
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [activationStatus, setActivationStatus] = useState<"checking" | "active" | "inactive">("checking");
+  const [appAuthRequirement, setAppAuthRequirement] = useState<AppAuthRequirement>("checking");
   const [isChangingActivation, setIsChangingActivation] = useState(false);
   const [isResettingProgress, setIsResettingProgress] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -48,6 +51,10 @@ export function SettingsScreen({
       .then((active) => setActivationStatus(active ? "active" : "inactive"))
       .catch(() => setActivationStatus("inactive"));
   }, []);
+
+  useEffect(() => {
+    void refreshBackendStatus(false, settings.backendBaseUrl);
+  }, [settings.backendBaseUrl]);
 
   async function save(): Promise<void> {
     try {
@@ -66,22 +73,37 @@ export function SettingsScreen({
   }
 
   async function testConnection(): Promise<void> {
+    await refreshBackendStatus(true, draftSettings.backendBaseUrl);
+  }
+
+  async function refreshBackendStatus(showStatusMessage: boolean, backendBaseUrl: string): Promise<void> {
     try {
-      setStatusMessage("");
-      setIsStatusError(false);
-      setIsTestingConnection(true);
-      const result = await testBackendConnection(draftSettings.backendBaseUrl);
+      if (showStatusMessage) {
+        setStatusMessage("");
+        setIsStatusError(false);
+        setIsTestingConnection(true);
+      }
+      const result = await testBackendConnection(backendBaseUrl);
       const serviceLabel = result.service ? ` (${result.service})` : "";
-      setStatusMessage(
-        result.openaiConfigured === false
-          ? `Connection OK${serviceLabel}, but OPENAI_API_KEY is not configured on the backend.`
-          : `Connection OK${serviceLabel}: ${result.baseUrl}/health`
-      );
+      const authLabel = formatAuthRequirement(result.appAuthRequired);
+      setAppAuthRequirement(resolveAuthRequirement(result.appAuthRequired));
+      if (showStatusMessage) {
+        setStatusMessage(
+          result.openaiConfigured === false
+            ? `Connection OK${serviceLabel}, but OPENAI_API_KEY is not configured on the backend.${authLabel}`
+            : `Connection OK${serviceLabel}: ${result.baseUrl}/health${authLabel}`
+        );
+      }
     } catch (caughtError) {
-      setIsStatusError(true);
-      setStatusMessage(caughtError instanceof Error ? caughtError.message : "Backend connection failed.");
+      setAppAuthRequirement("unknown");
+      if (showStatusMessage) {
+        setIsStatusError(true);
+        setStatusMessage(caughtError instanceof Error ? caughtError.message : "Backend connection failed.");
+      }
     } finally {
-      setIsTestingConnection(false);
+      if (showStatusMessage) {
+        setIsTestingConnection(false);
+      }
     }
   }
 
@@ -196,7 +218,20 @@ export function SettingsScreen({
 
         <Card style={styles.card}>
           <Text style={styles.label}>Güvenli Cihaz Erişimi</Text>
-          {activationStatus === "active" ? (
+          {appAuthRequirement === "not-required" ? (
+            <>
+              <Text style={styles.successText}>
+                Mevcut Render backend davet kodu istemiyor. Bu telefonda analiz yapmak için cihaz aktivasyonu gerekli değil.
+              </Text>
+              <Text style={styles.helpText}>
+                İleride REQUIRE_APP_AUTH=true yapılırsa bu bölüm otomatik olarak davet kodu aktivasyonunu tekrar gösterecek.
+              </Text>
+            </>
+          ) : appAuthRequirement === "checking" ? (
+            <Text style={styles.helpText}>
+              Backend güvenlik modu kontrol ediliyor. Render uyanıyorsa bu birkaç saniye sürebilir.
+            </Text>
+          ) : activationStatus === "active" ? (
             <>
               <Text style={styles.successText}>Bu cihaz etkin ve konuşma analizi yapmaya yetkili.</Text>
               <AppButton
@@ -208,6 +243,12 @@ export function SettingsScreen({
             </>
           ) : (
             <>
+              {appAuthRequirement === "unknown" ? (
+                <Text style={styles.helpText}>
+                  Backend güvenlik modu doğrulanamadı. Mevcut Render kurulumu normalde davet kodu gerektirmez; bağlantıyı
+                  kontrol etmek için Test Connection kullan.
+                </Text>
+              ) : null}
               <Text style={styles.helpText}>
                 Uygulama sahibinden aldığın tek kullanımlık davet kodunu gir. Kod yalnızca aktivasyon sırasında
                 gönderilir; telefonda saklanmaz.
@@ -271,6 +312,30 @@ export function SettingsScreen({
       </ScrollView>
     </KeyboardAvoidingView>
   );
+}
+
+function resolveAuthRequirement(value: boolean | null): AppAuthRequirement {
+  if (value === true) {
+    return "required";
+  }
+
+  if (value === false) {
+    return "not-required";
+  }
+
+  return "unknown";
+}
+
+function formatAuthRequirement(value: boolean | null): string {
+  if (value === true) {
+    return " Invite-code activation is required.";
+  }
+
+  if (value === false) {
+    return " Invite-code activation is not required.";
+  }
+
+  return "";
 }
 
 function createStyles(colors: AppColors) {

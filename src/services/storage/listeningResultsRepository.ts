@@ -11,7 +11,7 @@ export async function listListeningResults(): Promise<ListeningGameResult[]> {
 
   try {
     const results = JSON.parse(raw) as ListeningGameResult[];
-    return results.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return sortResultsByNewest(results);
   } catch {
     return [];
   }
@@ -19,11 +19,15 @@ export async function listListeningResults(): Promise<ListeningGameResult[]> {
 
 export async function saveListeningResult(result: ListeningGameResult): Promise<ListeningGameResult[]> {
   const results = await listListeningResults();
-  const nextResults = [result, ...results.filter((item) => item.id !== result.id)];
+  const nextResults = sortResultsByNewest([result, ...results.filter((item) => item.id !== result.id)]);
   await AsyncStorage.setItem(LISTENING_RESULTS_KEY, JSON.stringify(nextResults));
   return nextResults;
 }
 
 export async function clearListeningResults(): Promise<void> {
   await AsyncStorage.removeItem(LISTENING_RESULTS_KEY);
+}
+
+function sortResultsByNewest(results: ListeningGameResult[]): ListeningGameResult[] {
+  return [...results].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

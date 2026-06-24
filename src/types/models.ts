@@ -198,6 +198,7 @@ export interface SpeakingAnalytics {
   averageSentenceLength: number;
   transcriptWordCount: number;
   responseDurationSeconds: number;
+  availableDurationSeconds?: number;
   clarityNotesTR: string;
 }
 

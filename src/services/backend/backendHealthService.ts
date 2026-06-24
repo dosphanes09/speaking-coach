@@ -4,12 +4,14 @@ interface HealthResponse {
   ok?: boolean;
   service?: string;
   openaiConfigured?: boolean;
+  appAuthRequired?: boolean;
 }
 
 export interface BackendConnectionTestResult {
   baseUrl: string;
   service: string | null;
   openaiConfigured: boolean | null;
+  appAuthRequired: boolean | null;
 }
 
 export async function testBackendConnection(backendBaseUrl: string): Promise<BackendConnectionTestResult> {
@@ -33,7 +35,8 @@ export async function testBackendConnection(backendBaseUrl: string): Promise<Bac
     return {
       baseUrl,
       service: typeof json.service === "string" ? json.service : null,
-      openaiConfigured: typeof json.openaiConfigured === "boolean" ? json.openaiConfigured : null
+      openaiConfigured: typeof json.openaiConfigured === "boolean" ? json.openaiConfigured : null,
+      appAuthRequired: typeof json.appAuthRequired === "boolean" ? json.appAuthRequired : null
     };
   } catch (caughtError) {
     if (caughtError instanceof Error && caughtError.name === "AbortError") {

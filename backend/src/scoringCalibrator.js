@@ -220,6 +220,7 @@ function calibrateAnalysisScores(analysis, options = {}) {
     ...(analysis.speakingAnalytics || {}),
     transcriptWordCount: stats.wordCount,
     responseDurationSeconds: stats.durationSeconds,
+    availableDurationSeconds: stats.expectedDurationSeconds,
     wordsPerMinute: stats.wordsPerMinute,
     averageSentenceLength: stats.averageSentenceLength,
     clarityNotesTR: appendFeedback(

@@ -11,7 +11,7 @@ export async function listRecords(): Promise<SpeakingRecord[]> {
 
   try {
     const records = JSON.parse(raw) as SpeakingRecord[];
-    return records.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return sortRecordsByNewest(records);
   } catch {
     return [];
   }
@@ -19,7 +19,7 @@ export async function listRecords(): Promise<SpeakingRecord[]> {
 
 export async function saveRecord(record: SpeakingRecord): Promise<SpeakingRecord[]> {
   const records = await listRecords();
-  const nextRecords = [record, ...records.filter((item) => item.id !== record.id)];
+  const nextRecords = sortRecordsByNewest([record, ...records.filter((item) => item.id !== record.id)]);
   await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(nextRecords));
   return nextRecords;
 }
@@ -33,4 +33,8 @@ export async function deleteRecord(recordId: string): Promise<SpeakingRecord[]> 
 
 export async function clearRecords(): Promise<void> {
   await AsyncStorage.removeItem(RECORDS_KEY);
+}
+
+function sortRecordsByNewest(records: SpeakingRecord[]): SpeakingRecord[] {
+  return [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

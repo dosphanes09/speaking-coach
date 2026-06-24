@@ -103,6 +103,10 @@ export function deriveSpeakingAnalytics({
   const transcriptWordCount = words.length;
   const sentences = splitSentences(transcript);
   const responseDurationSeconds = Math.max(0, Math.round(media.durationSeconds || 0));
+  const availableDurationSeconds = Math.max(
+    responseDurationSeconds,
+    Math.round(media.expectedDurationSeconds || responseDurationSeconds)
+  );
   const wordsPerMinute =
     responseDurationSeconds > 0 ? roundOneDecimal((transcriptWordCount / responseDurationSeconds) * 60) : 0;
   const averageSentenceLength =
@@ -118,6 +122,7 @@ export function deriveSpeakingAnalytics({
     averageSentenceLength,
     transcriptWordCount,
     responseDurationSeconds,
+    availableDurationSeconds,
     clarityNotesTR: buildClarityNotes({
       wordsPerMinute,
       fillerWordCount: fillerWords.reduce((sum, item) => sum + item.count, 0),

@@ -17,6 +17,7 @@ export function SpeakingAnalyticsCard({ analytics }: SpeakingAnalyticsCardProps)
     <Card style={styles.card}>
       <View style={styles.grid}>
         <Metric colors={colors} label="CEFR" value={analytics.estimatedCEFRLevel} />
+        <Metric colors={colors} label="Time Used" value={formatTimeUsage(analytics)} />
         <Metric colors={colors} label="WPM" value={formatNumber(analytics.wordsPerMinute)} />
         <Metric colors={colors} label="Words" value={formatNumber(analytics.transcriptWordCount)} />
         <Metric colors={colors} label="Avg Sentence" value={formatNumber(analytics.averageSentenceLength)} />
@@ -82,6 +83,17 @@ function formatNumber(value: number): string {
   }
 
   return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+}
+
+function formatTimeUsage(analytics: SpeakingAnalytics): string {
+  const usedSeconds = Math.max(0, Math.round(analytics.responseDurationSeconds || 0));
+  const availableSeconds = Math.max(usedSeconds, Math.round(analytics.availableDurationSeconds || 0));
+
+  if (availableSeconds > usedSeconds) {
+    return `${usedSeconds}/${availableSeconds}s`;
+  }
+
+  return usedSeconds > 0 ? `${usedSeconds}s` : "-";
 }
 
 function createStyles(colors: AppColors) {

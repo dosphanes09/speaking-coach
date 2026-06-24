@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AppButton } from "@/components/AppButton";
@@ -78,30 +78,33 @@ export default function App(): React.JSX.Element {
     [recentlyAskedTopicIds, settings.targetLevel]
   );
 
+  const loadAppData = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    setLoadError("");
+
+    try {
+      const [loadedSettings, loadedRecords, loadedListeningResults] = await Promise.all([
+        loadSettings(),
+        listRecords(),
+        listListeningResults()
+      ]);
+      setSettings(loadedSettings);
+      setRecords(loadedRecords);
+      setListeningResults(loadedListeningResults);
+    } catch (caughtError) {
+      setLoadError(caughtError instanceof Error ? caughtError.message : "App could not be loaded.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const disableImmersiveMode = enableAndroidImmersiveMode();
 
-    async function boot(): Promise<void> {
-      try {
-        const [loadedSettings, loadedRecords, loadedListeningResults] = await Promise.all([
-          loadSettings(),
-          listRecords(),
-          listListeningResults()
-        ]);
-        setSettings(loadedSettings);
-        setRecords(loadedRecords);
-        setListeningResults(loadedListeningResults);
-      } catch (caughtError) {
-        setLoadError(caughtError instanceof Error ? caughtError.message : "App could not be loaded.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    void boot();
+    void loadAppData();
 
     return disableImmersiveMode;
-  }, []);
+  }, [loadAppData]);
 
   useEffect(() => {
     if (isLoading) {
@@ -389,7 +392,7 @@ export default function App(): React.JSX.Element {
           <StatusBar style={statusBarStyle} />
           <View style={[styles.loadingScreen, { backgroundColor: themeColors.background }]}>
           <Text style={[styles.errorText, { color: themeColors.danger }]}>{loadError}</Text>
-          <AppButton label="Tekrar Dene" onPress={() => setLoadError("")} />
+          <AppButton label="Tekrar Dene" onPress={() => void loadAppData()} />
           </View>
         </ThemeProvider>
       </SafeAreaView>

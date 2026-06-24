@@ -124,7 +124,8 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: config.serviceName,
-    openaiConfigured: Boolean(config.openAiApiKey)
+    openaiConfigured: Boolean(config.openAiApiKey),
+    appAuthRequired: config.requireAppAuth
   });
 });
 
