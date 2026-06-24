@@ -3,6 +3,7 @@ const { config } = require("./config");
 const { HttpError } = require("./errors");
 const { analysisJsonSchema } = require("./analysisSchema");
 const { buildSpeakingAnalysisPrompt } = require("./prompt");
+const { calibrateAnalysisScores } = require("./scoringCalibrator");
 
 function retryableStatus(status) {
   return status === 408 || status === 409 || status === 429 || status >= 500;
@@ -101,7 +102,8 @@ function extractOutputText(responseJson) {
   throw new HttpError(502, "invalid_openai_response", "Speech analysis service returned an invalid response.");
 }
 
-async function analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext = null) {
+async function analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext = null, options = {}) {
+  const expectedDurationSeconds = options.expectedDurationSeconds || durationSeconds;
   const response = await fetchWithTimeoutAndRetry("https://api.openai.com/v1/responses", () => ({
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -123,7 +125,9 @@ async function analyzeTranscript(topic, transcript, level, durationSeconds, anal
           content: [
             {
               type: "input_text",
-              text: buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext)
+              text: buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
+                expectedDurationSeconds
+              })
             }
           ]
         }
@@ -142,9 +146,14 @@ async function analyzeTranscript(topic, transcript, level, durationSeconds, anal
 
   const json = await response.json();
   const parsed = JSON.parse(extractOutputText(json));
+  const calibrated = calibrateAnalysisScores(parsed, {
+    transcript,
+    durationSeconds,
+    expectedDurationSeconds
+  });
 
   return {
-    ...parsed,
+    ...calibrated,
     generatedBy: "backend",
     createdAt: new Date().toISOString()
   };

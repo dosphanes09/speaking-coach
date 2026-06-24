@@ -171,6 +171,7 @@ export interface RecordedMedia {
   uri: string;
   type: RecordingType;
   durationSeconds: number;
+  expectedDurationSeconds?: number;
   mimeType: string;
 }
 

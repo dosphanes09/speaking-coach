@@ -50,13 +50,15 @@ Expected grammar structures: ${pictureDescription.expectedGrammarStructures || "
 Speaking prompt: ${pictureDescription.speakingPrompt || "not provided"}`;
 }
 
-function buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext) {
+function buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, options = {}) {
   const { grammarFocus, pictureDescription } = normalizeAnalysisContext(analysisContext);
+  const expectedDurationSeconds = Number(options.expectedDurationSeconds || durationSeconds);
 
   return `You are an English speaking coach. Analyze the following speaking transcript like a professional language teacher.
 
 Learner level: ${level}
-Recording duration seconds: ${durationSeconds}
+Actual speaking duration seconds: ${durationSeconds}
+Available speaking time / expected duration seconds: ${expectedDurationSeconds}
 
 Targeted grammar focus:
 ${formatGrammarFocus(grammarFocus)}
@@ -79,6 +81,19 @@ Return detailed but mobile-readable feedback:
 6. Connector suggestions for adding, contrast, reason, example, and conclusion
 7. At least 5 sentence-building patterns with formula and example
 8. Scores from 0 to 100 for grammar, vocabulary, fluency, pronunciation, coherence, naturalness, and overall
+   Use this CEFR/IELTS-inspired scoring structure:
+   - Grammar Accuracy: 25%
+   - Fluency & Coherence: 25%
+   - Content & Relevance: 25%
+   - Vocabulary Range: 15%
+   - Task Completion: 10%
+   Task Completion includes answer completeness, level of detail, effective use of available speaking time, and whether the topic was adequately addressed.
+   Do not give a high overall score merely because a short sentence is grammatically correct.
+   Penalize very short answers even when grammar is accurate. One simple sentence should not score above the intermediate range.
+   Compare transcript length, sentence count, and actual speaking duration with the available speaking time.
+   If the learner used only a small part of the available time, lower fluency/coherence/content/task completion and explain it supportively.
+   Use feedback like: "Your grammar was accurate, but the response was too short and did not use the available speaking time effectively."
+   If transcription confidence is unavailable, do not pretend to know exact pronunciation quality; make pronunciation feedback transcript-based.
 9. speakingAnalytics:
    - estimatedCEFRLevel
    - wordsPerMinute, calculated from transcript word count and recording duration

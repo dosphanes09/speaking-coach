@@ -26,6 +26,13 @@ export function ScoreBreakdownCard({ analysis }: ScoreBreakdownCardProps): React
 
   return (
     <Card style={styles.card}>
+      <View style={styles.rubricIntro}>
+        <Text style={styles.rubricTitle}>Score rubric</Text>
+        <Text style={styles.rubricText}>
+          Overall score considers grammar, fluency/coherence, content relevance, vocabulary range, and task completion.
+          Short answers are capped even when grammar is accurate.
+        </Text>
+      </View>
       {items.map((item) => (
         <View key={item.metric} style={styles.item}>
           <View style={styles.headerRow}>
@@ -152,6 +159,19 @@ function createStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.md
+  },
+  rubricIntro: {
+    gap: spacing.xs
+  },
+  rubricTitle: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  rubricText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19
   },
   item: {
     gap: spacing.sm,

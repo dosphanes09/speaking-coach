@@ -41,6 +41,7 @@ export async function analyzeSpeechWithBackend({
   formData.append("topic", topic.title);
   formData.append("level", topic.level);
   formData.append("durationSeconds", String(media.durationSeconds));
+  formData.append("expectedDurationSeconds", String(media.expectedDurationSeconds ?? media.durationSeconds));
   if (topic.grammarFocus) {
     formData.append("grammarCefrLevel", topic.grammarFocus.cefrLevel);
     formData.append("grammarTopic", topic.grammarFocus.grammarTopic);

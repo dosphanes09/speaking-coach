@@ -51,6 +51,15 @@ function validateDurationSeconds(value) {
   return duration;
 }
 
+function validateOptionalDurationSeconds(value, fallback) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const duration = validateDurationSeconds(value);
+  return Math.max(duration, fallback);
+}
+
 async function readDetectedMime(filePath) {
   const { fileTypeFromFile } = await import("file-type");
   const detected = await fileTypeFromFile(filePath);
@@ -108,5 +117,6 @@ module.exports = {
   validateOptionalTextField,
   validateLevel,
   validateDurationSeconds,
+  validateOptionalDurationSeconds,
   validateUploadedFile
 };

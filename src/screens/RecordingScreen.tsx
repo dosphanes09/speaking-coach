@@ -60,6 +60,7 @@ export function RecordingScreen({
         uri: persistedUri,
         type: recordingType,
         durationSeconds,
+        expectedDurationSeconds: maxRecordingSeconds,
         mimeType: getMimeType(recordingType)
       });
       setElapsedSeconds(durationSeconds);

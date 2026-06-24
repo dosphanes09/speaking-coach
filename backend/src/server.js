@@ -14,6 +14,7 @@ const { assertDailyLimit } = require("./dailyLimitStore");
 const {
   validateDurationSeconds,
   validateLevel,
+  validateOptionalDurationSeconds,
   validateOptionalTextField,
   validateTextField,
   validateUploadedFile
@@ -159,6 +160,7 @@ app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), a
     const topic = validateTextField(req.body.topic, "topic", 200);
     const level = validateLevel(req.body.level);
     const durationSeconds = validateDurationSeconds(req.body.durationSeconds);
+    const expectedDurationSeconds = validateOptionalDurationSeconds(req.body.expectedDurationSeconds, durationSeconds);
     const grammarCefrLevel = validateOptionalTextField(req.body.grammarCefrLevel, "grammarCefrLevel", 20);
     const grammarTopic = validateOptionalTextField(req.body.grammarTopic, "grammarTopic", 120);
     const expectedGrammarStructures = validateOptionalTextField(
@@ -242,7 +244,9 @@ app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), a
       pictureDescription
     };
 
-    const analysis = await analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext);
+    const analysis = await analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext, {
+      expectedDurationSeconds
+    });
 
     res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
     res.json({
