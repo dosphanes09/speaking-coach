@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
@@ -37,6 +47,7 @@ export function SettingsScreen({
   const [inviteCode, setInviteCode] = useState("");
   const [activationStatus, setActivationStatus] = useState<"checking" | "active" | "inactive">("checking");
   const [appAuthRequirement, setAppAuthRequirement] = useState<AppAuthRequirement>("checking");
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [isChangingActivation, setIsChangingActivation] = useState(false);
   const [isResettingProgress, setIsResettingProgress] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -83,10 +94,12 @@ export function SettingsScreen({
         setIsStatusError(false);
         setIsTestingConnection(true);
       }
+
       const result = await testBackendConnection(backendBaseUrl);
       const serviceLabel = result.service ? ` (${result.service})` : "";
       const authLabel = formatAuthRequirement(result.appAuthRequired);
       setAppAuthRequirement(resolveAuthRequirement(result.appAuthRequired));
+
       if (showStatusMessage) {
         setStatusMessage(
           result.openaiConfigured === false
@@ -184,7 +197,7 @@ export function SettingsScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        <Header title="Settings" subtitle="Backend-only secure speech analysis" onBack={onBack} />
+        <Header title="Settings" subtitle="Daily practice, theme, and local data" onBack={onBack} />
 
         <Card style={styles.card}>
           <Text style={styles.label}>Target Level</Text>
@@ -209,85 +222,6 @@ export function SettingsScreen({
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.label}>Aktif Backend URL</Text>
-          <Text style={styles.lockedValue}>{settings.backendBaseUrl || "Kaydedilmedi"}</Text>
-          <Text style={styles.helpText}>
-            Tüm analiz, aktivasyon ve bağlantı kontrolleri bu kilitli Render HTTPS adresini kullanır.
-          </Text>
-        </Card>
-
-        <Card style={styles.card}>
-          <Text style={styles.label}>Güvenli Cihaz Erişimi</Text>
-          {appAuthRequirement === "not-required" ? (
-            <>
-              <Text style={styles.successText}>
-                Mevcut Render backend davet kodu istemiyor. Bu telefonda analiz yapmak için cihaz aktivasyonu gerekli değil.
-              </Text>
-              <Text style={styles.helpText}>
-                İleride REQUIRE_APP_AUTH=true yapılırsa bu bölüm otomatik olarak davet kodu aktivasyonunu tekrar gösterecek.
-              </Text>
-            </>
-          ) : appAuthRequirement === "checking" ? (
-            <Text style={styles.helpText}>
-              Backend güvenlik modu kontrol ediliyor. Render uyanıyorsa bu birkaç saniye sürebilir.
-            </Text>
-          ) : activationStatus === "active" ? (
-            <>
-              <Text style={styles.successText}>Bu cihaz etkin ve konuşma analizi yapmaya yetkili.</Text>
-              <AppButton
-                label="Cihaz Yetkisini Kaldır"
-                onPress={deactivate}
-                loading={isChangingActivation}
-                variant="danger"
-              />
-            </>
-          ) : (
-            <>
-              {appAuthRequirement === "unknown" ? (
-                <Text style={styles.helpText}>
-                  Backend güvenlik modu doğrulanamadı. Mevcut Render kurulumu normalde davet kodu gerektirmez; bağlantıyı
-                  kontrol etmek için Test Connection kullan.
-                </Text>
-              ) : null}
-              <Text style={styles.helpText}>
-                Uygulama sahibinden aldığın tek kullanımlık davet kodunu gir. Kod yalnızca aktivasyon sırasında
-                gönderilir; telefonda saklanmaz.
-              </Text>
-              <TextInput
-                value={inviteCode}
-                onChangeText={setInviteCode}
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry
-                placeholder="Davet kodu"
-                placeholderTextColor={colors.muted}
-                style={styles.input}
-              />
-              <AppButton
-                label={activationStatus === "checking" ? "Kontrol Ediliyor" : "Cihazı Etkinleştir"}
-                onPress={activate}
-                loading={isChangingActivation || activationStatus === "checking"}
-                disabled={!inviteCode.trim()}
-              />
-            </>
-          )}
-        </Card>
-
-        <Card style={styles.card}>
-          <Text style={styles.label}>Backend Health Check</Text>
-          <Text style={styles.helpText}>
-            Tests GET /health using the URL currently shown in this settings form.
-          </Text>
-          <AppButton
-            label="Test Connection"
-            onPress={testConnection}
-            loading={isTestingConnection}
-            variant="secondary"
-            icon="↗"
-          />
-        </Card>
-
-        <Card style={styles.card}>
           <Text style={styles.label}>Reset Progress</Text>
           <Text style={styles.helpText}>
             Fresh-start this phone by deleting local progress, transcripts, feedback, scores, streaks, chat history,
@@ -301,6 +235,108 @@ export function SettingsScreen({
             icon="↺"
           />
         </Card>
+
+        <Card style={styles.card}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isAdvancedOpen }}
+            onPress={() => setIsAdvancedOpen((current) => !current)}
+            style={({ pressed }) => [styles.advancedHeader, pressed ? styles.pressed : null]}
+          >
+            <View style={styles.advancedTitleBlock}>
+              <Text style={styles.label}>Gelişmiş</Text>
+              <Text style={styles.advancedTitle}>Backend ve davet kodu ayarları</Text>
+              <Text style={styles.helpText}>
+                Normal kullanımda burayı açmana gerek yok. Bağlantı testi, Render URL ve cihaz aktivasyonu burada.
+              </Text>
+            </View>
+            <Text style={styles.advancedIcon}>{isAdvancedOpen ? "−" : "+"}</Text>
+          </Pressable>
+        </Card>
+
+        {isAdvancedOpen ? (
+          <>
+            <Card style={styles.card}>
+              <Text style={styles.label}>Aktif Backend URL</Text>
+              <Text style={styles.lockedValue}>{settings.backendBaseUrl || "Kaydedilmedi"}</Text>
+              <Text style={styles.helpText}>
+                Tüm analiz, aktivasyon ve bağlantı kontrolleri bu kilitli Render HTTPS adresini kullanır.
+              </Text>
+            </Card>
+
+            <Card style={styles.card}>
+              <Text style={styles.label}>Davet Kodu / Cihaz Aktivasyonu</Text>
+              {appAuthRequirement === "not-required" ? (
+                <>
+                  <Text style={styles.successText}>
+                    Mevcut Render backend davet kodu istemiyor. Bu telefonda analiz yapmak için cihaz aktivasyonu gerekli değil.
+                  </Text>
+                  <Text style={styles.helpText}>
+                    Davet kodu modu hazır. Açmak istediğinde Render'da REQUIRE_APP_AUTH=true yapıp AUTH_TOKEN_SECRET,
+                    APP_INVITE_CODES ve Upstash Redis bilgilerini eklemen yeterli.
+                  </Text>
+                </>
+              ) : appAuthRequirement === "checking" ? (
+                <Text style={styles.helpText}>
+                  Backend güvenlik modu kontrol ediliyor. Render uyanıyorsa bu birkaç saniye sürebilir.
+                </Text>
+              ) : activationStatus === "active" ? (
+                <>
+                  <Text style={styles.successText}>Bu cihaz etkin ve konuşma analizi yapmaya yetkili.</Text>
+                  <AppButton
+                    label="Cihaz Yetkisini Kaldır"
+                    onPress={deactivate}
+                    loading={isChangingActivation}
+                    variant="danger"
+                  />
+                </>
+              ) : (
+                <>
+                  {appAuthRequirement === "unknown" ? (
+                    <Text style={styles.helpText}>
+                      Backend güvenlik modu doğrulanamadı. Mevcut Render kurulumu normalde davet kodu gerektirmez;
+                      bağlantıyı kontrol etmek için Test Connection kullan.
+                    </Text>
+                  ) : null}
+                  <Text style={styles.helpText}>
+                    Uygulama sahibinden aldığın tek kullanımlık davet kodunu gir. Kod yalnızca aktivasyon sırasında
+                    gönderilir; telefonda saklanmaz.
+                  </Text>
+                  <TextInput
+                    value={inviteCode}
+                    onChangeText={setInviteCode}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                    placeholder="Davet kodu"
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
+                  />
+                  <AppButton
+                    label={activationStatus === "checking" ? "Kontrol Ediliyor" : "Cihazı Etkinleştir"}
+                    onPress={activate}
+                    loading={isChangingActivation || activationStatus === "checking"}
+                    disabled={!inviteCode.trim()}
+                  />
+                </>
+              )}
+            </Card>
+
+            <Card style={styles.card}>
+              <Text style={styles.label}>Backend Health Check</Text>
+              <Text style={styles.helpText}>
+                Render backend çalışıyor mu, OpenAI anahtarı tanımlı mı ve davet kodu gerekiyor mu diye kontrol eder.
+              </Text>
+              <AppButton
+                label="Test Connection"
+                onPress={testConnection}
+                loading={isTestingConnection}
+                variant="secondary"
+                icon="↗"
+              />
+            </Card>
+          </>
+        ) : null}
 
         {statusMessage ? (
           <Card style={styles.card}>
@@ -340,54 +376,85 @@ function formatAuthRequirement(value: boolean | null): string {
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  screen: {
-    flex: 1
-  },
-  content: {
-    padding: spacing.md,
-    gap: spacing.md
-  },
-  card: {
-    gap: spacing.sm
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  input: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    color: colors.ink,
-    fontSize: 16,
-    backgroundColor: colors.background
-  },
-  helpText: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19
-  },
-  lockedValue: {
-    color: colors.ink,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: "800"
-  },
-  successText: {
-    color: colors.success,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: "800"
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: "800"
-  }
+    screen: {
+      flex: 1
+    },
+    content: {
+      padding: spacing.md,
+      gap: spacing.md
+    },
+    card: {
+      gap: spacing.sm
+    },
+    advancedHeader: {
+      minHeight: 72,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md
+    },
+    advancedTitleBlock: {
+      flex: 1,
+      gap: spacing.xs
+    },
+    advancedTitle: {
+      color: colors.ink,
+      fontSize: 18,
+      fontWeight: "900"
+    },
+    advancedIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      overflow: "hidden",
+      backgroundColor: colors.surfaceMuted,
+      color: colors.primaryDark,
+      fontSize: 24,
+      lineHeight: 34,
+      fontWeight: "900",
+      textAlign: "center"
+    },
+    pressed: {
+      opacity: 0.82
+    },
+    label: {
+      color: colors.muted,
+      fontSize: 12,
+      fontWeight: "900",
+      textTransform: "uppercase"
+    },
+    input: {
+      minHeight: 48,
+      borderWidth: 1,
+      borderColor: colors.line,
+      borderRadius: 8,
+      paddingHorizontal: spacing.md,
+      color: colors.ink,
+      fontSize: 16,
+      backgroundColor: colors.background
+    },
+    helpText: {
+      color: colors.muted,
+      fontSize: 13,
+      lineHeight: 19
+    },
+    lockedValue: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 22,
+      fontWeight: "800"
+    },
+    successText: {
+      color: colors.success,
+      fontSize: 13,
+      lineHeight: 19,
+      fontWeight: "800"
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: 13,
+      lineHeight: 19,
+      fontWeight: "800"
+    }
   });
 }

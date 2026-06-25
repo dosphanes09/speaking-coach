@@ -58,11 +58,38 @@ The repository ignores `.env`, `backend/.env`, signing files, and local Codex/Ex
 {
   "ok": true,
   "service": "daily-speaking-coach-api",
-  "openaiConfigured": true
+  "openaiConfigured": true,
+  "appAuthRequired": true
 }
 ```
 
 The backend fails closed if required production secrets are missing. Also configure an OpenAI project budget and billing alert.
+
+### Invite-code mode
+
+Use invite-code mode when you want only approved phones to use your OpenAI-backed analysis endpoint.
+
+- `REQUIRE_APP_AUTH=false`: easiest sharing mode. Anyone with the APK can use analysis.
+- `REQUIRE_APP_AUTH=true`: invite-code mode. Each phone must activate once from **Settings > Gelişmiş > Davet Kodu / Cihaz Aktivasyonu**.
+
+For invite-code mode on Render, set:
+
+```txt
+REQUIRE_APP_AUTH=true
+AUTH_TOKEN_SECRET=<generated secret>
+APP_INVITE_CODES=<comma-separated generated invite codes>
+UPSTASH_REDIS_REST_URL=<your Upstash HTTPS REST URL>
+UPSTASH_REDIS_REST_TOKEN=<your Upstash REST token>
+```
+
+Generate those values locally:
+
+```bat
+cd /d "C:\Projects\English Speaking\backend"
+npm.cmd run generate:security-secrets -- 3
+```
+
+Give each person one invite code privately. The app never stores the invite code itself; after activation it stores only a signed access token in SecureStore.
 
 ## 4. Link the project to EAS
 
