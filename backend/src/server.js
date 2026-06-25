@@ -17,6 +17,7 @@ const {
   validateOptionalDurationSeconds,
   validateOptionalTextField,
   validateTextField,
+  validateUploadMetadata,
   validateUploadedFile
 } = require("./validation");
 const { analyzeTranscript, transcribeFile } = require("./openaiClient");
@@ -40,6 +41,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
+  fileFilter: (_req, file, callback) => {
+    try {
+      validateUploadMetadata(file.originalname, file.mimetype);
+      callback(null, true);
+    } catch (error) {
+      callback(error);
+    }
+  },
   limits: {
     fileSize: config.maxFileSizeBytes,
     fieldSize: 4096,
@@ -209,7 +218,7 @@ app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), a
     const fileInfo = await validateUploadedFile(req.file);
     const dailyLimit = await assertDailyLimit(req, config.maxDailyAnalysesPerUser);
 
-    const transcript = await transcribeFile(req.file.path, fileInfo.mimeType, req.file.originalname);
+    const transcript = await transcribeFile(req.file.path, fileInfo.mimeType, `speaking-practice${fileInfo.extension}`);
     if (!transcript) {
       throw new HttpError(422, "empty_transcript", "Transcript could not be created from this recording.");
     }

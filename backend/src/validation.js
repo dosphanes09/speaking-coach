@@ -51,6 +51,19 @@ function validateDurationSeconds(value) {
   return duration;
 }
 
+function validateUploadMetadata(originalName, mimeType) {
+  const extension = path.extname(String(originalName || "")).toLowerCase();
+  if (!allowedExtensions.has(extension)) {
+    throw new HttpError(400, "invalid_file_type", "File extension is not allowed.");
+  }
+
+  if (!allowedMimeTypes.has(String(mimeType || ""))) {
+    throw new HttpError(400, "invalid_file_type", "File MIME type is not allowed.");
+  }
+
+  return extension;
+}
+
 function validateOptionalDurationSeconds(value, fallback) {
   if (value === undefined || value === null || value === "") {
     return fallback;
@@ -81,14 +94,7 @@ async function validateUploadedFile(file) {
     throw new HttpError(400, "missing_file", "Audio file is required.");
   }
 
-  const extension = path.extname(file.originalname || "").toLowerCase();
-  if (!allowedExtensions.has(extension)) {
-    throw new HttpError(400, "invalid_file_type", "File extension is not allowed.");
-  }
-
-  if (!allowedMimeTypes.has(file.mimetype)) {
-    throw new HttpError(400, "invalid_file_type", "File MIME type is not allowed.");
-  }
+  const extension = validateUploadMetadata(file.originalname, file.mimetype);
 
   const stats = await fs.stat(file.path);
   if (stats.size <= 0 || stats.size > config.maxFileSizeBytes) {
@@ -118,5 +124,6 @@ module.exports = {
   validateLevel,
   validateDurationSeconds,
   validateOptionalDurationSeconds,
+  validateUploadMetadata,
   validateUploadedFile
 };

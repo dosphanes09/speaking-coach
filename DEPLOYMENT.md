@@ -8,12 +8,15 @@ This runbook produces a shareable Android APK. Expo Go and a locally running PC 
 - Online API: Express in `backend/`.
 - API hosting: Render Blueprint configured by `render.yaml`.
 - OpenAI calls are made only by the Express backend.
-- OpenAI, Redis, signing, and invite secrets exist only in Render.
-- Each phone redeems one private invite code and receives a signed token stored with Expo SecureStore.
-- Active-device state and daily quotas are persisted in Upstash Redis.
+- OpenAI secrets exist only in Render.
+- Invite-code mode is optional. When enabled, Redis, signing, and invite secrets exist only in Render.
+- In invite-code mode, each phone redeems one private invite code and receives a signed token stored with Expo SecureStore.
+- In invite-code mode, active-device state and daily quotas are persisted in Upstash Redis.
 - Android cloud backup is disabled for locally stored recordings and transcripts.
 
-## 1. Create Redis and authentication secrets
+## 1. Optional: create Redis and authentication secrets
+
+Skip this section while `REQUIRE_APP_AUTH=false`. The APK will not ask for an invite code in that mode.
 
 1. Create an Upstash Redis database at `https://console.upstash.com/`.
 2. Copy its `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` values.
@@ -45,21 +48,23 @@ The repository ignores `.env`, `backend/.env`, signing files, and local Codex/Ex
 1. Push the latest repository state to GitHub.
 2. In Render, choose **New > Blueprint** and connect this repository. This creates the Web Service from `render.yaml`.
 3. Alternatively choose **New > Web Service** and set Root Directory `backend`, Build Command `npm ci`, Start Command `npm start`, and Health Check Path `/health`.
-4. Enter all requested secrets:
+4. Enter the required OpenAI secret:
    - `OPENAI_API_KEY`
+5. For invite-code mode only, also enter:
    - `AUTH_TOKEN_SECRET`
    - `APP_INVITE_CODES`
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
-5. Deploy the service at `https://daily-speaking-coach.onrender.com`.
-6. Open `https://daily-speaking-coach.onrender.com/health` and confirm:
+6. Keep `REQUIRE_APP_AUTH=false` for easy sharing, or set it to `true` after adding the invite-code secrets.
+7. Deploy the service at `https://daily-speaking-coach.onrender.com`.
+8. Open `https://daily-speaking-coach.onrender.com/health` and confirm:
 
 ```json
 {
   "ok": true,
   "service": "daily-speaking-coach-api",
   "openaiConfigured": true,
-  "appAuthRequired": true
+  "appAuthRequired": false
 }
 ```
 
@@ -140,7 +145,7 @@ Do not share the file unless `check:apk` prints `APK structure: valid`. A partia
 
 On Samsung devices, allow **Install unknown apps** for the browser or file manager used to open the APK. If Samsung **Auto Blocker** explicitly blocks the installation, temporarily turn it off, install the verified APK, and turn it on again. If Android reports a package/signature conflict, remove the older `Daily Speaking Coach` installation with package `com.yagiz.dailyspeakingcoach.render` before retrying; uninstalling removes that app's local data.
 
-On first use, open **Settings > Güvenli Cihaz Erişimi**, enter that phone's private invite code, and activate it. The invite code is not stored on the phone.
+If invite-code mode is enabled, open **Settings > Gelişmiş > Davet Kodu / Cihaz Aktivasyonu** on first use, enter that phone's private invite code, and activate it. The invite code is not stored on the phone. If `REQUIRE_APP_AUTH=false`, no invite code is required.
 
 ## 7. Updating and revoking access
 

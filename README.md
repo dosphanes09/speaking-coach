@@ -24,8 +24,8 @@ Mobil uygulama OpenAI API key tutmaz, OpenAI endpointlerine dogrudan istek atmaz
 - `backend/src/server.js`: Express API.
 - `backend/src/openaiClient.js`: OpenAI istekleri sadece backend tarafinda.
 - `backend/src/validation.js`: upload, MIME, extension, sure ve input validasyonu.
-- `backend/src/auth.js`: davet kodu kaydi, imzali token dogrulama ve cihaz yetkilendirme.
-- `backend/src/dailyLimitStore.js`: Redis uzerinde dogrulanmis cihaz basina kalici gunluk limit.
+- `backend/src/auth.js`: opsiyonel davet kodu kaydi, imzali token dogrulama ve cihaz yetkilendirme.
+- `backend/src/dailyLimitStore.js`: auth acikken Redis uzerinde dogrulanmis cihaz basina kalici gunluk limit; auth kapaliyken kolay paylasim modu icin in-memory fallback.
 
 ## Backend Guvenlik Kontrolleri
 
@@ -33,8 +33,8 @@ Mobil uygulama OpenAI API key tutmaz, OpenAI endpointlerine dogrudan istek atmaz
 
 - `OPENAI_API_KEY` sadece backend `.env` icinden okunur.
 - `express-rate-limit` ile endpoint ve aktivasyon denemeleri rate limit altindadir.
-- Ucretli analiz endpoint'i imzali Bearer token olmadan calismaz.
-- Davet kodu, aktif cihaz kaydi ve gunluk analiz kotasi Upstash Redis'te tutulur.
+- Davet kodu modu opsiyoneldir. `REQUIRE_APP_AUTH=true` iken ucretli analiz endpoint'i imzali Bearer token olmadan calismaz.
+- Auth acikken davet kodu, aktif cihaz kaydi ve gunluk analiz kotasi Upstash Redis'te tutulur.
 - Dosya boyutu `MAX_FILE_SIZE_BYTES` ile sinirlidir.
 - Kayit suresi `MAX_AUDIO_DURATION_SECONDS` ile sinirlidir.
 - Sadece izin verilen extension ve MIME type kabul edilir.
@@ -46,7 +46,7 @@ Mobil uygulama OpenAI API key tutmaz, OpenAI endpointlerine dogrudan istek atmaz
 - Loglar Authorization header, raw audio veya kisisel veri yazmaz.
 - CORS `FRONTEND_ORIGINS` ile sinirlandirilir.
 
-Production'da gunluk analiz kotasi dogrulanmis cihaz token'ina gore Upstash Redis'te kalici tutulur. Development auth kapaliysa yalnizca yerel in-memory fallback kullanilir.
+Production'da `REQUIRE_APP_AUTH=true` iken gunluk analiz kotasi dogrulanmis cihaz token'ina gore Upstash Redis'te kalici tutulur. `REQUIRE_APP_AUTH=false` iken kolay paylasim modu icin in-memory fallback kullanilir.
 
 ## Local Kurulum
 
@@ -179,7 +179,7 @@ SERVICE_NAME=daily-speaking-coach-api
 OPENAI_API_KEY=<Render secret env var>
 FRONTEND_ORIGINS=
 REQUIRE_HTTPS=true
-REQUIRE_APP_AUTH=true
+REQUIRE_APP_AUTH=false
 MAX_FILE_SIZE_BYTES=12582912
 MAX_AUDIO_DURATION_SECONDS=120
 MAX_DAILY_ANALYSES_PER_USER=10
@@ -214,7 +214,7 @@ Production backend gerekli auth, Redis veya OpenAI secret'lari eksikse baslamaz 
 
 Render ephemeral disk notu: Backend upload dosyasini sadece gecici olarak `backend/tmp/uploads` altina yazar. Analiz basarili veya basarisiz olsa da `finally` blogunda dosya silinir. Render Free disk kalici depolama olarak kullanilmaz.
 
-Ucretsiz Render servisleri uykuya gecebilir; ilk istek gec cevap verebilir. Gunluk cihaz kotasi Upstash Redis'te kalici tutulur ve Render yeniden baslasa da kaybolmaz.
+Ucretsiz Render servisleri uykuya gecebilir; ilk istek gec cevap verebilir. `REQUIRE_APP_AUTH=true` iken gunluk cihaz kotasi Upstash Redis'te kalici tutulur ve Render yeniden baslasa da kaybolmaz.
 
 ## Production APK ile Render Backend Kullanimi
 

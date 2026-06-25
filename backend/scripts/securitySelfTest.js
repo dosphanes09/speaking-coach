@@ -70,6 +70,7 @@ async function run() {
   const { setRedisClientForTests } = require("../src/redisClient");
   const { registerDevice, requireAuth, revokeDevice } = require("../src/auth");
   const { assertDailyLimit } = require("../src/dailyLimitStore");
+  const { validateUploadMetadata } = require("../src/validation");
   setRedisClientForTests(new FakeRedis());
 
   const registration = await registerDevice(
@@ -98,7 +99,12 @@ async function run() {
   await revokeDevice(authenticatedRequest.auth.subject);
   await expectCode(() => authenticate(requireAuth, registration.token), "authentication_required");
 
-  console.log("Security self-test passed: enrollment, JWT validation, one-device invites, persistent quota, tamper rejection, and revocation.");
+  const extension = validateUploadMetadata("speaking-practice.m4a", "audio/m4a");
+  assert(extension === ".m4a", "Allowed upload metadata was rejected.");
+  await expectCode(() => validateUploadMetadata("shell.php", "audio/m4a"), "invalid_file_type");
+  await expectCode(() => validateUploadMetadata("speaking-practice.m4a", "application/octet-stream"), "invalid_file_type");
+
+  console.log("Security self-test passed: enrollment, JWT validation, one-device invites, persistent quota, tamper rejection, revocation, and upload metadata validation.");
 }
 
 run().catch((error) => {
