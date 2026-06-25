@@ -275,6 +275,7 @@ export default function App(): React.JSX.Element {
       case "thinking":
         return (
           <ThinkingScreen
+            topic={route.topic}
             initialNotes={route.thinkingNotes}
             initialRecordingType={route.recordingType}
             onBack={() => setRoute({ name: "home" })}
@@ -286,6 +287,7 @@ export default function App(): React.JSX.Element {
       case "recording":
         return (
           <RecordingScreen
+            topic={route.topic}
             thinkingNotes={route.thinkingNotes}
             initialRecordingType={route.recordingType}
             autoStart={route.autoStart === true}

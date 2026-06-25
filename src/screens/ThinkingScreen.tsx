@@ -3,14 +3,16 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
+import { PracticeQuestionCard } from "@/components/PracticeQuestionCard";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { useCountdown } from "@/hooks/useCountdown";
-import { RecordingType } from "@/types/models";
+import { RecordingType, Topic } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { THINKING_SECONDS } from "@/utils/practiceTiming";
 
 interface ThinkingScreenProps {
+  topic: Topic;
   initialNotes?: string;
   initialRecordingType?: RecordingType;
   onBack: () => void;
@@ -18,6 +20,7 @@ interface ThinkingScreenProps {
 }
 
 export function ThinkingScreen({
+  topic,
   initialNotes = "",
   initialRecordingType = "audio",
   onBack,
@@ -60,6 +63,8 @@ export function ThinkingScreen({
         showsVerticalScrollIndicator={false}
       >
         <Header title="Prepare" subtitle="Recording will start automatically after preparation." onBack={onBack} />
+
+        <PracticeQuestionCard topic={topic} phase="thinking" />
 
         <Card style={styles.timerCard}>
           <Text style={styles.timer}>{countdown.remainingSeconds}</Text>

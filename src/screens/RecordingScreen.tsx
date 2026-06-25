@@ -5,8 +5,9 @@ import { CameraView, useCameraPermissions, useMicrophonePermissions } from "expo
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
+import { PracticeQuestionCard } from "@/components/PracticeQuestionCard";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { RecordedMedia, RecordingType } from "@/types/models";
+import { RecordedMedia, RecordingType, Topic } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { deleteMedia, getMimeType, persistRecording } from "@/services/media/mediaStorage";
@@ -15,6 +16,7 @@ import { clampRecordingSeconds, formatPracticeDuration } from "@/utils/practiceT
 type RecordingStatus = "idle" | "starting" | "recording" | "finished";
 
 interface RecordingScreenProps {
+  topic: Topic;
   thinkingNotes: string;
   initialRecordingType?: RecordingType;
   autoStart?: boolean;
@@ -24,6 +26,7 @@ interface RecordingScreenProps {
 }
 
 export function RecordingScreen({
+  topic,
   thinkingNotes,
   initialRecordingType = "audio",
   autoStart = false,
@@ -258,6 +261,8 @@ export function RecordingScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <PracticeQuestionCard topic={topic} phase="recording" />
+
         {trimmedNotes ? (
           <Card style={styles.notesCard}>
             <Text style={styles.notesTitle}>Prep notes</Text>
