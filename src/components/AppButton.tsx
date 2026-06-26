@@ -33,6 +33,7 @@ export function AppButton({
   const styles = createStyles(colors);
   const isDisabled = disabled || loading;
   const isGhost = variant === "ghost";
+  const usesDarkLabel = variant === "ghost" || variant === "secondary";
 
   return (
     <Pressable
@@ -51,11 +52,11 @@ export function AppButton({
         style
       ]}
     >
-      {loading ? <ActivityIndicator color={isGhost ? colors.primaryDark : "#FFFFFF"} /> : null}
+      {loading ? <ActivityIndicator color={usesDarkLabel ? colors.primaryDark : "#FFFFFF"} /> : null}
       {!loading && icon ? (
-        <Text style={[styles.icon, isGhost && styles.ghostLabel]}>{icon}</Text>
+        <Text style={[styles.icon, usesDarkLabel && styles.subtleLabel]}>{icon}</Text>
       ) : null}
-      <Text style={[styles.label, isGhost && styles.ghostLabel]}>{label}</Text>
+      <Text style={[styles.label, usesDarkLabel && styles.subtleLabel]}>{label}</Text>
     </Pressable>
   );
 }
@@ -71,10 +72,10 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm,
       borderWidth: 1,
       shadowColor: "#000000",
-      shadowOpacity: 0.08,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 2
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 1
     },
     regular: {
       minHeight: 52,
@@ -90,14 +91,14 @@ function createStyles(colors: AppColors) {
       borderColor: colors.primary
     },
     secondary: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent
+      backgroundColor: colors.surfaceMuted,
+      borderColor: colors.line
     },
     ghost: {
       backgroundColor: colors.surface,
       borderColor: colors.line,
-      shadowOpacity: 0.04,
-      elevation: 1
+      shadowOpacity: 0.02,
+      elevation: 0
     },
     danger: {
       backgroundColor: colors.danger,
@@ -107,22 +108,22 @@ function createStyles(colors: AppColors) {
       opacity: 0.5
     },
     pressed: {
-      opacity: 0.88,
+      opacity: 0.9,
       transform: [{ scale: 0.985 }]
     },
     label: {
       color: "#FFFFFF",
       fontSize: 16,
-      fontWeight: "800",
+      fontWeight: "700",
       letterSpacing: 0.1,
       textAlign: "center"
     },
     icon: {
       color: "#FFFFFF",
       fontSize: 16,
-      fontWeight: "900"
+      fontWeight: "700"
     },
-    ghostLabel: {
+    subtleLabel: {
       color: colors.primaryDark
     }
   });

@@ -105,7 +105,7 @@ export function RecordDetailScreen({
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     metaCard: {
@@ -113,19 +113,20 @@ function createStyles(colors: AppColors) {
     },
     date: {
       color: colors.ink,
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: "800"
     },
     meta: {
       color: colors.muted,
-      fontWeight: "700"
+      fontWeight: "600"
     },
     errorCard: {
       borderColor: colors.danger
     },
     errorText: {
       color: colors.danger,
-      lineHeight: 21
+      fontSize: 16,
+      lineHeight: 22
     },
     actions: {
       gap: spacing.sm,

@@ -417,13 +417,13 @@ const styles = StyleSheet.create({
   },
   loadingScreen: {
     flex: 1,
-    padding: spacing.md,
+    padding: spacing.screen,
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.md
   },
   loadingText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "800",
     textAlign: "center"
   },

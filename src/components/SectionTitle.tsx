@@ -12,12 +12,12 @@ export function SectionTitle({ children }: { children: string }): React.JSX.Elem
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  title: {
-    color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "800",
-    marginTop: spacing.sm
-  }
+    title: {
+      color: colors.ink,
+      fontSize: 20,
+      lineHeight: 26,
+      fontWeight: "800",
+      marginTop: spacing.sm
+    }
   });
 }

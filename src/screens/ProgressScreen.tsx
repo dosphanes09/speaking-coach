@@ -59,7 +59,7 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
           accessibilityRole="button"
           accessibilityState={{ expanded: showCharts }}
           onPress={() => setShowCharts((current) => !current)}
-          style={styles.expandHeader}
+          style={({ pressed }) => [styles.expandHeader, pressed && styles.pressed]}
         >
           <View style={styles.expandTitleBlock}>
             <Text style={styles.sectionTitle}>Grafikler</Text>
@@ -242,7 +242,7 @@ function formatDuration(totalSeconds: number): string {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     grid: {
@@ -251,17 +251,18 @@ function createStyles(colors: AppColors) {
     },
     statCard: {
       flex: 1,
-      minHeight: 96,
+      minHeight: 92,
       justifyContent: "center"
     },
     statValue: {
       color: colors.ink,
-      fontSize: 28,
-      fontWeight: "900"
+      fontSize: 24,
+      fontWeight: "800"
     },
     statLabel: {
       color: colors.muted,
-      fontWeight: "700"
+      fontSize: 14,
+      fontWeight: "600"
     },
     positive: {
       color: colors.success
@@ -274,8 +275,8 @@ function createStyles(colors: AppColors) {
     },
     sectionTitle: {
       color: colors.ink,
-      fontSize: 18,
-      fontWeight: "900"
+      fontSize: 20,
+      fontWeight: "800"
     },
     expandHeader: {
       minHeight: 48,
@@ -283,6 +284,9 @@ function createStyles(colors: AppColors) {
       alignItems: "center",
       justifyContent: "space-between",
       gap: spacing.md
+    },
+    pressed: {
+      opacity: 0.9
     },
     expandTitleBlock: {
       flex: 1,
@@ -296,7 +300,7 @@ function createStyles(colors: AppColors) {
     expandAction: {
       color: colors.accent,
       fontSize: 14,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     chart: {
       height: 160,
@@ -324,12 +328,12 @@ function createStyles(colors: AppColors) {
     },
     barLabel: {
       color: colors.muted,
-      fontWeight: "700"
+      fontWeight: "600"
     },
     barScore: {
       color: colors.ink,
       fontSize: 11,
-      fontWeight: "800"
+      fontWeight: "700"
     },
     breakdownRow: {
       gap: spacing.xs,
@@ -346,7 +350,7 @@ function createStyles(colors: AppColors) {
     breakdownMeta: {
       color: colors.muted,
       fontSize: 12,
-      fontWeight: "700"
+      fontWeight: "600"
     },
     breakdownTrack: {
       height: 8,
@@ -360,7 +364,7 @@ function createStyles(colors: AppColors) {
     },
     trendText: {
       fontSize: 13,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     problemCard: {
       gap: spacing.sm
@@ -381,7 +385,7 @@ function createStyles(colors: AppColors) {
       flex: 1,
       color: colors.ink,
       fontSize: 15,
-      fontWeight: "900",
+      fontWeight: "700",
       lineHeight: 21
     },
     badge: {
@@ -390,7 +394,7 @@ function createStyles(colors: AppColors) {
       backgroundColor: colors.warning,
       color: "#FFFFFF",
       fontSize: 13,
-      fontWeight: "900",
+      fontWeight: "700",
       overflow: "hidden",
       paddingHorizontal: spacing.xs,
       paddingVertical: 3,
@@ -399,7 +403,7 @@ function createStyles(colors: AppColors) {
     metaText: {
       color: colors.muted,
       fontSize: 12,
-      fontWeight: "700"
+      fontWeight: "600"
     },
     problem: {
       color: colors.ink,
@@ -414,7 +418,7 @@ function createStyles(colors: AppColors) {
     exerciseText: {
       color: colors.primaryDark,
       fontSize: 14,
-      fontWeight: "700",
+      fontWeight: "600",
       lineHeight: 20
     },
     emptyText: {

@@ -14,7 +14,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { AppSettings, ThemeMode, TopicLevel } from "@/types/models";
 import { testBackendConnection } from "@/services/backend/backendHealthService";
@@ -308,10 +308,12 @@ export function SettingsScreen({
                     autoCapitalize="none"
                     autoCorrect={false}
                     secureTextEntry
-                    placeholder="Davet kodu"
-                    placeholderTextColor={colors.muted}
-                    style={styles.input}
-                  />
+                  placeholder="Davet kodu"
+                  placeholderTextColor={colors.muted}
+                  selectionColor={colors.primary}
+                  cursorColor={colors.primary}
+                  style={styles.input}
+                />
                   <AppButton
                     label={activationStatus === "checking" ? "Kontrol Ediliyor" : "Cihazı Etkinleştir"}
                     onPress={activate}
@@ -380,7 +382,7 @@ function createStyles(colors: AppColors) {
       flex: 1
     },
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     card: {
@@ -399,19 +401,20 @@ function createStyles(colors: AppColors) {
     },
     advancedTitle: {
       color: colors.ink,
-      fontSize: 18,
-      fontWeight: "900"
+      fontSize: 20,
+      lineHeight: 26,
+      fontWeight: "800"
     },
     advancedIcon: {
       width: 36,
       height: 36,
-      borderRadius: 18,
+      borderRadius: radius.pill,
       overflow: "hidden",
       backgroundColor: colors.surfaceMuted,
       color: colors.primaryDark,
-      fontSize: 24,
+      fontSize: 22,
       lineHeight: 34,
-      fontWeight: "900",
+      fontWeight: "700",
       textAlign: "center"
     },
     pressed: {
@@ -419,42 +422,42 @@ function createStyles(colors: AppColors) {
     },
     label: {
       color: colors.muted,
-      fontSize: 12,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     input: {
-      minHeight: 48,
+      minHeight: 52,
       borderWidth: 1,
       borderColor: colors.line,
-      borderRadius: 8,
+      borderRadius: radius.lg,
       paddingHorizontal: spacing.md,
       color: colors.ink,
       fontSize: 16,
-      backgroundColor: colors.background
+      backgroundColor: colors.surface
     },
     helpText: {
       color: colors.muted,
-      fontSize: 13,
-      lineHeight: 19
+      fontSize: 14,
+      lineHeight: 20
     },
     lockedValue: {
       color: colors.ink,
       fontSize: 16,
       lineHeight: 22,
-      fontWeight: "800"
+      fontWeight: "600"
     },
     successText: {
       color: colors.success,
-      fontSize: 13,
-      lineHeight: 19,
-      fontWeight: "800"
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "600"
     },
     errorText: {
       color: colors.danger,
-      fontSize: 13,
-      lineHeight: 19,
-      fontWeight: "800"
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "600"
     }
   });
 }

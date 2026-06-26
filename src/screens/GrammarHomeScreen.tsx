@@ -37,7 +37,7 @@ export function GrammarHomeScreen({
               key={level.level}
               accessibilityRole="button"
               onPress={() => onSelectLevel(level.level)}
-              style={styles.levelPressable}
+              style={({ pressed }) => [styles.levelPressable, pressed && styles.pressed]}
             >
               <Card style={styles.levelCard}>
                 <Text style={styles.level}>{level.level}</Text>
@@ -69,7 +69,7 @@ function averageOverallScore(records: SpeakingRecord[]): number {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     grid: {
@@ -78,35 +78,39 @@ function createStyles(colors: AppColors) {
     levelPressable: {
       width: "100%"
     },
+    pressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.99 }]
+    },
     levelCard: {
       gap: spacing.sm
     },
     level: {
       color: colors.primaryDark,
-      fontSize: 30,
-      fontWeight: "900"
+      fontSize: 24,
+      fontWeight: "800"
     },
     title: {
       color: colors.ink,
-      fontSize: 18,
-      fontWeight: "900",
+      fontSize: 20,
+      fontWeight: "800",
       lineHeight: 24
     },
     summary: {
       color: colors.muted,
-      fontSize: 15,
-      lineHeight: 22
+      fontSize: 16,
+      lineHeight: 23
     },
     meta: {
       color: colors.accent,
-      fontSize: 13,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     scoreMeta: {
       color: colors.primaryDark,
       fontSize: 14,
-      fontWeight: "900"
+      fontWeight: "700"
     }
   });
 }

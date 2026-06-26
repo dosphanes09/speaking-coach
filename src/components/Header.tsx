@@ -42,6 +42,7 @@ export function Header({
         ) : (
           <View style={styles.navPlaceholder} />
         )}
+
         {rightLabel && onRightPress ? (
           <Pressable
             accessibilityRole="button"
@@ -57,10 +58,12 @@ export function Header({
           <View style={styles.navPlaceholder} />
         )}
       </View>
+
       <View style={styles.titleRow}>
         <Text style={styles.title}>{title}</Text>
         {themeMode === "love" ? <Text style={styles.titleHeart}>♥</Text> : null}
       </View>
+
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -80,8 +83,8 @@ function resolveActionIcon(label?: string): string | undefined {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     container: {
-      paddingTop: spacing.md,
-      paddingBottom: spacing.sm,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xs,
       gap: spacing.xs
     },
     topRow: {
@@ -92,7 +95,7 @@ function createStyles(colors: AppColors) {
     },
     navButton: {
       minHeight: 44,
-      minWidth: 88,
+      minWidth: 84,
       paddingHorizontal: spacing.md,
       borderRadius: radius.lg,
       borderWidth: 1,
@@ -103,25 +106,25 @@ function createStyles(colors: AppColors) {
       flexDirection: "row",
       gap: spacing.xs,
       shadowColor: "#000000",
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 1
+      shadowOpacity: 0.02,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 0
     },
     navButtonPressed: {
-      opacity: 0.86,
+      opacity: 0.9,
       transform: [{ scale: 0.985 }]
     },
     navIcon: {
       color: colors.primaryDark,
       fontSize: 24,
       lineHeight: 24,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     navText: {
       color: colors.primaryDark,
-      fontSize: 15,
-      fontWeight: "800"
+      fontSize: 14,
+      fontWeight: "700"
     },
     rightButton: {
       minWidth: 96
@@ -129,15 +132,15 @@ function createStyles(colors: AppColors) {
     rightIcon: {
       color: colors.accent,
       fontSize: 16,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     rightText: {
       color: colors.accent,
-      fontSize: 15,
-      fontWeight: "800"
+      fontSize: 14,
+      fontWeight: "700"
     },
     navPlaceholder: {
-      minWidth: 88
+      minWidth: 84
     },
     titleRow: {
       flexDirection: "row",
@@ -147,20 +150,21 @@ function createStyles(colors: AppColors) {
     title: {
       flexShrink: 1,
       color: colors.ink,
-      fontSize: 30,
-      lineHeight: 36,
+      fontSize: 24,
+      lineHeight: 30,
       fontWeight: "800"
     },
     titleHeart: {
       color: colors.accent,
-      fontSize: 21,
-      lineHeight: 28,
-      fontWeight: "900"
+      fontSize: 18,
+      lineHeight: 24,
+      fontWeight: "700"
     },
     subtitle: {
       color: colors.muted,
       fontSize: 16,
-      lineHeight: 22
+      lineHeight: 22,
+      fontWeight: "400"
     }
   });
 }

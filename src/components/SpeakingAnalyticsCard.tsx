@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SpeakingAnalytics, WordFrequency } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
@@ -98,57 +98,62 @@ function formatTimeUsage(analytics: SpeakingAnalytics): string {
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  card: {
-    gap: spacing.md
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm
-  },
-  metric: {
-    width: "48%",
-    backgroundColor: colors.surfaceMuted,
-    padding: spacing.sm,
-    gap: spacing.xs
-  },
-  metricValue: {
-    color: colors.ink,
-    fontSize: 20,
-    fontWeight: "900"
-  },
-  metricLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
-  },
-  section: {
-    gap: spacing.xs
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
-  },
-  body: {
-    color: colors.ink,
-    fontSize: 14,
-    lineHeight: 20
-  },
-  pillRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs
-  },
-  pill: {
-    backgroundColor: colors.surfaceMuted,
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "800",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs
-  }
+    card: {
+      gap: spacing.md
+    },
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.sm
+    },
+    metric: {
+      width: "48%",
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.line,
+      padding: spacing.sm,
+      gap: spacing.xs
+    },
+    metricValue: {
+      color: colors.ink,
+      fontSize: 20,
+      fontWeight: "800"
+    },
+    metricLabel: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "700",
+      textTransform: "uppercase"
+    },
+    section: {
+      gap: spacing.xs
+    },
+    label: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "700",
+      textTransform: "uppercase"
+    },
+    body: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23
+    },
+    pillRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.xs
+    },
+    pill: {
+      overflow: "hidden",
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceMuted,
+      color: colors.primaryDark,
+      fontSize: 14,
+      fontWeight: "700",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs
+    }
   });
 }

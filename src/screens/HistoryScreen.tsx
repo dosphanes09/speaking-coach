@@ -158,7 +158,11 @@ function HistoryRecordCard({
   const modeLabel = getRecordModeLabel(record);
 
   return (
-    <Pressable accessibilityRole="button" onPress={() => onSelectRecord(record)}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => onSelectRecord(record)}
+      style={({ pressed }) => pressed && styles.pressed}
+    >
       <Card style={styles.recordCard}>
         <View style={styles.recordHeader}>
           <Text style={styles.recordDate}>{formatReadableDate(record.createdAt)}</Text>
@@ -239,7 +243,7 @@ type HistoryStyles = ReturnType<typeof createStyles>;
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     section: {
@@ -247,25 +251,29 @@ function createStyles(colors: AppColors) {
     },
     sectionTitle: {
       color: colors.ink,
-      fontSize: 19,
+      fontSize: 20,
       lineHeight: 25,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     grammarGroup: {
       gap: spacing.sm
     },
     groupSummaryCard: {
       gap: spacing.xs,
-      backgroundColor: colors.surfaceMuted
+      backgroundColor: colors.surface
     },
     groupTitle: {
       color: colors.ink,
-      fontSize: 18,
+      fontSize: 20,
       lineHeight: 24,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     list: {
       gap: spacing.sm
+    },
+    pressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.99 }]
     },
     emptyText: {
       color: colors.muted,
@@ -283,30 +291,30 @@ function createStyles(colors: AppColors) {
     },
     recordDate: {
       color: colors.muted,
-      fontWeight: "700"
+      fontWeight: "600"
     },
     score: {
       color: colors.primaryDark,
       fontSize: 20,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     topic: {
       color: colors.ink,
-      fontSize: 18,
+      fontSize: 16,
       lineHeight: 24,
-      fontWeight: "800"
+      fontWeight: "700"
     },
     grammarMeta: {
       color: colors.accent,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      fontWeight: "800"
+      fontWeight: "700"
     },
     modeMeta: {
       color: colors.primaryDark,
-      fontSize: 12,
+      fontSize: 14,
       lineHeight: 17,
-      fontWeight: "900",
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     meta: {

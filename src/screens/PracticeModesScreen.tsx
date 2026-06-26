@@ -162,7 +162,7 @@ const iconStyles = StyleSheet.create({
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     pressed: {
@@ -188,20 +188,20 @@ function createStyles(colors: AppColors) {
     },
     badge: {
       color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     modeTitle: {
       color: colors.ink,
       fontSize: 22,
       lineHeight: 28,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     modeSubtitle: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      fontSize: 16,
+      lineHeight: 23
     }
   });
 }

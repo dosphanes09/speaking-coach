@@ -5,7 +5,7 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { MediaPreview } from "@/components/MediaPreview";
 import { AnalysisResult, AppSettings, RecordedMedia, Topic } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { analyzeSpeechWithBackend } from "@/services/backend/analyzeSpeechService";
 import { getClientId } from "@/services/storage/clientIdentity";
@@ -138,7 +138,7 @@ function createStyles(colors: AppColors) {
       flex: 1
     },
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     card: {
@@ -146,16 +146,16 @@ function createStyles(colors: AppColors) {
     },
     cardTitle: {
       color: colors.ink,
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: "800"
     },
     transcriptBox: {
       minHeight: 180,
       borderWidth: 1,
       borderColor: colors.line,
-      borderRadius: 8,
+      borderRadius: radius.lg,
       padding: spacing.md,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
       justifyContent: "center"
     },
     transcriptText: {
@@ -165,12 +165,12 @@ function createStyles(colors: AppColors) {
     },
     statusText: {
       color: colors.muted,
-      fontSize: 15,
-      lineHeight: 22
+      fontSize: 16,
+      lineHeight: 23
     },
     error: {
       color: colors.danger,
-      fontWeight: "700",
+      fontWeight: "600",
       lineHeight: 20
     },
     actions: {

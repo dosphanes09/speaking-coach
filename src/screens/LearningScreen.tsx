@@ -48,7 +48,7 @@ export function LearningScreen({
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
   content: {
-    padding: spacing.md,
+    padding: spacing.screen,
     gap: spacing.md
   },
   heroCard: {
@@ -56,20 +56,20 @@ function createStyles(colors: AppColors) {
   },
   kicker: {
     color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
+    fontSize: 14,
+    fontWeight: "700",
     textTransform: "uppercase"
   },
   title: {
     color: colors.ink,
     fontSize: 24,
     lineHeight: 30,
-    fontWeight: "900"
+    fontWeight: "800"
   },
   body: {
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22
+    fontSize: 16,
+    lineHeight: 23
   },
   grid: {
     flexDirection: "row",
@@ -83,13 +83,13 @@ function createStyles(colors: AppColors) {
   smallValue: {
     color: colors.ink,
     fontSize: 24,
-    fontWeight: "900"
+    fontWeight: "800"
   },
   smallLabel: {
     color: colors.muted,
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 18,
-    fontWeight: "700"
+    fontWeight: "600"
   }
   });
 }

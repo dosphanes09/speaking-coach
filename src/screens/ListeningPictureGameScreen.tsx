@@ -208,7 +208,7 @@ export function ListeningPictureGameScreen({
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md,
       paddingBottom: spacing.lg
     },
@@ -217,8 +217,8 @@ function createStyles(colors: AppColors) {
     },
     label: {
       color: colors.muted,
-      fontSize: 13,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     listenCard: {
@@ -226,14 +226,14 @@ function createStyles(colors: AppColors) {
     },
     listenTitle: {
       color: colors.ink,
-      fontSize: 19,
-      lineHeight: 25,
-      fontWeight: "900"
+      fontSize: 20,
+      lineHeight: 26,
+      fontWeight: "800"
     },
     listenHelp: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      fontSize: 16,
+      lineHeight: 23
     },
     playActions: {
       gap: spacing.sm
@@ -247,7 +247,7 @@ function createStyles(colors: AppColors) {
     resultTitle: {
       fontSize: 24,
       lineHeight: 30,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     correctText: {
       color: colors.success
@@ -257,8 +257,8 @@ function createStyles(colors: AppColors) {
     },
     resultBody: {
       color: colors.ink,
-      fontSize: 15,
-      lineHeight: 21
+      fontSize: 16,
+      lineHeight: 23
     },
     resultBlock: {
       gap: spacing.sm
@@ -267,7 +267,7 @@ function createStyles(colors: AppColors) {
       color: colors.ink,
       fontSize: 16,
       lineHeight: 22,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     transcript: {
       color: colors.muted,
@@ -290,7 +290,7 @@ function createStyles(colors: AppColors) {
       backgroundColor: colors.surfaceMuted,
       color: colors.primaryDark,
       fontSize: 13,
-      fontWeight: "800",
+      fontWeight: "700",
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs
     },

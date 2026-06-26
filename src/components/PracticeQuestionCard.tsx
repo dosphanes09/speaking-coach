@@ -75,7 +75,7 @@ function createStyles(colors: AppColors) {
   return StyleSheet.create({
     card: {
       gap: spacing.sm,
-      backgroundColor: colors.surfaceMuted
+      backgroundColor: colors.surface
     },
     headerRow: {
       flexDirection: "row",
@@ -86,31 +86,31 @@ function createStyles(colors: AppColors) {
     eyebrow: {
       flex: 1,
       color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     badge: {
       overflow: "hidden",
       borderRadius: radius.sm,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceMuted,
       color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       paddingHorizontal: spacing.sm,
       paddingVertical: 4
     },
     question: {
       color: colors.ink,
-      fontSize: 21,
-      lineHeight: 28,
-      fontWeight: "900"
+      fontSize: 22,
+      lineHeight: 29,
+      fontWeight: "800"
     },
     helper: {
       color: colors.muted,
       fontSize: 14,
       lineHeight: 20,
-      fontWeight: "700"
+      fontWeight: "400"
     }
   });
 }

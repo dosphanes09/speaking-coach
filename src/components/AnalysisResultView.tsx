@@ -154,31 +154,31 @@ function FeedbackLine({
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  container: {
-    gap: spacing.sm
-  },
-  feedbackCard: {
-    gap: spacing.sm
-  },
-  feedbackLine: {
-    gap: spacing.xs
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
-  },
-  body: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  listItem: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: spacing.xs
-  }
+    container: {
+      gap: spacing.md
+    },
+    feedbackCard: {
+      gap: spacing.md
+    },
+    feedbackLine: {
+      gap: spacing.xs
+    },
+    label: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "700",
+      textTransform: "uppercase"
+    },
+    body: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23
+    },
+    listItem: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23,
+      marginBottom: spacing.xs
+    }
   });
 }

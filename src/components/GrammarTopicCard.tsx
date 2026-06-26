@@ -4,7 +4,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { GrammarSpeakingChallenge, GrammarTopic } from "@/data/grammarRoadmap";
 import { GrammarLevel } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface GrammarTopicCardProps {
@@ -30,7 +30,11 @@ export function GrammarTopicCard({
 
   return (
     <Card style={styles.card}>
-      <Pressable accessibilityRole="button" onPress={() => setIsOpen((current) => !current)} style={styles.header}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setIsOpen((current) => !current)}
+        style={({ pressed }) => [styles.header, pressed && styles.pressed]}
+      >
         <View style={styles.headerCopy}>
           <Text style={styles.level}>{level}</Text>
           <Text style={styles.title}>{topic.title}</Text>
@@ -113,80 +117,90 @@ function ListBlock({
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  card: {
-    gap: spacing.sm
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm
-  },
-  headerCopy: {
-    flex: 1,
-    gap: spacing.xs
-  },
-  level: {
-    color: colors.primaryDark,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  title: {
-    color: colors.ink,
-    fontSize: 19,
-    fontWeight: "900",
-    lineHeight: 24
-  },
-  coreFeeling: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20
-  },
-  toggle: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "900"
-  },
-  details: {
-    gap: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: spacing.md
-  },
-  section: {
-    gap: spacing.xs
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
-  },
-  body: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  listItem: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
-  },
-  mistake: {
-    gap: spacing.xs
-  },
-  wrong: {
-    color: colors.danger,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "700"
-  },
-  correct: {
-    color: colors.success,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "700"
-  }
+    card: {
+      gap: spacing.sm
+    },
+    header: {
+      minHeight: 56,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm
+    },
+    pressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.99 }]
+    },
+    headerCopy: {
+      flex: 1,
+      gap: spacing.xs
+    },
+    level: {
+      color: colors.primaryDark,
+      fontSize: 14,
+      fontWeight: "700",
+      textTransform: "uppercase"
+    },
+    title: {
+      color: colors.ink,
+      fontSize: 20,
+      fontWeight: "800",
+      lineHeight: 26
+    },
+    coreFeeling: {
+      color: colors.muted,
+      fontSize: 16,
+      lineHeight: 23
+    },
+    toggle: {
+      overflow: "hidden",
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceMuted,
+      color: colors.primaryDark,
+      fontSize: 14,
+      fontWeight: "700",
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs
+    },
+    details: {
+      gap: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.line,
+      paddingTop: spacing.md
+    },
+    section: {
+      gap: spacing.xs
+    },
+    label: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "700",
+      textTransform: "uppercase"
+    },
+    body: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23
+    },
+    listItem: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23
+    },
+    mistake: {
+      gap: spacing.xs
+    },
+    wrong: {
+      color: colors.danger,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "600"
+    },
+    correct: {
+      color: colors.success,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: "600"
+    }
   });
 }

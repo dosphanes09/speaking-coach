@@ -372,6 +372,8 @@ export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Ele
           multiline
           placeholder="Type your English message..."
           placeholderTextColor={colors.muted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
           style={styles.input}
         />
         <View style={styles.composerActions}>
@@ -399,7 +401,7 @@ function createStyles(colors: AppColors) {
   screen: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: spacing.md
+    padding: spacing.screen
   },
   messages: {
     flexGrow: 1,
@@ -408,12 +410,12 @@ function createStyles(colors: AppColors) {
   },
   emptyText: {
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22
+    fontSize: 16,
+    lineHeight: 23
   },
   bubble: {
     maxWidth: "86%",
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.xs
   },
@@ -429,7 +431,7 @@ function createStyles(colors: AppColors) {
   },
   bubbleLabel: {
     fontSize: 12,
-    fontWeight: "900",
+    fontWeight: "700",
     textTransform: "uppercase"
   },
   userLabel: {
@@ -439,8 +441,8 @@ function createStyles(colors: AppColors) {
     color: colors.accent
   },
   bubbleText: {
-    fontSize: 15,
-    lineHeight: 22
+    fontSize: 16,
+    lineHeight: 23
   },
   userText: {
     color: "#FFFFFF"
@@ -450,13 +452,13 @@ function createStyles(colors: AppColors) {
   },
   statusText: {
     color: colors.muted,
-    fontWeight: "700",
+    fontWeight: "600",
     textAlign: "center"
   },
   errorText: {
     color: colors.danger,
     lineHeight: 20,
-    fontWeight: "700"
+    fontWeight: "600"
   },
   composer: {
     gap: spacing.sm,
@@ -467,7 +469,7 @@ function createStyles(colors: AppColors) {
   input: {
     minHeight: 52,
     maxHeight: 116,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,

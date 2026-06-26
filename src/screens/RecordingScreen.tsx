@@ -329,7 +329,7 @@ function createStyles(colors: AppColors) {
   return StyleSheet.create({
   screen: {
     flex: 1,
-    padding: spacing.md,
+    padding: spacing.screen,
     gap: spacing.md
   },
   scrollContent: {
@@ -341,19 +341,19 @@ function createStyles(colors: AppColors) {
   },
   notesCard: {
     gap: spacing.xs,
-    backgroundColor: colors.surfaceMuted
+    backgroundColor: colors.surface
   },
   notesTitle: {
     color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
+    fontSize: 14,
+    fontWeight: "700",
     textTransform: "uppercase"
   },
   notesBody: {
     color: colors.ink,
     fontSize: 16,
     lineHeight: 23,
-    fontWeight: "700"
+    fontWeight: "400"
   },
   camera: {
     width: "100%",
@@ -367,35 +367,37 @@ function createStyles(colors: AppColors) {
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.md
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line
   },
   timer: {
     color: colors.primaryDark,
-    fontSize: 56,
-    lineHeight: 64,
-    fontWeight: "900"
+    fontSize: 52,
+    lineHeight: 60,
+    fontWeight: "800"
   },
   timerLabel: {
     color: colors.muted,
-    fontWeight: "700"
+    fontWeight: "600"
   },
   durationHint: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: "700",
+    fontWeight: "400",
     marginTop: spacing.xs
   },
   autoStartHint: {
     color: colors.primaryDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: "800",
+    fontWeight: "600",
     marginTop: spacing.xs
   },
   error: {
     color: colors.danger,
-    fontWeight: "700",
+    fontWeight: "600",
     lineHeight: 20
   },
   actions: {

@@ -99,15 +99,15 @@ function createStyles(colors: AppColors) {
     },
     level: {
       color: colors.primaryDark,
-      fontSize: 13,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     title: {
       color: colors.ink,
       fontSize: 24,
       lineHeight: 30,
-      fontWeight: "900"
+      fontWeight: "800"
     },
     guideBlock: {
       gap: spacing.xs
@@ -122,23 +122,23 @@ function createStyles(colors: AppColors) {
       color: colors.ink,
       fontSize: 16,
       lineHeight: 22,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     observeText: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      fontSize: 16,
+      lineHeight: 23
     },
     sectionTitle: {
       color: colors.ink,
       fontSize: 16,
       lineHeight: 22,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     bullet: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      fontSize: 16,
+      lineHeight: 23
     },
     chipSection: {
       gap: spacing.sm
@@ -150,11 +150,11 @@ function createStyles(colors: AppColors) {
     },
     chip: {
       overflow: "hidden",
-      borderRadius: radius.sm,
+      borderRadius: radius.pill,
       backgroundColor: colors.surfaceMuted,
       color: colors.primaryDark,
-      fontSize: 13,
-      fontWeight: "800",
+      fontSize: 14,
+      fontWeight: "700",
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs
     }

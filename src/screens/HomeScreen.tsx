@@ -182,22 +182,22 @@ function createStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
-      paddingHorizontal: spacing.md
+      paddingHorizontal: spacing.screen
     },
     content: {
       gap: spacing.md,
-      paddingBottom: spacing.lg
+      paddingBottom: spacing.xl
     },
     quickActions: {
       flexDirection: "row",
-      gap: spacing.sm
+      gap: spacing.md
     },
     loveBanner: {
       minHeight: 48,
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.line,
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: colors.surface,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
       flexDirection: "row",
@@ -212,12 +212,12 @@ function createStyles(colors: AppColors) {
       color: colors.primaryDark,
       fontSize: 14,
       lineHeight: 20,
-      fontWeight: "800"
+      fontWeight: "600"
     },
     shortcut: {
       flex: 1,
       minHeight: 64,
-      borderRadius: radius.md,
+      borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.line,
       backgroundColor: colors.surface,
@@ -242,7 +242,7 @@ function createStyles(colors: AppColors) {
     shortcutText: {
       color: colors.ink,
       fontSize: 16,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     streakCard: {
       gap: spacing.sm
@@ -255,15 +255,15 @@ function createStyles(colors: AppColors) {
     },
     streakLabel: {
       color: colors.muted,
-      fontSize: 12,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     streakValue: {
       color: colors.ink,
-      fontSize: 28,
-      lineHeight: 34,
-      fontWeight: "900"
+      fontSize: 24,
+      lineHeight: 30,
+      fontWeight: "800"
     },
     streakBadge: {
       maxWidth: "48%",
@@ -274,15 +274,15 @@ function createStyles(colors: AppColors) {
     },
     streakBadgeText: {
       color: colors.primaryDark,
-      fontSize: 13,
+      fontSize: 14,
       lineHeight: 18,
-      fontWeight: "900",
+      fontWeight: "700",
       textAlign: "center"
     },
     streakHelp: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      fontSize: 16,
+      lineHeight: 22
     },
     notebook: {
       width: 21,
@@ -342,21 +342,21 @@ function createStyles(colors: AppColors) {
     },
     practiceEyebrow: {
       color: colors.primaryDark,
-      fontSize: 13,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     practiceTitle: {
       color: colors.ink,
-      fontSize: 26,
-      lineHeight: 32,
-      fontWeight: "900"
+      fontSize: 24,
+      lineHeight: 30,
+      fontWeight: "800"
     },
     practiceHelp: {
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: "700"
+      fontSize: 16,
+      lineHeight: 23,
+      fontWeight: "400"
     },
     actions: {
       gap: spacing.sm
@@ -367,30 +367,32 @@ function createStyles(colors: AppColors) {
     },
     statCard: {
       flex: 1,
-      minHeight: 92,
+      minHeight: 88,
       justifyContent: "center"
     },
     statValue: {
       color: colors.ink,
-      fontSize: 30,
-      fontWeight: "900"
+      fontSize: 24,
+      fontWeight: "800"
     },
     statLabel: {
       color: colors.muted,
-      fontWeight: "700"
+      fontSize: 14,
+      fontWeight: "600"
     },
     latestCard: {
       gap: spacing.xs
     },
     latestTitle: {
       color: colors.muted,
-      fontWeight: "800",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     latestTopic: {
       color: colors.ink,
-      fontSize: 18,
-      fontWeight: "800"
+      fontSize: 16,
+      fontWeight: "700"
     },
     latestMeta: {
       color: colors.muted
@@ -398,7 +400,7 @@ function createStyles(colors: AppColors) {
     signature: {
       color: colors.muted,
       fontSize: 13,
-      fontWeight: "800",
+      fontWeight: "600",
       textAlign: "center",
       paddingTop: spacing.sm,
       paddingBottom: spacing.xs

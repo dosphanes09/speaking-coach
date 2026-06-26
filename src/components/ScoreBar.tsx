@@ -29,33 +29,34 @@ export function ScoreBar({ label, value }: ScoreBarProps): React.JSX.Element {
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  container: {
-    gap: spacing.xs
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  label: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: "700"
-  },
-  value: {
-    color: colors.primaryDark,
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  track: {
-    height: 8,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.sm,
-    overflow: "hidden"
-  },
-  fill: {
-    height: 8,
-    backgroundColor: colors.primary
-  }
+    container: {
+      gap: spacing.xs
+    },
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center"
+    },
+    label: {
+      color: colors.ink,
+      fontSize: 14,
+      fontWeight: "600"
+    },
+    value: {
+      color: colors.primaryDark,
+      fontSize: 14,
+      fontWeight: "700"
+    },
+    track: {
+      height: 8,
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.pill,
+      overflow: "hidden"
+    },
+    fill: {
+      height: 8,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primary
+    }
   });
 }

@@ -59,7 +59,7 @@ export function PictureDescriptionScreen({
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md,
       paddingBottom: spacing.lg
     },
@@ -68,8 +68,8 @@ function createStyles(colors: AppColors) {
     },
     label: {
       color: colors.muted,
-      fontSize: 13,
-      fontWeight: "900",
+      fontSize: 14,
+      fontWeight: "700",
       textTransform: "uppercase"
     },
     actions: {

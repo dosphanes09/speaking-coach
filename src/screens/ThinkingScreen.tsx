@@ -7,7 +7,7 @@ import { PracticeQuestionCard } from "@/components/PracticeQuestionCard";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { useCountdown } from "@/hooks/useCountdown";
 import { RecordingType, Topic } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { THINKING_SECONDS } from "@/utils/practiceTiming";
 
@@ -94,6 +94,8 @@ export function ThinkingScreen({
             autoCapitalize="sentences"
             placeholder="Example: main idea / reason / example / connector..."
             placeholderTextColor={colors.muted}
+            selectionColor={colors.primary}
+            cursorColor={colors.primary}
             scrollEnabled
             style={styles.notesInput}
           />
@@ -114,7 +116,7 @@ function createStyles(colors: AppColors) {
     },
     content: {
       flexGrow: 1,
-      padding: spacing.md,
+      padding: spacing.screen,
       paddingBottom: 128,
       gap: spacing.md
     },
@@ -127,20 +129,20 @@ function createStyles(colors: AppColors) {
     },
     timer: {
       color: colors.primaryDark,
-      fontSize: 82,
-      lineHeight: 90,
-      fontWeight: "900"
+      fontSize: 72,
+      lineHeight: 80,
+      fontWeight: "800"
     },
     timerLabel: {
       color: colors.muted,
-      fontSize: 18,
-      fontWeight: "700"
+      fontSize: 16,
+      fontWeight: "600"
     },
     autoStartText: {
       color: colors.primaryDark,
       fontSize: 14,
       lineHeight: 20,
-      fontWeight: "800",
+      fontWeight: "600",
       textAlign: "center"
     },
     notesCard: {
@@ -148,25 +150,25 @@ function createStyles(colors: AppColors) {
     },
     notesTitle: {
       color: colors.ink,
-      fontSize: 18,
-      lineHeight: 24,
-      fontWeight: "900"
+      fontSize: 20,
+      lineHeight: 26,
+      fontWeight: "800"
     },
     notesHelp: {
       color: colors.muted,
-      fontSize: 13,
-      lineHeight: 19
+      fontSize: 14,
+      lineHeight: 20
     },
     notesInput: {
       minHeight: 150,
       borderWidth: 1,
       borderColor: colors.line,
-      borderRadius: 8,
+      borderRadius: radius.lg,
       padding: spacing.md,
       color: colors.ink,
       fontSize: 16,
       lineHeight: 22,
-      backgroundColor: colors.background
+      backgroundColor: colors.surface
     },
     actions: {
       marginTop: "auto",

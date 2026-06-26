@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PictureSceneIllustration } from "@/components/PictureSceneIllustration";
 import { PicturePrompt } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PictureChoiceGridProps {
@@ -65,7 +65,8 @@ function createStyles(colors: AppColors) {
     choice: {
       flexBasis: "47.5%",
       flexGrow: 1,
-      gap: spacing.xs
+      gap: spacing.xs,
+      borderRadius: radius.lg
     },
     pressed: {
       opacity: 0.82,
@@ -75,13 +76,13 @@ function createStyles(colors: AppColors) {
       color: colors.ink,
       fontSize: 14,
       lineHeight: 18,
-      fontWeight: "900"
+      fontWeight: "700"
     },
     choiceLevel: {
       color: colors.muted,
-      fontSize: 12,
+      fontSize: 14,
       lineHeight: 16,
-      fontWeight: "800"
+      fontWeight: "600"
     }
   });
 }

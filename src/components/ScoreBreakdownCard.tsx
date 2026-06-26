@@ -157,68 +157,69 @@ function normalizeText(value: string, fallback: string): string {
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  card: {
-    gap: spacing.md
-  },
-  rubricIntro: {
-    gap: spacing.xs
-  },
-  rubricTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: "900"
-  },
-  rubricText: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19
-  },
-  item: {
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm
-  },
-  metric: {
-    color: colors.ink,
-    fontSize: 16,
-    fontWeight: "900",
-    flex: 1
-  },
-  score: {
-    color: colors.primaryDark,
-    fontSize: 16,
-    fontWeight: "900"
-  },
-  track: {
-    height: 8,
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.sm,
-    overflow: "hidden"
-  },
-  fill: {
-    height: 8,
-    backgroundColor: colors.primary
-  },
-  textBlock: {
-    gap: spacing.xs
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
-  },
-  body: {
-    color: colors.ink,
-    fontSize: 14,
-    lineHeight: 20
-  }
+    card: {
+      gap: spacing.md
+    },
+    rubricIntro: {
+      gap: spacing.xs
+    },
+    rubricTitle: {
+      color: colors.ink,
+      fontSize: 20,
+      fontWeight: "800"
+    },
+    rubricText: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 20
+    },
+    item: {
+      gap: spacing.sm,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line
+    },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: spacing.sm
+    },
+    metric: {
+      color: colors.ink,
+      fontSize: 16,
+      fontWeight: "700",
+      flex: 1
+    },
+    score: {
+      color: colors.primaryDark,
+      fontSize: 16,
+      fontWeight: "700"
+    },
+    track: {
+      height: 8,
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.pill,
+      overflow: "hidden"
+    },
+    fill: {
+      height: 8,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primary
+    },
+    textBlock: {
+      gap: spacing.xs
+    },
+    label: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "700",
+      textTransform: "uppercase"
+    },
+    body: {
+      color: colors.ink,
+      fontSize: 16,
+      lineHeight: 23
+    }
   });
 }

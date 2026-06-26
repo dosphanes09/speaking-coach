@@ -16,17 +16,17 @@ export function Card({ children, style, ...rest }: ViewProps): React.JSX.Element
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: spacing.md,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1
-  }
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.line,
+      padding: spacing.card,
+      shadowColor: "#000000",
+      shadowOpacity: 0.025,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 0
+    }
   });
 }

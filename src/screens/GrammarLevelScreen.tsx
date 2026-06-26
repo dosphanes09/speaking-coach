@@ -124,7 +124,7 @@ function pickRandomChallenge(
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
   content: {
-    padding: spacing.md,
+    padding: spacing.screen,
     gap: spacing.md,
     paddingBottom: spacing.xl
   },
@@ -138,32 +138,32 @@ function createStyles(colors: AppColors) {
   },
   meta: {
     color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
+    fontSize: 14,
+    fontWeight: "700",
     textTransform: "uppercase"
   },
   scoreMeta: {
     color: colors.accent,
     fontSize: 14,
-    fontWeight: "900"
+    fontWeight: "700"
   },
   stack: {
     gap: spacing.sm
   },
   challengeIntroCard: {
     gap: spacing.xs,
-    backgroundColor: colors.surfaceMuted
+    backgroundColor: colors.surface
   },
   challengeIntroTitle: {
     color: colors.ink,
-    fontSize: 17,
-    fontWeight: "900",
-    lineHeight: 23
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 26
   },
   challengeIntroText: {
     color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20
+    fontSize: 16,
+    lineHeight: 23
   }
   });
 }

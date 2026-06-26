@@ -1,49 +1,49 @@
 export const lightColors = {
-  background: "#F7F7F2",
+  background: "#FAFAFA",
   surface: "#FFFFFF",
-  surfaceMuted: "#ECEFE8",
-  ink: "#1D2521",
-  muted: "#68736D",
-  line: "#DDE2DB",
+  surfaceMuted: "#F3F4F6",
+  ink: "#111111",
+  muted: "#6B7280",
+  line: "#E5E7EB",
   primary: "#2E7D68",
   primaryDark: "#205B4C",
   secondary: "#D9893D",
-  accent: "#4464AD",
+  accent: "#2E7D68",
   danger: "#B94A48",
   success: "#3B8C5A",
   warning: "#C58A21"
 };
 
 export const darkColors: AppColors = {
-  background: "#111714",
-  surface: "#1B2420",
-  surfaceMuted: "#25312C",
-  ink: "#F2F5EF",
-  muted: "#A7B0AA",
-  line: "#35423C",
+  background: "#0F1110",
+  surface: "#171A18",
+  surfaceMuted: "#222622",
+  ink: "#F8FAF9",
+  muted: "#A1A8A4",
+  line: "#2C302D",
   primary: "#54B99D",
   primaryDark: "#8DDBC8",
   secondary: "#E2A258",
-  accent: "#8EA7F4",
+  accent: "#54B99D",
   danger: "#EF8A86",
   success: "#75C894",
   warning: "#E3B552"
 };
 
 export const loveColors: AppColors = {
-  background: "#211018",
-  surface: "#351B28",
-  surfaceMuted: "#482335",
-  ink: "#FFF3F6",
-  muted: "#E9B9C6",
-  line: "#6A334A",
-  primary: "#E94B7A",
-  primaryDark: "#FF8DAA",
-  secondary: "#F2A07B",
-  accent: "#FF6F9F",
-  danger: "#FF5C78",
-  success: "#F4A7B9",
-  warning: "#F4C06A"
+  background: "#FFF7FA",
+  surface: "#FFFFFF",
+  surfaceMuted: "#FFECEF",
+  ink: "#241116",
+  muted: "#7A5360",
+  line: "#F4CFDA",
+  primary: "#D94B72",
+  primaryDark: "#B8355B",
+  secondary: "#E97892",
+  accent: "#D94B72",
+  danger: "#C43D58",
+  success: "#B85F7A",
+  warning: "#C9863D"
 };
 
 export type AppColors = typeof lightColors;
@@ -53,15 +53,20 @@ export type ThemeMode = "light" | "dark" | "love";
 export const colors = lightColors;
 
 export const spacing = {
-  xs: 6,
-  sm: 10,
+  xs: 8,
+  sm: 12,
   md: 16,
   lg: 24,
-  xl: 32
+  xl: 32,
+  screen: 20,
+  card: 20,
+  section: 28
 };
 
 export const radius = {
-  sm: 6,
-  md: 8,
-  lg: 12
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 24,
+  pill: 999
 };
