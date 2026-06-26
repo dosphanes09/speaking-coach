@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AppButton } from "@/components/AppButton";
+import { BottomTabBar, BottomTabKey } from "@/components/BottomTabBar";
 import { GrammarSpeakingChallenge, getGrammarLevelContent } from "@/data/grammarRoadmap";
 import { AppRoute } from "@/types/routes";
 import {
@@ -201,9 +202,6 @@ export default function App(): React.JSX.Element {
         records={freeSpeakingRecords}
         streakSummary={streakSummary}
         onStartThinking={() => setRoute({ name: "thinking", topic: activeTopic })}
-        onChat={() => setRoute({ name: "chat" })}
-        onLearning={() => setRoute({ name: "learning" })}
-        onPracticeModes={() => setRoute({ name: "practiceModes" })}
         onHistory={() => setRoute({ name: "history" })}
         onProgress={() => setRoute({ name: "progress" })}
         onSettings={() => setRoute({ name: "settings" })}
@@ -372,6 +370,25 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  function navigateToBottomTab(tab: BottomTabKey): void {
+    switch (tab) {
+      case "home":
+        setRoute({ name: "home" });
+        return;
+      case "practice":
+        setRoute({ name: "practiceModes" });
+        return;
+      case "grammar":
+        setRoute({ name: "grammarHome" });
+        return;
+      case "chat":
+        setRoute({ name: "chat" });
+        return;
+      default:
+        setRoute({ name: "home" });
+    }
+  }
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -405,7 +422,12 @@ export default function App(): React.JSX.Element {
     <ThemeProvider mode={settings.themeMode}>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
         <StatusBar style={statusBarStyle} />
-        {renderRoute()}
+        <View style={styles.appFrame}>
+          <View style={styles.routeSlot}>{renderRoute()}</View>
+          {getActiveBottomTab(route) ? (
+            <BottomTabBar activeTab={getActiveBottomTab(route)!} onSelectTab={navigateToBottomTab} />
+          ) : null}
+        </View>
       </SafeAreaView>
     </ThemeProvider>
   );
@@ -413,6 +435,12 @@ export default function App(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1
+  },
+  appFrame: {
+    flex: 1
+  },
+  routeSlot: {
     flex: 1
   },
   loadingScreen: {
@@ -433,6 +461,25 @@ const styles = StyleSheet.create({
     textAlign: "center"
   }
 });
+
+function getActiveBottomTab(route: AppRoute): BottomTabKey | null {
+  switch (route.name) {
+    case "home":
+      return "home";
+    case "practiceModes":
+    case "pictureDescription":
+    case "listeningPictureGame":
+      return "practice";
+    case "learning":
+    case "grammarHome":
+    case "grammarLevel":
+      return "grammar";
+    case "chat":
+      return "chat";
+    default:
+      return null;
+  }
+}
 
 function getRecentlyAskedTopicIds(records: SpeakingRecord[], days = 14): string[] {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;

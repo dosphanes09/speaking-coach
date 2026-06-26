@@ -14,9 +14,6 @@ interface HomeScreenProps {
   records: SpeakingRecord[];
   streakSummary: StreakSummary;
   onStartThinking: () => void;
-  onChat: () => void;
-  onLearning: () => void;
-  onPracticeModes: () => void;
   onHistory: () => void;
   onProgress: () => void;
   onSettings: () => void;
@@ -26,9 +23,6 @@ export function HomeScreen({
   records,
   streakSummary,
   onStartThinking,
-  onChat,
-  onLearning,
-  onPracticeModes,
   onHistory,
   onProgress,
   onSettings
@@ -111,12 +105,6 @@ export function HomeScreen({
             <Text style={styles.latestMeta}>{formatReadableDate(latestRecord.createdAt)}</Text>
           </Card>
         ) : null}
-
-        <View style={styles.actions}>
-          <AppButton label="Anlık Sohbet" onPress={onChat} variant="secondary" />
-          <AppButton label="Gramer Pratiği" onPress={onLearning} variant="ghost" />
-          <AppButton label="Practice Modes" onPress={onPracticeModes} variant="ghost" />
-        </View>
 
         <Text style={styles.signature}>
           {isLoveMode ? "made by seni çok seven Yağız ❤️" : "made by Yağız"}
@@ -357,9 +345,6 @@ function createStyles(colors: AppColors) {
       fontSize: 16,
       lineHeight: 23,
       fontWeight: "400"
-    },
-    actions: {
-      gap: spacing.sm
     },
     grid: {
       flexDirection: "row",
