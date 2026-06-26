@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
@@ -14,18 +14,14 @@ interface HomeScreenProps {
   records: SpeakingRecord[];
   streakSummary: StreakSummary;
   onStartThinking: () => void;
-  onHistory: () => void;
-  onProgress: () => void;
-  onSettings: () => void;
+  onOpenDrawer: () => void;
 }
 
 export function HomeScreen({
   records,
   streakSummary,
   onStartThinking,
-  onHistory,
-  onProgress,
-  onSettings
+  onOpenDrawer
 }: HomeScreenProps): React.JSX.Element {
   const colors = useThemeColors();
   const themeMode = useThemeMode();
@@ -36,7 +32,7 @@ export function HomeScreen({
 
   return (
     <View style={styles.screen}>
-      <Header title="Daily Speaking Coach" rightLabel="Settings" onRightPress={onSettings} />
+      <Header title="Daily Speaking Coach" onMenuPress={onOpenDrawer} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {isLoveMode ? (
@@ -45,23 +41,6 @@ export function HomeScreen({
             <Text style={styles.loveBannerText}>Her pratik biraz daha sevgiyle, biraz daha güvenle.</Text>
           </View>
         ) : null}
-
-        <View style={styles.quickActions}>
-          <HomeShortcut
-            label="Kayıtlar"
-            accessibilityLabel="Geçmiş kayıtlarım"
-            onPress={onHistory}
-            colors={colors}
-            icon={<NotebookIcon colors={colors} />}
-          />
-          <HomeShortcut
-            label="Gelişim"
-            accessibilityLabel="Gelişimim"
-            onPress={onProgress}
-            colors={colors}
-            icon={<RisingBarsIcon colors={colors} />}
-          />
-        </View>
 
         <Card style={styles.streakCard}>
           <View style={styles.streakHeader}>
@@ -114,58 +93,6 @@ export function HomeScreen({
   );
 }
 
-function HomeShortcut({
-  label,
-  accessibilityLabel,
-  onPress,
-  colors,
-  icon
-}: {
-  label: string;
-  accessibilityLabel: string;
-  onPress: () => void;
-  colors: AppColors;
-  icon: React.ReactNode;
-}): React.JSX.Element {
-  const styles = createStyles(colors);
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => [styles.shortcut, pressed ? styles.shortcutPressed : null]}
-    >
-      <View style={styles.shortcutIconWrap}>{icon}</View>
-      <Text style={styles.shortcutText}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function NotebookIcon({ colors }: { colors: AppColors }): React.JSX.Element {
-  const styles = createStyles(colors);
-
-  return (
-    <View style={styles.notebook}>
-      <View style={styles.notebookSpine} />
-      <View style={styles.notebookLine} />
-      <View style={[styles.notebookLine, styles.notebookLineShort]} />
-    </View>
-  );
-}
-
-function RisingBarsIcon({ colors }: { colors: AppColors }): React.JSX.Element {
-  const styles = createStyles(colors);
-
-  return (
-    <View style={styles.chartIcon}>
-      <View style={[styles.chartBar, styles.chartBarOne]} />
-      <View style={[styles.chartBar, styles.chartBarTwo]} />
-      <View style={[styles.chartBar, styles.chartBarThree]} />
-    </View>
-  );
-}
-
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
@@ -175,10 +102,6 @@ function createStyles(colors: AppColors) {
     content: {
       gap: spacing.md,
       paddingBottom: spacing.xl
-    },
-    quickActions: {
-      flexDirection: "row",
-      gap: spacing.md
     },
     loveBanner: {
       minHeight: 48,
@@ -201,36 +124,6 @@ function createStyles(colors: AppColors) {
       fontSize: 14,
       lineHeight: 20,
       fontWeight: "600"
-    },
-    shortcut: {
-      flex: 1,
-      minHeight: 64,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: colors.line,
-      backgroundColor: colors.surface,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.sm
-    },
-    shortcutPressed: {
-      opacity: 0.82,
-      transform: [{ scale: 0.99 }]
-    },
-    shortcutIconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: radius.md,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.surfaceMuted
-    },
-    shortcutText: {
-      color: colors.ink,
-      fontSize: 16,
-      fontWeight: "700"
     },
     streakCard: {
       gap: spacing.sm
@@ -271,59 +164,6 @@ function createStyles(colors: AppColors) {
       color: colors.muted,
       fontSize: 16,
       lineHeight: 22
-    },
-    notebook: {
-      width: 21,
-      height: 25,
-      borderRadius: 4,
-      borderWidth: 2,
-      borderColor: colors.primaryDark,
-      backgroundColor: colors.surface,
-      paddingLeft: 7,
-      paddingTop: 7,
-      gap: 4
-    },
-    notebookSpine: {
-      position: "absolute",
-      left: 4,
-      top: 3,
-      bottom: 3,
-      width: 2,
-      borderRadius: 1,
-      backgroundColor: colors.primaryDark
-    },
-    notebookLine: {
-      width: 9,
-      height: 2,
-      borderRadius: 1,
-      backgroundColor: colors.primaryDark
-    },
-    notebookLineShort: {
-      width: 6
-    },
-    chartIcon: {
-      width: 24,
-      height: 24,
-      flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "center",
-      gap: 3
-    },
-    chartBar: {
-      width: 5,
-      borderRadius: 3,
-      backgroundColor: colors.primaryDark
-    },
-    chartBarOne: {
-      height: 9,
-      opacity: 0.65
-    },
-    chartBarTwo: {
-      height: 15,
-      opacity: 0.82
-    },
-    chartBarThree: {
-      height: 22
     },
     practiceCard: {
       gap: spacing.md

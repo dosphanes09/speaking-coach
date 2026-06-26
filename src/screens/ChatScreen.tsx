@@ -31,9 +31,10 @@ const MAX_VOICE_SECONDS = 30;
 interface ChatScreenProps {
   settings: AppSettings;
   onBack: () => void;
+  onOpenDrawer?: () => void;
 }
 
-export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Element {
+export function ChatScreen({ settings, onBack, onOpenDrawer }: ChatScreenProps): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -316,7 +317,8 @@ export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Ele
       <Header
         title="Practice Chat"
         subtitle={canUseBackend ? "Text locally, voice through your backend" : "Text chat with local coach mode"}
-        onBack={onBack}
+        onBack={onOpenDrawer ? undefined : onBack}
+        onMenuPress={onOpenDrawer}
         rightLabel="Clear"
         onRightPress={clearChat}
       />

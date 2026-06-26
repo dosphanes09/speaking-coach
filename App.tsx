@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { AppDrawer, DrawerItemKey } from "@/components/AppDrawer";
 import { AppButton } from "@/components/AppButton";
 import { BottomTabBar, BottomTabKey } from "@/components/BottomTabBar";
 import { GrammarSpeakingChallenge, getGrammarLevelContent } from "@/data/grammarRoadmap";
@@ -57,6 +58,7 @@ export default function App(): React.JSX.Element {
   const [listeningResults, setListeningResults] = useState<ListeningGameResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const themeColors = getThemeColors(settings.themeMode);
   const statusBarStyle = settings.themeMode === "light" ? "dark" : "light";
   const freeSpeakingRecords = useMemo(
@@ -202,9 +204,7 @@ export default function App(): React.JSX.Element {
         records={freeSpeakingRecords}
         streakSummary={streakSummary}
         onStartThinking={() => setRoute({ name: "thinking", topic: activeTopic })}
-        onHistory={() => setRoute({ name: "history" })}
-        onProgress={() => setRoute({ name: "progress" })}
-        onSettings={() => setRoute({ name: "settings" })}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
       />
     );
   }
@@ -218,6 +218,7 @@ export default function App(): React.JSX.Element {
           <ChatScreen
             settings={settings}
             onBack={() => setRoute({ name: "home" })}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
           />
         );
       case "learning":
@@ -232,6 +233,7 @@ export default function App(): React.JSX.Element {
           <GrammarHomeScreen
             grammarRecords={grammarRecords}
             onBack={() => setRoute({ name: "learning" })}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
             onSelectLevel={(level) => setRoute({ name: "grammarLevel", level })}
           />
         );
@@ -249,6 +251,7 @@ export default function App(): React.JSX.Element {
         return (
           <PracticeModesScreen
             onBack={() => setRoute({ name: "home" })}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
             onPictureDescription={() => setRoute({ name: "pictureDescription" })}
             onListeningGame={() => setRoute({ name: "listeningPictureGame" })}
           />
@@ -371,6 +374,8 @@ export default function App(): React.JSX.Element {
   }
 
   function navigateToBottomTab(tab: BottomTabKey): void {
+    setIsDrawerOpen(false);
+
     switch (tab) {
       case "home":
         setRoute({ name: "home" });
@@ -383,6 +388,24 @@ export default function App(): React.JSX.Element {
         return;
       case "chat":
         setRoute({ name: "chat" });
+        return;
+      default:
+        setRoute({ name: "home" });
+    }
+  }
+
+  function navigateToDrawerItem(item: DrawerItemKey): void {
+    setIsDrawerOpen(false);
+
+    switch (item) {
+      case "records":
+        setRoute({ name: "history" });
+        return;
+      case "progress":
+        setRoute({ name: "progress" });
+        return;
+      case "settings":
+        setRoute({ name: "settings" });
         return;
       default:
         setRoute({ name: "home" });
@@ -427,6 +450,12 @@ export default function App(): React.JSX.Element {
           {getActiveBottomTab(route) ? (
             <BottomTabBar activeTab={getActiveBottomTab(route)!} onSelectTab={navigateToBottomTab} />
           ) : null}
+          <AppDrawer
+            visible={isDrawerOpen}
+            activeItem={getActiveDrawerItem(route)}
+            onClose={() => setIsDrawerOpen(false)}
+            onSelectItem={navigateToDrawerItem}
+          />
         </View>
       </SafeAreaView>
     </ThemeProvider>
@@ -476,6 +505,20 @@ function getActiveBottomTab(route: AppRoute): BottomTabKey | null {
       return "grammar";
     case "chat":
       return "chat";
+    default:
+      return null;
+  }
+}
+
+function getActiveDrawerItem(route: AppRoute): DrawerItemKey | null {
+  switch (route.name) {
+    case "history":
+    case "recordDetail":
+      return "records";
+    case "progress":
+      return "progress";
+    case "settings":
+      return "settings";
     default:
       return null;
   }

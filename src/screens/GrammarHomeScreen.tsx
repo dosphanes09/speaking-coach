@@ -12,12 +12,14 @@ import { useThemeColors } from "@/theme/ThemeProvider";
 interface GrammarHomeScreenProps {
   grammarRecords: SpeakingRecord[];
   onBack: () => void;
+  onOpenDrawer?: () => void;
   onSelectLevel: (level: GrammarLevel) => void;
 }
 
 export function GrammarHomeScreen({
   grammarRecords,
   onBack,
+  onOpenDrawer,
   onSelectLevel
 }: GrammarHomeScreenProps): React.JSX.Element {
   const colors = useThemeColors();
@@ -25,7 +27,12 @@ export function GrammarHomeScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Header title="Grammar Roadmap" subtitle="A1-C2 tense practice for speaking" onBack={onBack} />
+      <Header
+        title="Grammar Roadmap"
+        subtitle="A1-C2 tense practice for speaking"
+        onBack={onOpenDrawer ? undefined : onBack}
+        onMenuPress={onOpenDrawer}
+      />
 
       <View style={styles.grid}>
         {grammarRoadmap.map((level) => {

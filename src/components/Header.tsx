@@ -7,6 +7,7 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   onBack?: () => void;
+  onMenuPress?: () => void;
   rightLabel?: string;
   rightIcon?: string;
   onRightPress?: () => void;
@@ -16,6 +17,7 @@ export function Header({
   title,
   subtitle,
   onBack,
+  onMenuPress,
   rightLabel,
   rightIcon,
   onRightPress
@@ -38,6 +40,16 @@ export function Header({
           >
             <Text style={styles.navIcon}>‹</Text>
             <Text style={styles.navText}>Back</Text>
+          </Pressable>
+        ) : onMenuPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Menüyü aç"
+            onPress={onMenuPress}
+            hitSlop={4}
+            style={({ pressed }) => [styles.navButton, styles.menuButton, pressed && styles.navButtonPressed]}
+          >
+            <Text style={styles.menuIcon}>☰</Text>
           </Pressable>
         ) : (
           <View style={styles.navPlaceholder} />
@@ -128,6 +140,17 @@ function createStyles(colors: AppColors) {
     },
     rightButton: {
       minWidth: 96
+    },
+    menuButton: {
+      minWidth: 48,
+      width: 48,
+      paddingHorizontal: 0
+    },
+    menuIcon: {
+      color: colors.primaryDark,
+      fontSize: 22,
+      lineHeight: 24,
+      fontWeight: "800"
     },
     rightIcon: {
       color: colors.accent,

@@ -7,12 +7,14 @@ import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PracticeModesScreenProps {
   onBack: () => void;
+  onOpenDrawer?: () => void;
   onPictureDescription: () => void;
   onListeningGame: () => void;
 }
 
 export function PracticeModesScreen({
   onBack,
+  onOpenDrawer,
   onPictureDescription,
   onListeningGame
 }: PracticeModesScreenProps): React.JSX.Element {
@@ -21,7 +23,12 @@ export function PracticeModesScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Header title="Practice Modes" subtitle="Choose a focused speaking or listening practice." onBack={onBack} />
+      <Header
+        title="Practice Modes"
+        subtitle="Choose a focused speaking or listening practice."
+        onBack={onOpenDrawer ? undefined : onBack}
+        onMenuPress={onOpenDrawer}
+      />
 
       <ModeCard
         title="Describe a Picture"
