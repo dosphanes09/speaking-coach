@@ -15,12 +15,16 @@ export function SpeakingAnalyticsCard({ analytics }: SpeakingAnalyticsCardProps)
 
   return (
     <Card style={styles.card}>
-      <View style={styles.grid}>
+      <View style={styles.metricsGrid}>
         <Metric colors={colors} label="CEFR" value={analytics.estimatedCEFRLevel} />
-        <Metric colors={colors} label="Time Used" value={formatTimeUsage(analytics)} />
-        <Metric colors={colors} label="WPM" value={formatNumber(analytics.wordsPerMinute)} />
-        <Metric colors={colors} label="Words" value={formatNumber(analytics.transcriptWordCount)} />
-        <Metric colors={colors} label="Avg Sentence" value={formatNumber(analytics.averageSentenceLength)} />
+        <View style={styles.metricRow}>
+          <Metric colors={colors} label="Time Used" value={formatTimeUsage(analytics)} />
+          <Metric colors={colors} label="WPM" value={formatNumber(analytics.wordsPerMinute)} />
+        </View>
+        <View style={styles.metricRow}>
+          <Metric colors={colors} label="Words" value={formatNumber(analytics.transcriptWordCount)} />
+          <Metric colors={colors} label="Avg Sentence" value={formatNumber(analytics.averageSentenceLength)} />
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -101,29 +105,35 @@ function createStyles(colors: AppColors) {
     card: {
       gap: spacing.md
     },
-    grid: {
+    metricsGrid: {
+      gap: spacing.sm
+    },
+    metricRow: {
       flexDirection: "row",
-      flexWrap: "wrap",
       gap: spacing.sm
     },
     metric: {
-      width: "48%",
+      flex: 1,
       backgroundColor: colors.surfaceMuted,
       borderRadius: radius.md,
       borderWidth: 1,
       borderColor: colors.line,
       padding: spacing.sm,
-      gap: spacing.xs
+      gap: spacing.xs,
+      alignItems: "center",
+      justifyContent: "center"
     },
     metricValue: {
       color: colors.ink,
       fontSize: 20,
-      fontWeight: "800"
+      fontWeight: "800",
+      textAlign: "center"
     },
     metricLabel: {
       color: colors.muted,
       fontSize: 14,
       fontWeight: "700",
+      textAlign: "center",
       textTransform: "uppercase"
     },
     section: {
