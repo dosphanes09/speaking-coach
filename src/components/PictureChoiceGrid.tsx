@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PictureSceneIllustration } from "@/components/PictureSceneIllustration";
 import { PicturePrompt } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PictureChoiceGridProps {
@@ -72,16 +73,13 @@ function createStyles(colors: AppColors) {
       transform: [{ scale: 0.99 }]
     },
     choiceTitle: {
+      ...typography.bodyStrong,
       color: colors.ink,
-      fontSize: 14,
-      lineHeight: 18,
-      fontWeight: "900"
+      fontSize: 14
     },
     choiceLevel: {
-      color: colors.muted,
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: "800"
+      ...typography.caption,
+      color: colors.muted
     }
   });
 }

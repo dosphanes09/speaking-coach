@@ -7,7 +7,8 @@ import { PracticeQuestionCard } from "@/components/PracticeQuestionCard";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { useCountdown } from "@/hooks/useCountdown";
 import { RecordingType, Topic } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { THINKING_SECONDS } from "@/utils/practiceTiming";
 
@@ -100,7 +101,7 @@ export function ThinkingScreen({
         </Card>
 
         <View style={styles.actions}>
-          <AppButton label="Start Recording Now" onPress={countdown.skip} variant="ghost" icon="→" />
+          <AppButton label="Start Recording Now" onPress={countdown.skip} variant="ghost" icon="arrow-right" />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -132,27 +133,24 @@ function createStyles(colors: AppColors) {
       fontWeight: "900"
     },
     timerLabel: {
+      ...typography.bodyLarge,
       color: colors.muted,
-      fontSize: 18,
-      fontWeight: "700"
+      fontSize: 18
     },
     autoStartText: {
+      ...typography.bodyStrong,
       color: colors.primaryDark,
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: "800",
       textAlign: "center"
     },
     notesCard: {
       gap: spacing.sm
     },
     notesTitle: {
-      color: colors.ink,
-      fontSize: 18,
-      lineHeight: 24,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     notesHelp: {
+      ...typography.body,
       color: colors.muted,
       fontSize: 13,
       lineHeight: 19
@@ -161,7 +159,7 @@ function createStyles(colors: AppColors) {
       minHeight: 150,
       borderWidth: 1,
       borderColor: colors.line,
-      borderRadius: 8,
+      borderRadius: radius.sm,
       padding: spacing.md,
       color: colors.ink,
       fontSize: 16,

@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { GrammarFocusFeedback } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
@@ -81,20 +82,16 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   body: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.ink
   },
   listItem: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.ink
   }
   });
 }

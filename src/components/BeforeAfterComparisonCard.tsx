@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { SCORE_LABELS } from "@/services/progress/scoreUtils";
 import { BeforeAfterComparison } from "@/services/progress/beforeAfterService";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
@@ -22,7 +23,7 @@ export function BeforeAfterComparisonCard({
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Before / After</Text>
-          <Text style={styles.subtitle}>Ayni konuya verdigin onceki cevapla karsilastirma</Text>
+          <Text style={styles.subtitle}>Comparison with your previous answer to the same topic</Text>
         </View>
         <Text style={styles.date}>{formatDate(comparison.beforeRecord.createdAt)}</Text>
       </View>
@@ -116,10 +117,10 @@ function formatDate(value: string): string {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return "onceki deneme";
+    return "previous attempt";
   }
 
-  return date.toLocaleDateString("tr-TR", {
+  return date.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short"
   });
@@ -136,20 +137,18 @@ function createStyles(colors: AppColors) {
     gap: spacing.sm
   },
   title: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: "900"
+    ...typography.h2,
+    color: colors.ink
   },
   subtitle: {
+    ...typography.caption,
     color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
     marginTop: spacing.xs
   },
   date: {
+    ...typography.bodyStrong,
     color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900"
+    fontSize: 13
   },
   scoreGrid: {
     flexDirection: "row",
@@ -165,14 +164,12 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   scoreLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   delta: {
-    fontSize: 18,
-    fontWeight: "900"
+    ...typography.h2,
+    fontSize: 18
   },
   positive: {
     color: colors.success
@@ -181,6 +178,7 @@ function createStyles(colors: AppColors) {
     color: colors.danger
   },
   scoreMeta: {
+    ...typography.body,
     color: colors.ink,
     fontSize: 13,
     fontWeight: "700"
@@ -202,8 +200,8 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   insightValue: {
+    ...typography.body,
     color: colors.ink,
-    fontSize: 14,
     fontWeight: "700"
   }
   });

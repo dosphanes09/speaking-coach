@@ -79,8 +79,13 @@ export function enrichAnalysisForProgress({
 }: EnrichAnalysisInput): AnalysisResult {
   const speakingAnalytics =
     analysis.speakingAnalytics ?? deriveSpeakingAnalytics({ analysis, transcript, media, topic });
+  // When the backend has already classified each mistake (category/severity/isTurkishTransferError),
+  // rebuild errorPatterns mechanically from those same classifications instead of trusting the AI's
+  // separately-generated errorPatterns list. This guarantees the Grammar Corrections list and the
+  // recurring-pattern grouping can never disagree with each other for the same analysis.
+  const mistakesHaveClassification = analysis.mistakes.some((mistake) => Boolean(mistake.category));
   const errorPatterns = normalizeErrorPatterns(
-    analysis.errorPatterns ?? deriveErrorPatterns(analysis)
+    mistakesHaveClassification ? deriveErrorPatterns(analysis) : analysis.errorPatterns ?? deriveErrorPatterns(analysis)
   );
   const progressTags = normalizeProgressTags(
     analysis.progressTags ?? deriveProgressTags({ analysis, errorPatterns, topic })
@@ -136,21 +141,32 @@ export function deriveSpeakingAnalytics({
 export function deriveErrorPatterns(analysis: AnalysisResult): ErrorPattern[] {
   const fromMistakes = analysis.mistakes.map((mistake) => {
     const source = `${mistake.problem} ${mistake.explanation}`;
-    const category = classifyErrorPattern(source);
+    // Prefer the classification the backend already assigned to this specific mistake
+    // (available on every mistake produced since the schema made these fields required).
+    // Only fall back to fragile keyword-matching for older/mock data that lacks it, so the
+    // derived pattern can never disagree with how the mistake itself was labeled.
+    const hasClassification = Boolean(mistake.category);
+    const baseCategory = hasClassification ? (mistake.category as ErrorPatternCategory) : classifyErrorPattern(source);
+    const isTurkishTransferError = hasClassification
+      ? Boolean(mistake.isTurkishTransferError)
+      : detectTurkishTransfer(source);
+    const category = isTurkishTransferError ? "turkish-transfer" : baseCategory;
     const label = normalizeText(mistake.problem, categoryLabel(category));
-    const isTurkishTransferError = detectTurkishTransfer(source);
+    const severity = hasClassification
+      ? normalizeSeverity(mistake.severity as ErrorPatternSeverity)
+      : estimateErrorSeverity(source, category, isTurkishTransferError);
 
     return {
       id: buildPatternId(category, label || mistake.id),
-      category: isTurkishTransferError ? "turkish-transfer" : category,
+      category,
       label,
       explanationTR: normalizeText(
         mistake.explanation,
-        `${categoryLabel(category)} alaninda tekrar calisilmasi gereken bir nokta.`
+        `A point in ${categoryLabel(category)} worth practicing again.`
       ),
       exampleOriginal: normalizeText(mistake.originalSentence, ""),
       exampleCorrected: normalizeText(mistake.correctVersion, ""),
-      severity: estimateErrorSeverity(source, category, isTurkishTransferError),
+      severity,
       isTurkishTransferError
     } satisfies ErrorPattern;
   });
@@ -164,7 +180,7 @@ export function deriveErrorPatterns(analysis: AnalysisResult): ErrorPattern[] {
       id: buildPatternId(finalCategory, problem),
       category: finalCategory,
       label: normalizeText(problem, categoryLabel(finalCategory)),
-      explanationTR: `${normalizeText(problem, categoryLabel(finalCategory))} tekrar eden bir gelisim alani olabilir.`,
+      explanationTR: `${normalizeText(problem, categoryLabel(finalCategory))} could be a recurring area for improvement.`,
       exampleOriginal: "",
       exampleCorrected: "",
       severity: estimateErrorSeverity(problem, finalCategory, isTurkishTransferError),
@@ -237,7 +253,7 @@ function normalizeErrorPatterns(patterns: ErrorPattern[]): ErrorPattern[] {
         ...pattern,
         id,
         label,
-        explanationTR: normalizeText(pattern.explanationTR, `${label} tekrar calisilmasi gereken bir alan.`),
+        explanationTR: normalizeText(pattern.explanationTR, `${label} is an area worth practicing again.`),
         exampleOriginal: normalizeText(pattern.exampleOriginal, ""),
         exampleCorrected: normalizeText(pattern.exampleCorrected, ""),
         severity: normalizeSeverity(pattern.severity),
@@ -305,25 +321,25 @@ function buildClarityNotes({
   const notes: string[] = [];
 
   if (durationSeconds <= 0) {
-    notes.push("Kayit suresi bulunamadigi icin hiz tahmini sinirli.");
+    notes.push("Recording duration was not available, so the speaking-speed estimate is limited.");
   } else if (wordsPerMinute < 85) {
-    notes.push("Konusma hizi biraz yavas; kisa cumleleri daha ritmik tekrar etmeye odaklan.");
+    notes.push("Speaking pace is a bit slow; focus on practicing short sentences with a more natural rhythm.");
   } else if (wordsPerMinute > 165) {
-    notes.push("Konusma hizi yuksek; ana fikirleri daha net duraklarla ayir.");
+    notes.push("Speaking pace is fast; separate your main ideas with clearer pauses.");
   } else {
-    notes.push("Konusma hizi genel olarak dengeli gorunuyor.");
+    notes.push("Speaking pace looks generally balanced.");
   }
 
   if (fillerWordCount >= 5) {
-    notes.push("Filler word kullanimi dikkat cekiyor; cevap oncesi 2-3 anahtar kelime belirlemek yardimci olur.");
+    notes.push("Filler word usage stands out; picking 2-3 key words before you answer can help.");
   }
 
   if (averageSentenceLength > 22) {
-    notes.push("Cumleler uzun; daha kisa cumlelerle fikirleri bolmek anlasilirligi artirir.");
+    notes.push("Sentences are long; breaking ideas into shorter sentences improves clarity.");
   }
 
   if (transcriptWordCount < 70) {
-    notes.push("Cevap kisa kalmis olabilir; bir neden ve bir ornek ekleyerek cevabi genislet.");
+    notes.push("The answer may be too short; expand it by adding a reason and an example.");
   }
 
   return notes.join(" ");

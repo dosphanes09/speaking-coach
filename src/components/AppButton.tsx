@@ -1,6 +1,8 @@
 import React from "react";
 import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
+import { Icon, IconName } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
@@ -11,7 +13,7 @@ interface AppButtonProps {
   onPress: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
-  icon?: string;
+  icon?: IconName;
   disabled?: boolean;
   loading?: boolean;
   accessibilityLabel?: string;
@@ -33,6 +35,7 @@ export function AppButton({
   const styles = createStyles(colors);
   const isDisabled = disabled || loading;
   const isGhost = variant === "ghost";
+  const iconColor = isGhost ? colors.primaryDark : "#FFFFFF";
 
   return (
     <Pressable
@@ -51,10 +54,8 @@ export function AppButton({
         style
       ]}
     >
-      {loading ? <ActivityIndicator color={isGhost ? colors.primaryDark : "#FFFFFF"} /> : null}
-      {!loading && icon ? (
-        <Text style={[styles.icon, isGhost && styles.ghostLabel]}>{icon}</Text>
-      ) : null}
+      {loading ? <ActivityIndicator color={iconColor} /> : null}
+      {!loading && icon ? <Icon name={icon} size={17} color={iconColor} /> : null}
       <Text style={[styles.label, isGhost && styles.ghostLabel]}>{label}</Text>
     </Pressable>
   );
@@ -111,16 +112,10 @@ function createStyles(colors: AppColors) {
       transform: [{ scale: 0.985 }]
     },
     label: {
+      ...typography.bodyStrong,
       color: "#FFFFFF",
       fontSize: 16,
-      fontWeight: "800",
-      letterSpacing: 0.1,
       textAlign: "center"
-    },
-    icon: {
-      color: "#FFFFFF",
-      fontSize: 16,
-      fontWeight: "900"
     },
     ghostLabel: {
       color: colors.primaryDark

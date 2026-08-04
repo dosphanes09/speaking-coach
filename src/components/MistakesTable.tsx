@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Card } from "./Card";
 import { Mistake } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface MistakesTableProps {
@@ -40,15 +41,12 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   text: {
+    ...typography.bodyLarge,
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 21,
     marginBottom: spacing.xs
   }
   });

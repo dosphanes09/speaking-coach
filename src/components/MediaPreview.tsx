@@ -4,6 +4,7 @@ import { Audio, ResizeMode, Video } from "expo-av";
 import { AppButton } from "./AppButton";
 import { RecordedMedia } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface MediaPreviewProps {
@@ -91,8 +92,8 @@ function createStyles(colors: AppColors) {
     padding: spacing.md
   },
   audioText: {
-    color: colors.ink,
-    fontWeight: "800"
+    ...typography.bodyStrong,
+    color: colors.ink
   }
   });
 }

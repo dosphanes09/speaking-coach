@@ -10,6 +10,7 @@ import { getRandomListeningItem } from "@/data/listeningPictureItems";
 import { getPicturePromptById, PICTURE_LEVELS } from "@/data/picturePrompts";
 import { ListeningGameItem, ListeningGameResult, PicturePrompt, TopicLevel } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createId } from "@/utils/id";
 
@@ -216,24 +217,19 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     label: {
-      color: colors.muted,
-      fontSize: 13,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.muted
     },
     listenCard: {
       gap: spacing.sm
     },
     listenTitle: {
-      color: colors.ink,
-      fontSize: 19,
-      lineHeight: 25,
-      fontWeight: "900"
+      ...typography.h1,
+      color: colors.ink
     },
     listenHelp: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.muted
     },
     playActions: {
       gap: spacing.sm
@@ -245,9 +241,7 @@ function createStyles(colors: AppColors) {
       gap: spacing.md
     },
     resultTitle: {
-      fontSize: 24,
-      lineHeight: 30,
-      fontWeight: "900"
+      ...typography.display
     },
     correctText: {
       color: colors.success
@@ -256,28 +250,23 @@ function createStyles(colors: AppColors) {
       color: colors.warning
     },
     resultBody: {
-      color: colors.ink,
-      fontSize: 15,
-      lineHeight: 21
+      ...typography.bodyLarge,
+      color: colors.ink
     },
     resultBlock: {
       gap: spacing.sm
     },
     sectionTitle: {
-      color: colors.ink,
-      fontSize: 16,
-      lineHeight: 22,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     transcript: {
-      color: colors.muted,
-      fontSize: 15,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.muted
     },
     detailLine: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.muted
     },
     chipRow: {
       flexDirection: "row",
@@ -285,19 +274,18 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     chip: {
+      ...typography.bodyStrong,
       overflow: "hidden",
       borderRadius: radius.sm,
       backgroundColor: colors.surfaceMuted,
       color: colors.primaryDark,
       fontSize: 13,
-      fontWeight: "800",
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs
     },
     errorText: {
-      color: colors.danger,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.danger
     }
   });
 }

@@ -1,7 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { ErrorPattern } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
@@ -59,20 +60,18 @@ function createStyles(colors: AppColors) {
     gap: spacing.sm
   },
   title: {
+    ...typography.bodyStrong,
     flex: 1,
-    color: colors.ink,
-    fontSize: 15,
-    fontWeight: "900",
-    lineHeight: 21
+    color: colors.ink
   },
   badge: {
+    ...typography.label,
     color: "#FFFFFF",
     fontSize: 11,
-    fontWeight: "900",
     overflow: "hidden",
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.xs,
-    paddingVertical: 3,
-    textTransform: "uppercase"
+    paddingVertical: 3
   },
   highBadge: {
     backgroundColor: colors.danger
@@ -81,20 +80,16 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.warning
   },
   meta: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   body: {
-    color: colors.ink,
-    fontSize: 14,
-    lineHeight: 20
+    ...typography.body,
+    color: colors.ink
   },
   example: {
-    color: colors.primaryDark,
-    fontSize: 14,
-    lineHeight: 20
+    ...typography.body,
+    color: colors.primaryDark
   }
   });
 }

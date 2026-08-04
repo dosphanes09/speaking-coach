@@ -1,7 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SpeakingAnalytics, WordFrequency } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
@@ -28,8 +29,8 @@ export function SpeakingAnalyticsCard({ analytics }: SpeakingAnalyticsCardProps)
         <Text style={styles.body}>{analytics.clarityNotesTR}</Text>
       </View>
 
-      <FrequencyList colors={colors} title="Filler Words" items={analytics.fillerWords} emptyText="Filler word yakalanmadı." />
-      <FrequencyList colors={colors} title="Repeated Words" items={analytics.repeatedWords} emptyText="Belirgin tekrar eden kelime yok." />
+      <FrequencyList colors={colors} title="Filler Words" items={analytics.fillerWords} emptyText="No filler words detected." />
+      <FrequencyList colors={colors} title="Repeated Words" items={analytics.repeatedWords} emptyText="No noticeably repeated words." />
     </Card>
   );
 }
@@ -109,33 +110,28 @@ function createStyles(colors: AppColors) {
   metric: {
     width: "48%",
     backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
     padding: spacing.sm,
     gap: spacing.xs
   },
   metricValue: {
-    color: colors.ink,
-    fontSize: 20,
-    fontWeight: "900"
+    ...typography.h1,
+    color: colors.ink
   },
   metricLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   section: {
     gap: spacing.xs
   },
   label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   body: {
-    color: colors.ink,
-    fontSize: 14,
-    lineHeight: 20
+    ...typography.body,
+    color: colors.ink
   },
   pillRow: {
     flexDirection: "row",
@@ -143,10 +139,11 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   pill: {
+    ...typography.bodyStrong,
     backgroundColor: colors.surfaceMuted,
     color: colors.primaryDark,
+    borderRadius: radius.sm,
     fontSize: 13,
-    fontWeight: "800",
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs
   }

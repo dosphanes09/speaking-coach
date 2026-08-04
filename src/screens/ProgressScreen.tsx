@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { MonthlyScoreCharts } from "@/components/MonthlyScoreCharts";
 import { SpeakingRecord } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { calculateProgress, ProgressScoreBreakdown } from "@/services/progress/progressService";
 import { RepeatedMistake } from "@/services/progress/repeatedMistakeService";
@@ -62,10 +63,10 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
           style={styles.expandHeader}
         >
           <View style={styles.expandTitleBlock}>
-            <Text style={styles.sectionTitle}>Grafikler</Text>
-            <Text style={styles.expandSubtitle}>Her skor tipi için ay içindeki günlük ilerleme</Text>
+            <Text style={styles.sectionTitle}>Charts</Text>
+            <Text style={styles.expandSubtitle}>Daily progress within the month for each score type</Text>
           </View>
-          <Text style={styles.expandAction}>{showCharts ? "Kapat" : "Aç"}</Text>
+          <Text style={styles.expandAction}>{showCharts ? "Close" : "Open"}</Text>
         </Pressable>
         {showCharts ? <MonthlyScoreCharts records={records} /> : null}
       </Card>
@@ -73,7 +74,7 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
       <Card style={styles.chartCard}>
         <Text style={styles.sectionTitle}>Last Scores</Text>
         {progress.chart.length === 0 ? (
-          <Text style={styles.emptyText}>Grafik için en az bir kayıt gerekiyor.</Text>
+          <Text style={styles.emptyText}>At least one record is needed for the chart.</Text>
         ) : (
           <View style={styles.chart}>
             {progress.chart.map((point) => (
@@ -92,7 +93,7 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
       <Card style={styles.problemCard}>
         <Text style={styles.sectionTitle}>Most Repeated Problems</Text>
         {progress.topProblems.length === 0 ? (
-          <Text style={styles.emptyText}>Daha fazla analizden sonra tekrar eden hatalar burada görünecek.</Text>
+          <Text style={styles.emptyText}>Repeated mistakes will appear here after more analyses.</Text>
         ) : (
           progress.topProblems.map((problem) => (
             <Text key={problem} style={styles.problem}>
@@ -105,7 +106,7 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
       <Card style={styles.problemCard}>
         <Text style={styles.sectionTitle}>Repeated Mistake Patterns</Text>
         {progress.repeatedMistakes.length === 0 ? (
-          <Text style={styles.emptyText}>Tekrar eden hata paterni için en az iki benzer analiz gerekiyor.</Text>
+          <Text style={styles.emptyText}>At least two similar analyses are needed to detect a repeated mistake pattern.</Text>
         ) : (
           progress.repeatedMistakes.slice(0, 3).map((mistake) => (
             <RepeatedMistakeItem key={mistake.id} mistake={mistake} styles={styles} />
@@ -116,7 +117,7 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
       <Card style={styles.problemCard}>
         <Text style={styles.sectionTitle}>Turkish Transfer Watch</Text>
         {progress.turkishTransferMistakes.length === 0 ? (
-          <Text style={styles.emptyText}>Türkçe düşünme kaynaklı tekrar eden hata henüz yakalanmadı.</Text>
+          <Text style={styles.emptyText}>No repeated mistakes from Turkish-thinking transfer have been detected yet.</Text>
         ) : (
           progress.turkishTransferMistakes.slice(0, 3).map((mistake) => (
             <RepeatedMistakeItem key={mistake.id} mistake={mistake} styles={styles} />
@@ -186,7 +187,7 @@ function RepeatedMistakeItem({
         <Text style={styles.problemTitle}>{mistake.label}</Text>
         <Text style={styles.badge}>{mistake.count}x</Text>
       </View>
-      <Text style={styles.metaText}>Son görülme: {formatDate(mistake.lastSeenAt)}</Text>
+      <Text style={styles.metaText}>Last seen: {formatDate(mistake.lastSeenAt)}</Text>
       <Text style={styles.problem}>{mistake.explanationTR}</Text>
       {mistake.exampleOriginal ? (
         <Text style={styles.exampleText}>Original: {mistake.exampleOriginal}</Text>
@@ -194,7 +195,7 @@ function RepeatedMistakeItem({
       {mistake.exampleCorrected ? (
         <Text style={styles.exampleText}>Corrected: {mistake.exampleCorrected}</Text>
       ) : null}
-      <Text style={styles.exerciseText}>Mini egzersiz: {mistake.suggestedExerciseTR}</Text>
+      <Text style={styles.exerciseText}>Mini exercise: {mistake.suggestedExercise}</Text>
     </View>
   );
 }
@@ -206,7 +207,7 @@ function formatDate(value: string): string {
     return "-";
   }
 
-  return date.toLocaleDateString("tr-TR", {
+  return date.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short"
   });
@@ -255,13 +256,12 @@ function createStyles(colors: AppColors) {
       justifyContent: "center"
     },
     statValue: {
-      color: colors.ink,
-      fontSize: 28,
-      fontWeight: "900"
+      ...typography.display,
+      color: colors.ink
     },
     statLabel: {
-      color: colors.muted,
-      fontWeight: "700"
+      ...typography.bodyStrong,
+      color: colors.muted
     },
     positive: {
       color: colors.success
@@ -273,9 +273,8 @@ function createStyles(colors: AppColors) {
       gap: spacing.md
     },
     sectionTitle: {
-      color: colors.ink,
-      fontSize: 18,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     expandHeader: {
       minHeight: 48,
@@ -289,14 +288,12 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     expandSubtitle: {
-      color: colors.muted,
-      fontSize: 13,
-      lineHeight: 18
+      ...typography.caption,
+      color: colors.muted
     },
     expandAction: {
-      color: colors.accent,
-      fontSize: 14,
-      fontWeight: "900"
+      ...typography.bodyStrong,
+      color: colors.accent
     },
     chart: {
       height: 160,
@@ -323,10 +320,12 @@ function createStyles(colors: AppColors) {
       borderTopRightRadius: radius.sm
     },
     barLabel: {
+      ...typography.caption,
       color: colors.muted,
       fontWeight: "700"
     },
     barScore: {
+      ...typography.caption,
       color: colors.ink,
       fontSize: 11,
       fontWeight: "800"
@@ -344,9 +343,8 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     breakdownMeta: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: "700"
+      ...typography.caption,
+      color: colors.muted
     },
     breakdownTrack: {
       height: 8,
@@ -359,8 +357,8 @@ function createStyles(colors: AppColors) {
       backgroundColor: colors.accent
     },
     trendText: {
-      fontSize: 13,
-      fontWeight: "900"
+      ...typography.bodyStrong,
+      fontSize: 13
     },
     problemCard: {
       gap: spacing.sm
@@ -378,48 +376,44 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     problemTitle: {
+      ...typography.bodyStrong,
       flex: 1,
       color: colors.ink,
       fontSize: 15,
-      fontWeight: "900",
       lineHeight: 21
     },
     badge: {
+      ...typography.label,
       minWidth: 40,
       borderRadius: radius.sm,
       backgroundColor: colors.warning,
       color: "#FFFFFF",
       fontSize: 13,
-      fontWeight: "900",
       overflow: "hidden",
       paddingHorizontal: spacing.xs,
       paddingVertical: 3,
       textAlign: "center"
     },
     metaText: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: "700"
+      ...typography.caption,
+      color: colors.muted
     },
     problem: {
-      color: colors.ink,
-      fontSize: 15,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.ink
     },
     exampleText: {
-      color: colors.ink,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.ink
     },
     exerciseText: {
+      ...typography.body,
       color: colors.primaryDark,
-      fontSize: 14,
-      fontWeight: "700",
-      lineHeight: 20
+      fontWeight: "700"
     },
     emptyText: {
-      color: colors.muted,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.muted
     }
   });
 }

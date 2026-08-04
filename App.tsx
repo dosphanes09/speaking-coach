@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BackHandler, Platform, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AppButton } from "@/components/AppButton";
 import { GrammarSpeakingChallenge, getGrammarLevelContent } from "@/data/grammarRoadmap";
@@ -44,7 +44,8 @@ import { ProgressScreen } from "@/screens/ProgressScreen";
 import { SettingsScreen } from "@/screens/SettingsScreen";
 import { ChatScreen } from "@/screens/ChatScreen";
 import { LearningScreen } from "@/screens/LearningScreen";
-import { enableAndroidImmersiveMode } from "@/services/device/androidImmersiveMode";
+import { hideAndroidNavigationBar } from "@/services/device/androidImmersiveMode";
+import { AppBottomBar } from "@/components/AppBottomBar";
 import { syncStreakReminder } from "@/services/notifications/streakReminderService";
 import { calculateStreak } from "@/services/streak/streakService";
 import { getRecommendedRecordingSeconds } from "@/utils/practiceTiming";
@@ -99,11 +100,11 @@ export default function App(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    const disableImmersiveMode = enableAndroidImmersiveMode();
+    const cleanupNavigationBar = hideAndroidNavigationBar();
 
     void loadAppData();
 
-    return disableImmersiveMode;
+    return cleanupNavigationBar;
   }, [loadAppData]);
 
   useEffect(() => {
@@ -113,6 +114,34 @@ export default function App(): React.JSX.Element {
 
     void syncStreakReminder(records);
   }, [isLoading, records]);
+
+  // Read via a ref (not the `route` state directly) so this subscribes once
+  // instead of re-subscribing on every navigation, while still always acting
+  // on the current screen. Without this, the Android hardware back button has
+  // nothing to intercept and the OS default (exit the app) runs instead.
+  const routeRef = useRef(route);
+  routeRef.current = route;
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      const backRoute = getBackRoute(routeRef.current);
+      if (!backRoute) {
+        return false;
+      }
+
+      setRoute(backRoute);
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  function goBack(): void {
+    const backRoute = getBackRoute(route);
+    if (backRoute) {
+      setRoute(backRoute);
+    }
+  }
 
   async function handleSaveRecord(record: SpeakingRecord): Promise<SpeakingRecord> {
     const normalizedRecord: SpeakingRecord = {
@@ -219,13 +248,13 @@ export default function App(): React.JSX.Element {
         return (
           <ChatScreen
             settings={settings}
-            onBack={() => setRoute({ name: "home" })}
+            onBack={goBack}
           />
         );
       case "learning":
         return (
           <LearningScreen
-            onBack={() => setRoute({ name: "home" })}
+            onBack={goBack}
             onGrammarRoadmap={() => setRoute({ name: "grammarHome" })}
           />
         );
@@ -233,7 +262,7 @@ export default function App(): React.JSX.Element {
         return (
           <GrammarHomeScreen
             grammarRecords={grammarRecords}
-            onBack={() => setRoute({ name: "learning" })}
+            onBack={goBack}
             onSelectLevel={(level) => setRoute({ name: "grammarLevel", level })}
           />
         );
@@ -243,14 +272,14 @@ export default function App(): React.JSX.Element {
             levelContent={getGrammarLevelContent(route.level)}
             recentChallengeIds={recentGrammarChallengeIdsByLevel[route.level]}
             levelRecords={grammarRecords.filter((record) => getGrammarRecordLevel(record) === route.level)}
-            onBack={() => setRoute({ name: "grammarHome" })}
+            onBack={goBack}
             onStartChallenge={(challenge) => startGrammarSpeakingPractice(route.level, challenge)}
           />
         );
       case "practiceModes":
         return (
           <PracticeModesScreen
-            onBack={() => setRoute({ name: "home" })}
+            onBack={goBack}
             onPictureDescription={() => setRoute({ name: "pictureDescription" })}
             onListeningGame={() => setRoute({ name: "listeningPictureGame" })}
           />
@@ -259,7 +288,7 @@ export default function App(): React.JSX.Element {
         return (
           <PictureDescriptionScreen
             targetLevel={settings.targetLevel}
-            onBack={() => setRoute({ name: "practiceModes" })}
+            onBack={goBack}
             onStartPrompt={startPictureDescriptionPractice}
           />
         );
@@ -267,7 +296,7 @@ export default function App(): React.JSX.Element {
         return (
           <ListeningPictureGameScreen
             targetLevel={settings.targetLevel}
-            onBack={() => setRoute({ name: "practiceModes" })}
+            onBack={goBack}
             onSaveResult={handleSaveListeningResult}
             onDescribePicture={startPictureDescriptionPractice}
           />
@@ -278,7 +307,7 @@ export default function App(): React.JSX.Element {
             topic={route.topic}
             initialNotes={route.thinkingNotes}
             initialRecordingType={route.recordingType}
-            onBack={() => setRoute({ name: "home" })}
+            onBack={goBack}
             onStartRecording={(thinkingNotes, recordingType) =>
               setRoute({ name: "recording", topic: route.topic, thinkingNotes, recordingType, autoStart: true })
             }
@@ -292,14 +321,7 @@ export default function App(): React.JSX.Element {
             initialRecordingType={route.recordingType}
             autoStart={route.autoStart === true}
             recordingLimitSeconds={getRecommendedRecordingSeconds(route.topic)}
-            onBack={() =>
-              setRoute({
-                name: "thinking",
-                topic: route.topic,
-                thinkingNotes: route.thinkingNotes,
-                recordingType: route.recordingType
-              })
-            }
+            onBack={goBack}
             onRecorded={(media) =>
               setRoute({ name: "transcript", topic: route.topic, media, thinkingNotes: route.thinkingNotes })
             }
@@ -311,14 +333,7 @@ export default function App(): React.JSX.Element {
             topic={route.topic}
             media={route.media}
             settings={settings}
-            onBack={() =>
-              setRoute({
-                name: "recording",
-                topic: route.topic,
-                thinkingNotes: route.thinkingNotes ?? "",
-                recordingType: route.media.type
-              })
-            }
+            onBack={goBack}
             onOpenSettings={() => setRoute({ name: "settings", returnTo: route })}
             onContinue={(transcript, analysisResult) =>
               setRoute({ name: "analysis", topic: route.topic, media: route.media, transcript, analysisResult })
@@ -333,7 +348,7 @@ export default function App(): React.JSX.Element {
             transcript={route.transcript}
             analysisResult={route.analysisResult}
             records={records}
-            onBack={() => setRoute({ name: "transcript", topic: route.topic, media: route.media })}
+            onBack={goBack}
             onHome={() => setRoute({ name: "home" })}
             onSaveRecord={handleSaveRecord}
           />
@@ -343,7 +358,7 @@ export default function App(): React.JSX.Element {
           <HistoryScreen
             records={records}
             listeningResults={listeningResults}
-            onBack={() => setRoute({ name: "home" })}
+            onBack={goBack}
             onSelectRecord={(record) => setRoute({ name: "recordDetail", record })}
           />
         );
@@ -351,18 +366,21 @@ export default function App(): React.JSX.Element {
         return (
           <RecordDetailScreen
             record={route.record}
-            onBack={() => setRoute({ name: "history" })}
+            allRecords={records}
+            onBack={goBack}
             onDelete={handleDeleteRecord}
             onUpdateRecord={handleSaveRecord}
+            onRetryTopic={(topic) => setRoute({ name: "thinking", topic })}
+            onSelectRecord={(record) => setRoute({ name: "recordDetail", record })}
           />
         );
       case "progress":
-        return <ProgressScreen records={freeSpeakingRecords} onBack={() => setRoute({ name: "home" })} />;
+        return <ProgressScreen records={freeSpeakingRecords} onBack={goBack} />;
       case "settings":
         return (
           <SettingsScreen
             settings={settings}
-            onBack={() => setRoute(route.returnTo ?? { name: "home" })}
+            onBack={goBack}
             onSave={handleSaveSettings}
             onResetProgress={handleResetProgress}
           />
@@ -376,10 +394,10 @@ export default function App(): React.JSX.Element {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ThemeProvider mode={settings.themeMode}>
-          <StatusBar style={statusBarStyle} />
+          <StatusBar style={statusBarStyle} hidden={Platform.OS === "android"} />
           <View style={[styles.loadingScreen, { backgroundColor: themeColors.background }]}>
             <Text style={[styles.loadingText, { color: themeColors.ink }]}>
-              Daily Speaking Coach yükleniyor...
+              Loading Daily Speaking Coach...
             </Text>
           </View>
         </ThemeProvider>
@@ -391,10 +409,10 @@ export default function App(): React.JSX.Element {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ThemeProvider mode={settings.themeMode}>
-          <StatusBar style={statusBarStyle} />
+          <StatusBar style={statusBarStyle} hidden={Platform.OS === "android"} />
           <View style={[styles.loadingScreen, { backgroundColor: themeColors.background }]}>
           <Text style={[styles.errorText, { color: themeColors.danger }]}>{loadError}</Text>
-          <AppButton label="Tekrar Dene" onPress={() => void loadAppData()} />
+          <AppButton label="Try Again" onPress={() => void loadAppData()} />
           </View>
         </ThemeProvider>
       </SafeAreaView>
@@ -404,8 +422,15 @@ export default function App(): React.JSX.Element {
   return (
     <ThemeProvider mode={settings.themeMode}>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
-        <StatusBar style={statusBarStyle} />
-        {renderRoute()}
+        <StatusBar style={statusBarStyle} hidden={Platform.OS === "android"} />
+        <View style={styles.content}>{renderRoute()}</View>
+        <AppBottomBar
+          canGoBack={getBackRoute(route) !== null}
+          isHome={route.name === "home"}
+          onBack={goBack}
+          onHome={() => setRoute({ name: "home" })}
+          onSettings={() => setRoute({ name: "settings" })}
+        />
       </SafeAreaView>
     </ThemeProvider>
   );
@@ -413,6 +438,13 @@ export default function App(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    // Leaves breathing room at the top on Android so a pulled-down
+    // notification shade overlaps empty space instead of the app's own
+    // header content.
+    paddingTop: Platform.OS === "android" ? spacing.lg : 0
+  },
+  content: {
     flex: 1
   },
   loadingScreen: {
@@ -433,6 +465,56 @@ const styles = StyleSheet.create({
     textAlign: "center"
   }
 });
+
+/**
+ * Where "back" goes for each screen. Used both by the Header back button
+ * (via `goBack`) and the Android hardware back button, so the two can never
+ * drift out of sync. Returning `null` means there is nowhere to go back to —
+ * only "home" does this, letting the hardware back button fall through to
+ * the OS default (exit the app) exactly where a user would expect that.
+ */
+function getBackRoute(route: AppRoute): AppRoute | null {
+  switch (route.name) {
+    case "home":
+      return null;
+    case "chat":
+    case "learning":
+    case "practiceModes":
+    case "thinking":
+    case "history":
+    case "progress":
+      return { name: "home" };
+    case "grammarHome":
+      return { name: "learning" };
+    case "grammarLevel":
+      return { name: "grammarHome" };
+    case "pictureDescription":
+    case "listeningPictureGame":
+      return { name: "practiceModes" };
+    case "recording":
+      return {
+        name: "thinking",
+        topic: route.topic,
+        thinkingNotes: route.thinkingNotes,
+        recordingType: route.recordingType
+      };
+    case "transcript":
+      return {
+        name: "recording",
+        topic: route.topic,
+        thinkingNotes: route.thinkingNotes ?? "",
+        recordingType: route.media.type
+      };
+    case "analysis":
+      return { name: "transcript", topic: route.topic, media: route.media };
+    case "recordDetail":
+      return { name: "history" };
+    case "settings":
+      return route.returnTo ?? { name: "home" };
+    default:
+      return { name: "home" };
+  }
+}
 
 function getRecentlyAskedTopicIds(records: SpeakingRecord[], days = 14): string[] {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;

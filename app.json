@@ -32,8 +32,9 @@
     },
     "android": {
       "package": "com.yagiz.dailyspeakingcoach.render",
-      "versionCode": 2,
+      "versionCode": 18,
       "allowBackup": false,
+      "softwareKeyboardLayoutMode": "pan",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",

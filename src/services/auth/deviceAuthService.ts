@@ -29,7 +29,7 @@ export async function activateDevice(backendBaseUrl: string, inviteCode: string)
   const baseUrl = validateBackendBaseUrl(backendBaseUrl);
   const normalizedInviteCode = inviteCode.trim();
   if (normalizedInviteCode.length < 20 || normalizedInviteCode.length > 128) {
-    throw new Error("Davet kodu geçersiz.");
+    throw new Error("Invite code is invalid.");
   }
 
   const clientId = await getClientId();
@@ -46,18 +46,18 @@ export async function activateDevice(backendBaseUrl: string, inviteCode: string)
       })
     });
   } catch {
-    throw new Error("Aktivasyon servisine ulaşılamadı. İnternet bağlantısını kontrol et.");
+    throw new Error("Could not reach the activation service. Check your internet connection.");
   }
 
   const json = (await response.json().catch(() => ({}))) as RegisterResponse;
   if (!response.ok) {
-    throw new Error(json.error?.message || "Cihaz aktivasyonu başarısız oldu.");
+    throw new Error(json.error?.message || "Device activation failed.");
   }
 
   const token = String(json.token || "");
   const expiresAt = String(json.expiresAt || "");
   if (token.split(".").length !== 3 || !expiresAt || Number.isNaN(Date.parse(expiresAt))) {
-    throw new Error("Aktivasyon servisi geçersiz bir yanıt döndürdü.");
+    throw new Error("Activation service returned an invalid response.");
   }
 
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
@@ -80,11 +80,11 @@ export async function deactivateDevice(backendBaseUrl: string): Promise<void> {
       }
     });
   } catch {
-    throw new Error("Yetki kaldırma servisine ulaşılamadı.");
+    throw new Error("Could not reach the deactivation service.");
   }
 
   if (!response.ok && response.status !== 401) {
-    throw new Error("Cihaz yetkisi kaldırılamadı.");
+    throw new Error("Device authorization could not be removed.");
   }
 
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);

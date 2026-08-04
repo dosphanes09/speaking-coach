@@ -4,6 +4,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface LearningScreenProps {
@@ -55,21 +56,16 @@ function createStyles(colors: AppColors) {
     gap: spacing.sm
   },
   kicker: {
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.primaryDark
   },
   title: {
-    color: colors.ink,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "900"
+    ...typography.display,
+    color: colors.ink
   },
   body: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.muted
   },
   grid: {
     flexDirection: "row",
@@ -81,14 +77,12 @@ function createStyles(colors: AppColors) {
     justifyContent: "center"
   },
   smallValue: {
-    color: colors.ink,
-    fontSize: 24,
-    fontWeight: "900"
+    ...typography.h1,
+    color: colors.ink
   },
   smallLabel: {
+    ...typography.caption,
     color: colors.muted,
-    fontSize: 13,
-    lineHeight: 18,
     fontWeight: "700"
   }
   });

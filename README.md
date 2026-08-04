@@ -108,13 +108,21 @@ Expo Go ile QR okut. Port sorarsa yeni portu kabul edebilirsin.
 
 `Record` ekraninda hazirlik notlari okunabilir sekilde gosterilir. Konusma suresi konu uzunlugu, seviye ve hedef grammar yapilarina gore otomatik secilir:
 
-- minimum: 60 saniye
-- orta zorluk: 90 saniye
+- minimum: 90 saniye (eskiden 60 saniyeydi — anlamli, degerlendirilebilir bir cevap icin cok kisa kaldigi fark edildi, tum topic'ler icin taban 90 saniyeye cikarildi)
+- orta zorluk: 105 saniye
 - maksimum: 120 saniye
 
 Backend guvenlik siniri de `MAX_AUDIO_DURATION_SECONDS=120` olacak sekilde ayarlanmistir. Eger kendi `backend/.env` dosyanda eski `75` degeri varsa 120 olarak guncelle ve backend'i yeniden baslat.
 
 Android'de alt sistem navigasyon tuslari uygulama acikken gizlenmeye calisilir. Bazi cihazlarda kenardan kaydirinca gecici olarak tekrar gorunebilir; uygulama aktif olunca yeniden gizlenir.
+
+**Ayni soruyu tekrar cevaplama:** `Practice Detail` ekraninda (Gecmis'ten bir kaydi actiginda) artik bir `Retry This Question` butonu var. Bu, o kaydin `topic` nesnesini birebir aynen tekrar `thinking` akisina sokar (ayni topic id, ayni grammar/picture context varsa o da dahil), yani gunluk konu rotasyonunun 14 gunluk "yakin zamanda sorulmus konulari tekrar onerme" filtresini bilerek atlar — kullanici bilerek ayni soruyu tekrar cevaplamak istiyor. Yeni deneme, `createId("record")` ile her zaman oldugu gibi ayri, yeni bir kayit olarak kaydedilir (eski kayit degistirilmez/uzerine yazilmaz), boylece ayni soru icin birden fazla puan/feedback tutulmus olur.
+
+Bu zaten var olan iki mekanizmayi otomatik olarak devreye sokar:
+- Yeni deneme kaydedilirken (`AnalysisScreen`), `beforeAfterService.buildLatestTopicComparison` ayni topic'e ait en son onceki denemeyi bulup skor/hata-paterni/WPM karsilastirmasini otomatik gosterir (Before/After karti) — kullanici feedback'in ise yarayip yaramadigini hemen gorur.
+- `Practice Detail` ekraninda, yeni eklenen `findTopicAttempts` fonksiyonu ayni soruya ait TUM diger denemeleri (sadece en sonuncusunu degil) tarih ve puanla listeler; herhangi birine dokunup o denemenin detayina gecebilirsin, boylece zaman icindeki gelisimi tek tek karsilastirabilirsin.
+
+Eslestirme once `topic.id` ile, o tutmazsa normalize edilmis `topic.title` ile yapilir (boylece ayni soru farkli id ile olussa bile eslesir). Hicbir schema/storage degisikligi gerekmedi — kayitlar zaten `id` (her zaman essiz) ile `topic` (tekrar edebilir) alanlarini ayri tuttugu icin bu tamamen mevcut veri modeliyle calisiyor.
 
 ## Tema ve Konu Cesitliligi
 
@@ -183,13 +191,20 @@ REQUIRE_APP_AUTH=false
 MAX_FILE_SIZE_BYTES=12582912
 MAX_AUDIO_DURATION_SECONDS=120
 MAX_DAILY_ANALYSES_PER_USER=10
+MAX_DAILY_CHAT_MESSAGES_PER_USER=60
+MAX_CHAT_MESSAGE_LENGTH=1200
+MAX_CHAT_HISTORY_MESSAGES=12
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=30
 OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 OPENAI_ANALYSIS_MODEL=gpt-5.4-mini
+OPENAI_CHAT_MODEL=gpt-5.4-mini
 OPENAI_TIMEOUT_MS=30000
 OPENAI_MAX_RETRIES=1
 OPENAI_MAX_OUTPUT_TOKENS=8000
+OPENAI_CHAT_MAX_OUTPUT_TOKENS=700
+ENABLE_AUDIO_ANALYSIS=true
+OPENAI_AUDIO_ANALYSIS_MODEL=gpt-audio
 ```
 
 Deploy sonrasi Render URL'i su formatta olur:
@@ -334,6 +349,24 @@ Basarili cevap:
 
 Backend analiz skorlarini 0-100 formatinda uretir. Mobil uygulama eski 1-10 kayitlari da desteklemek icin skorları ekranda normalize eder.
 
+### Ses tabanli analiz (transkript degil, dogrudan ses)
+
+Backend artik analiz icin (mumkunse) transkripti degil, doğrudan ses kaydinin kendisini `OPENAI_AUDIO_ANALYSIS_MODEL` (varsayilan `gpt-audio`) modeline gonderiyor; telaffuz, tonlama ve duraksama gibi degerlendirmeler artik gercekten dinlenen sesten cikariliyor. Kayit, gonderilmeden once `ffmpeg-static` ile mono 16kHz WAV'a donusturuluyor (mobil taraf genelde `.m4a` kaydediyor, ses modeli icin en guvenilir format WAV).
+
+Bu yeni bir entegrasyon oldugu icin **otomatik yedekleme** var: ses tabanli analiz herhangi bir nedenle basarisiz olursa (donusturme hatasi, model hatasi, format sorunu), backend sessizce eski transkript-tabanli analiz yoluna dusuyor ve istek yine de basariyla tamamlaniyor — sadece backend loglarinda `audio_analysis_failed_falling_back_to_text` uyarisi gorursunuz. Ozelligi tamamen kapatmak icin `ENABLE_AUDIO_ANALYSIS=false` yapip backend'i yeniden baslatmaniz yeterli, kod degisikligi gerekmez.
+
+Not: Bu, gercek OpenAI API'sine karsi bu ortamda test edilemedi (bu gelistirme ortaminin OpenAI erisimi yok) — ffmpeg donusturme adimi ve yedekleme mantigi gercek verilerle dogrulandi, ancak `gpt-audio` modelinin tam istek/yanit sekliyle ilk gercek denemeyi siz production'da veya yerel `npm run dev` ile yapacaksiniz. Bir sorun cikarsa backend loglarina bakin.
+
+**Faz 3 — telaffuzun genel puana etkisi:** Ses tabanli analiz gercekten basarili oldugunda (yedeklemeye dusmeden), telaffuz artik "sadece gosterim" olmaktan cikip genel puana da %10 agirlikla katiliyor (grammar/fluency&coherence/content&relevance/vocabulary agirliklari buna gore hafifce azaltildi: 25/25/25/15/10 -> 22/22/22/14/10 + telaffuz %10). Analiz eski transkript-tabanli yola dustuyse veya ses hic gonderilmediyse, telaffuz oncekiyle birebir ayni sekilde genel puanin disinda kaliyor — cunku o durumda telaffuz hala sadece bir tahmin, gercek ses kanitina dayanmiyor. Kullaniciya da bu net simdi belirtiliyor: telaffuz notlarinin altinda "genel puana katiliyor mu, katilmiyor mu" aciklayan bir cumle otomatik ekleniyor.
+
+**Madde 4 — konu uygunlugunun bagimsiz dogrulanmasi:** AI artik her analizde ayri, yapilandirilmis bir `topicRelevance` alani doldurur (`off_topic` / `partially_relevant` / `fully_relevant` + kisa aciklama), sadece verilen konuyu/prompt'u gercekten ele alip almadigina bakarak — gramer/akicilik kalitesinden tamamen bagimsiz. Konu tam olarak ele alinmamissa "Content & Relevance" bilesen puani (dolayisiyla genel puan) buna gore tavana carpar, ve kullaniciya "cevabin verilen konuyu tam olarak ele almadigi" seklinde bir geri bildirim ve improvement plan maddesi eklenir. Eski kayitlarda bu alan yoksa (veya `fully_relevant` ise) hicbir ceza uygulanmaz.
+
+**Madde 13 — dolgu/tekrar kelimesi icin ozel egzersiz:** Doldurma/tekrar kelime yogunlugu esigi asildiginda (Faz 2'de eklenen ayni esik), artik sadece "bu puanini dusurdu" seklinde genel bir not degil, ogrencinin kendi tespit edilen kelimelerini (orn. "like", "um") kullanan somut, uygulanabilir bir pratik egzersizi otomatik olarak `improvementPlan.homework` alanina ekleniyor ("Extra drill: ... consciously avoid saying "like" and "um" more than once...").
+
+**Tense analizi guclendirmesi:** `prompt.js`'teki mistakes talimati, AI'nin her cumleyi ozellikle yanlis tense kullanimi acisindan da taramasini ve tense hatalarini genel "grammar mistake" olarak birakmamasini artik acikca istiyor. Bir mistake tense hatasiysa `problem` alani hangi tense kullanildigini ve hangisinin kullanilmasi gerektigini isimlendirmek zorunda (orn. "Used present simple instead of past simple"), `explanation` alani ise o baglamda o tense'in neden gerekli oldugunu (bitmis/bitmemis zaman, belirli bir zaman zarfi, sequence vb.) kisaca acikladiktan sonra ogrencinin yanlis cumlesiyle duzeltilmis halini yan yana gostermek zorunda (orn. "Wrong: 'I go there yesterday.' Correct: 'I went there yesterday.'"). Bu, schema veya skorlama mantiginda degisiklik gerektirmiyor — sadece `mistakes[].problem` ve `mistakes[].explanation` alanlarinin icerigini zenginlestiren bir prompt guncellemesi, bu yuzden mevcut alan yapisiyla tam uyumlu; AI ciktisina bagli oldugu icin otomatik test yazilamaz, ilk gercek denemede ciktiyi gozden gecirmenizi tavsiye ederim.
+
+Not: Incelememde bahsettigim ama hicbir fazda planlanmamis baska kucuk bir tutarsizlik da fark edildi — `prompt.js` icindeki resim tanimlama (picture description) talimati, semada hic bulunmayan `personalizedExercises` ve `dailyStudyPlan` alanlarina geri bildirim koymayi soyluyor; model bu alanlari `strict: true` semasi geregi zaten donduremiyor, yani bu talimat pratikte hicbir etki yaratmiyor (zararsiz ama gereksiz). Dokunmadim, isterseniz ayrica temizleyebiliriz.
+
 ## Secret Kurallari
 
 - `.env` Git'e eklenmez.
@@ -359,3 +392,17 @@ npm audit
 ```
 
 Not: Root Expo audit bulgulari Expo SDK zincirinden gelebilir. SDK major upgrade Expo Go uyumlulugunu etkileyebilecegi icin ayrica planlanmalidir.
+
+Saf mantik (pure logic) self-testleri:
+
+```bash
+npm install
+npm run test:logic
+```
+
+Bu komut `scoreUtils`, `streakService`, `recordClassification`, `analysisEnrichmentService`, `practiceTiming` ve `beforeAfterService` icin `node:assert` tabanli self-testleri `tsx` ile calistirir (Jest kurulumu gerektirmez). `analysisEnrichmentService` testi, bir mistake AI tarafindan siniflandirildiginda (category/severity/isTurkishTransferError) `errorPatterns[]` listesinin bu siniflandirmadan mekanik olarak turetildigini, ayrica bagimsiz uretilmis eski bir AI `errorPatterns` listesiyle celismedigini dogrular. `practiceTiming` testi, hicbir topic sekli icin onerilen konusma suresinin 90 saniyenin altina dusmedigini ve karmasiklik kademelerinin (90/105/120) hala birbirinden ayristigini dogrular. `beforeAfterService` testi, "Retry This Question" akisinin dayandigi `findTopicAttempts` (ayni soruya ait TUM diger denemeleri bulur) ile `buildLatestTopicComparison`'in halen kullandigi "sadece en son deneme" mantiginin, ortak `recordsForSameTopic` eslestirmesi factor edildikten sonra da birbiriyle tutarli kaldigini dogrular. Backend tarafinda ayni yaklasim zaten `scoringCalibrator` icin mevcuttu; oraya da birkac ek sinir-durum (bos transkript, kisa cevap kademeleri, sure kullanimi, doldurma/tekrar yogunlugu cezasi, hedef gramer yapisi kullanim cezasi) testi eklendi:
+
+```bash
+cd backend
+npm run test:scoring
+```

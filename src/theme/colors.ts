@@ -11,7 +11,13 @@ export const lightColors = {
   accent: "#4464AD",
   danger: "#B94A48",
   success: "#3B8C5A",
-  warning: "#C58A21"
+  warning: "#C58A21",
+  primaryTint: "#EAF4F0",
+  accentTint: "#EEF1FB",
+  secondaryTint: "#FBF0E4",
+  successTint: "#EAF6EE",
+  warningTint: "#FBF3E7",
+  dangerTint: "#FBEAEA"
 };
 
 export const darkColors: AppColors = {
@@ -27,7 +33,13 @@ export const darkColors: AppColors = {
   accent: "#8EA7F4",
   danger: "#EF8A86",
   success: "#75C894",
-  warning: "#E3B552"
+  warning: "#E3B552",
+  primaryTint: "#1B2A26",
+  accentTint: "#1E2436",
+  secondaryTint: "#2E2519",
+  successTint: "#1B2A22",
+  warningTint: "#2E2718",
+  dangerTint: "#2E1E1D"
 };
 
 export const loveColors: AppColors = {
@@ -43,7 +55,13 @@ export const loveColors: AppColors = {
   accent: "#FF6F9F",
   danger: "#FF5C78",
   success: "#F4A7B9",
-  warning: "#F4C06A"
+  warning: "#F4C06A",
+  primaryTint: "#3A1E2A",
+  accentTint: "#3A1E30",
+  secondaryTint: "#3A2820",
+  successTint: "#3A222A",
+  warningTint: "#3A2A18",
+  dangerTint: "#3A1B22"
 };
 
 export type AppColors = typeof lightColors;
@@ -60,8 +78,14 @@ export const spacing = {
   xl: 32
 };
 
+/**
+ * Corner radius scale. Bumped up from the original (6/8/12) for a softer,
+ * more premium card/button feel across the whole app. Existing screens that
+ * reference `radius.sm/md/lg` pick this up automatically with no code change.
+ */
 export const radius = {
-  sm: 6,
-  md: 8,
-  lg: 12
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 22
 };

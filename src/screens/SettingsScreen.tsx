@@ -14,7 +14,8 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { AppSettings, ThemeMode, TopicLevel } from "@/types/models";
 import { testBackendConnection } from "@/services/backend/backendHealthService";
@@ -128,10 +129,10 @@ export function SettingsScreen({
       await activateDevice(draftSettings.backendBaseUrl, inviteCode);
       setInviteCode("");
       setActivationStatus("active");
-      setStatusMessage("Cihaz güvenli şekilde etkinleştirildi.");
+      setStatusMessage("Device activated securely.");
     } catch (caughtError) {
       setIsStatusError(true);
-      setStatusMessage(caughtError instanceof Error ? caughtError.message : "Cihaz etkinleştirilemedi.");
+      setStatusMessage(caughtError instanceof Error ? caughtError.message : "Device could not be activated.");
     } finally {
       setIsChangingActivation(false);
     }
@@ -144,10 +145,10 @@ export function SettingsScreen({
       setIsChangingActivation(true);
       await deactivateDevice(draftSettings.backendBaseUrl);
       setActivationStatus("inactive");
-      setStatusMessage("Bu cihazın backend erişimi kaldırıldı.");
+      setStatusMessage("This device's backend access was removed.");
     } catch (caughtError) {
       setIsStatusError(true);
-      setStatusMessage(caughtError instanceof Error ? caughtError.message : "Cihaz yetkisi kaldırılamadı.");
+      setStatusMessage(caughtError instanceof Error ? caughtError.message : "Device authorization could not be removed.");
     } finally {
       setIsChangingActivation(false);
     }
@@ -194,7 +195,7 @@ export function SettingsScreen({
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.content}>
         <Header title="Settings" subtitle="Daily practice, theme, and local data" onBack={onBack} />
@@ -209,15 +210,15 @@ export function SettingsScreen({
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.label}>Tema</Text>
+          <Text style={styles.label}>Theme</Text>
           <SegmentedControl<ThemeMode>
             options={["light", "dark", "love"]}
-            labels={{ light: "Light", dark: "Dark", love: "Love / Aşk ❤️" }}
+            labels={{ light: "Light", dark: "Dark", love: "Love ❤️" }}
             value={draftSettings.themeMode}
             onChange={(themeMode) => setDraftSettings((current) => ({ ...current, themeMode }))}
           />
           <Text style={styles.helpText}>
-            Love Mode / Aşk Mode; Dark Mode'dan ayrı, daha sıcak pembe/kırmızı vurgular ve yumuşak bir görsel ton kullanır.
+            Love Mode is separate from Dark Mode; it uses warmer pink/red accents and a softer visual tone.
           </Text>
         </Card>
 
@@ -232,7 +233,7 @@ export function SettingsScreen({
             onPress={confirmResetProgress}
             loading={isResettingProgress}
             variant="danger"
-            icon="↺"
+            icon="rotate-ccw"
           />
         </Card>
 
@@ -244,10 +245,10 @@ export function SettingsScreen({
             style={({ pressed }) => [styles.advancedHeader, pressed ? styles.pressed : null]}
           >
             <View style={styles.advancedTitleBlock}>
-              <Text style={styles.label}>Gelişmiş</Text>
-              <Text style={styles.advancedTitle}>Backend ve davet kodu ayarları</Text>
+              <Text style={styles.label}>Advanced</Text>
+              <Text style={styles.advancedTitle}>Backend and invite code settings</Text>
               <Text style={styles.helpText}>
-                Normal kullanımda burayı açmana gerek yok. Bağlantı testi, Render URL ve cihaz aktivasyonu burada.
+                You don't need to open this for normal use. Connection testing, the Render URL, and device activation live here.
               </Text>
             </View>
             <Text style={styles.advancedIcon}>{isAdvancedOpen ? "−" : "+"}</Text>
@@ -257,34 +258,34 @@ export function SettingsScreen({
         {isAdvancedOpen ? (
           <>
             <Card style={styles.card}>
-              <Text style={styles.label}>Aktif Backend URL</Text>
-              <Text style={styles.lockedValue}>{settings.backendBaseUrl || "Kaydedilmedi"}</Text>
+              <Text style={styles.label}>Active Backend URL</Text>
+              <Text style={styles.lockedValue}>{settings.backendBaseUrl || "Not saved"}</Text>
               <Text style={styles.helpText}>
-                Tüm analiz, aktivasyon ve bağlantı kontrolleri bu kilitli Render HTTPS adresini kullanır.
+                All analysis, activation, and connection checks use this locked Render HTTPS address.
               </Text>
             </Card>
 
             <Card style={styles.card}>
-              <Text style={styles.label}>Davet Kodu / Cihaz Aktivasyonu</Text>
+              <Text style={styles.label}>Invite Code / Device Activation</Text>
               {appAuthRequirement === "not-required" ? (
                 <>
                   <Text style={styles.successText}>
-                    Mevcut Render backend davet kodu istemiyor. Bu telefonda analiz yapmak için cihaz aktivasyonu gerekli değil.
+                    The current Render backend does not require an invite code. Device activation is not needed to run analysis on this phone.
                   </Text>
                   <Text style={styles.helpText}>
-                    Davet kodu modu hazır. Açmak istediğinde Render'da REQUIRE_APP_AUTH=true yapıp AUTH_TOKEN_SECRET,
-                    APP_INVITE_CODES ve Upstash Redis bilgilerini eklemen yeterli.
+                    Invite code mode is ready. To turn it on, set REQUIRE_APP_AUTH=true on Render and add AUTH_TOKEN_SECRET,
+                    APP_INVITE_CODES, and your Upstash Redis details.
                   </Text>
                 </>
               ) : appAuthRequirement === "checking" ? (
                 <Text style={styles.helpText}>
-                  Backend güvenlik modu kontrol ediliyor. Render uyanıyorsa bu birkaç saniye sürebilir.
+                  Checking the backend's security mode. This can take a few seconds if Render is waking up.
                 </Text>
               ) : activationStatus === "active" ? (
                 <>
-                  <Text style={styles.successText}>Bu cihaz etkin ve konuşma analizi yapmaya yetkili.</Text>
+                  <Text style={styles.successText}>This device is active and authorized to run speech analysis.</Text>
                   <AppButton
-                    label="Cihaz Yetkisini Kaldır"
+                    label="Remove Device Authorization"
                     onPress={deactivate}
                     loading={isChangingActivation}
                     variant="danger"
@@ -294,13 +295,13 @@ export function SettingsScreen({
                 <>
                   {appAuthRequirement === "unknown" ? (
                     <Text style={styles.helpText}>
-                      Backend güvenlik modu doğrulanamadı. Mevcut Render kurulumu normalde davet kodu gerektirmez;
-                      bağlantıyı kontrol etmek için Test Connection kullan.
+                      Could not verify the backend's security mode. The current Render setup normally does not require an
+                      invite code; use Test Connection to check.
                     </Text>
                   ) : null}
                   <Text style={styles.helpText}>
-                    Uygulama sahibinden aldığın tek kullanımlık davet kodunu gir. Kod yalnızca aktivasyon sırasında
-                    gönderilir; telefonda saklanmaz.
+                    Enter the one-time invite code you received from the app owner. The code is only sent during
+                    activation; it is not stored on the phone.
                   </Text>
                   <TextInput
                     value={inviteCode}
@@ -308,12 +309,12 @@ export function SettingsScreen({
                     autoCapitalize="none"
                     autoCorrect={false}
                     secureTextEntry
-                    placeholder="Davet kodu"
+                    placeholder="Invite code"
                     placeholderTextColor={colors.muted}
                     style={styles.input}
                   />
                   <AppButton
-                    label={activationStatus === "checking" ? "Kontrol Ediliyor" : "Cihazı Etkinleştir"}
+                    label={activationStatus === "checking" ? "Checking" : "Activate Device"}
                     onPress={activate}
                     loading={isChangingActivation || activationStatus === "checking"}
                     disabled={!inviteCode.trim()}
@@ -325,14 +326,14 @@ export function SettingsScreen({
             <Card style={styles.card}>
               <Text style={styles.label}>Backend Health Check</Text>
               <Text style={styles.helpText}>
-                Render backend çalışıyor mu, OpenAI anahtarı tanımlı mı ve davet kodu gerekiyor mu diye kontrol eder.
+                Checks whether the Render backend is running, whether the OpenAI key is configured, and whether an invite code is required.
               </Text>
               <AppButton
                 label="Test Connection"
                 onPress={testConnection}
                 loading={isTestingConnection}
                 variant="secondary"
-                icon="↗"
+                icon="external-link"
               />
             </Card>
           </>
@@ -344,7 +345,7 @@ export function SettingsScreen({
           </Card>
         ) : null}
 
-        <AppButton label="Save" onPress={save} loading={isSaving} icon="✓" />
+        <AppButton label="Save" onPress={save} loading={isSaving} icon="check" />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -398,9 +399,8 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     advancedTitle: {
-      color: colors.ink,
-      fontSize: 18,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     advancedIcon: {
       width: 36,
@@ -418,43 +418,41 @@ function createStyles(colors: AppColors) {
       opacity: 0.82
     },
     label: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.muted
     },
     input: {
       minHeight: 48,
       borderWidth: 1,
       borderColor: colors.line,
-      borderRadius: 8,
+      borderRadius: radius.sm,
       paddingHorizontal: spacing.md,
       color: colors.ink,
       fontSize: 16,
       backgroundColor: colors.background
     },
     helpText: {
+      ...typography.body,
       color: colors.muted,
       fontSize: 13,
       lineHeight: 19
     },
     lockedValue: {
+      ...typography.bodyLarge,
       color: colors.ink,
-      fontSize: 16,
-      lineHeight: 22,
       fontWeight: "800"
     },
     successText: {
+      ...typography.bodyStrong,
       color: colors.success,
       fontSize: 13,
-      lineHeight: 19,
-      fontWeight: "800"
+      lineHeight: 19
     },
     errorText: {
+      ...typography.bodyStrong,
       color: colors.danger,
       fontSize: 13,
-      lineHeight: 19,
-      fontWeight: "800"
+      lineHeight: 19
     }
   });
 }

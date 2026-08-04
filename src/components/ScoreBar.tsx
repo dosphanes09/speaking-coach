@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { DimensionValue } from "react-native";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface ScoreBarProps {
@@ -38,14 +39,12 @@ function createStyles(colors: AppColors) {
     alignItems: "center"
   },
   label: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: "700"
+    ...typography.bodyStrong,
+    color: colors.ink
   },
   value: {
-    color: colors.primaryDark,
-    fontSize: 14,
-    fontWeight: "800"
+    ...typography.bodyStrong,
+    color: colors.primaryDark
   },
   track: {
     height: 8,

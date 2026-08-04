@@ -12,7 +12,7 @@ export interface RepeatedMistake {
   explanationTR: string;
   severity: ErrorPattern["severity"];
   isTurkishTransferError: boolean;
-  suggestedExerciseTR: string;
+  suggestedExercise: string;
 }
 
 interface PatternObservation {
@@ -106,7 +106,7 @@ function buildRepeatedMistake(
   const representative = pickRepresentativePattern(sorted);
   const category = representative.category;
   const label =
-    mode === "category" ? `${categoryLabel(category)} tekrar ediyor` : representative.label;
+    mode === "category" ? `${categoryLabel(category)} keeps repeating` : representative.label;
   const isTurkishTransferError =
     category === "turkish-transfer" || observations.some((item) => item.pattern.isTurkishTransferError);
 
@@ -121,7 +121,7 @@ function buildRepeatedMistake(
     explanationTR: representative.explanationTR,
     severity: pickHighestSeverity(observations.map((item) => item.pattern.severity)),
     isTurkishTransferError,
-    suggestedExerciseTR: buildSuggestedExercise(category, representative, isTurkishTransferError)
+    suggestedExercise: buildSuggestedExercise(category, representative, isTurkishTransferError)
   };
 }
 
@@ -150,24 +150,24 @@ function buildSuggestedExercise(
   isTurkishTransferError: boolean
 ): string {
   if (isTurkishTransferError) {
-    return "Turkce fikri once kisa yaz, sonra birebir cevirmeden ozne + fiil + tamamlayici sirasiyla 3 dogal Ingilizce cumle kur.";
+    return "Write the idea in Turkish first, then build 3 natural English sentences in subject + verb + complement order without translating word-for-word.";
   }
 
   switch (category) {
     case "grammar":
-      return "Dogru versiyonu 3 kez sesli oku, sonra ayni gramer yapisiyla 3 yeni cumle kur.";
+      return "Read the correct version aloud 3 times, then build 3 new sentences using the same grammar structure.";
     case "vocabulary":
-      return "Zayif kelimeyi daha guclu 3 alternatifle degistir ve her alternatifle bir ornek cumle soyle.";
+      return "Replace the weak word with 3 stronger alternatives and say one example sentence with each alternative.";
     case "fluency":
-      return "Corrected answer'dan 2 cumle sec; yavas, normal ve daha dogal hizda 3 tur shadowing yap.";
+      return "Pick 2 sentences from the corrected answer; shadow them 3 rounds at a slow, normal, and more natural pace.";
     case "pronunciation":
-      return "Zorlandigin cumleyi kelime kelime bol, vurgu yerlerini belirle ve 5 kez tekrar et.";
+      return "Break the sentence you struggled with into words, mark the stressed syllables, and repeat it 5 times.";
     case "coherence":
-      return "Cevabini fikir, neden, ornek ve sonuc olarak 4 kisa cumleye bol.";
+      return "Split your answer into 4 short sentences: idea, reason, example, and conclusion.";
     case "naturalness":
-      return "Corrected version'dan 2 cumleyi sec ve ayni fikri daha kisa, daha dogal cumlelerle tekrar soyle.";
+      return "Pick 2 sentences from the corrected version and say the same idea again with shorter, more natural phrasing.";
     default:
-      return `Bu hata icin mini tekrar yap: ${pattern.label}. Once dogru versiyonu oku, sonra kendi ornegini soyle.`;
+      return `Do a mini repetition drill for this mistake: ${pattern.label}. Read the correct version first, then say your own example.`;
   }
 }
 

@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { GrammarSpeakingChallenge, GrammarTopic } from "@/data/grammarRoadmap";
 import { GrammarLevel } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface GrammarTopicCardProps {
@@ -127,26 +128,20 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   level: {
-    color: colors.primaryDark,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.primaryDark
   },
   title: {
-    color: colors.ink,
-    fontSize: 19,
-    fontWeight: "900",
-    lineHeight: 24
+    ...typography.h1,
+    color: colors.ink
   },
   coreFeeling: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20
+    ...typography.body,
+    color: colors.muted
   },
   toggle: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "900"
+    ...typography.bodyStrong,
+    color: colors.accent
   },
   details: {
     gap: spacing.md,
@@ -158,34 +153,28 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   body: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.ink
   },
   listItem: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.ink
   },
   mistake: {
     gap: spacing.xs
   },
   wrong: {
+    ...typography.body,
     color: colors.danger,
-    fontSize: 14,
-    lineHeight: 20,
     fontWeight: "700"
   },
   correct: {
+    ...typography.body,
     color: colors.success,
-    fontSize: 14,
-    lineHeight: 20,
     fontWeight: "700"
   }
   });

@@ -2,7 +2,9 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
+import { Icon } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PracticeModesScreenProps {
@@ -30,7 +32,7 @@ export function PracticeModesScreen({
         colors={colors}
         styles={styles}
         onPress={onPictureDescription}
-        visual={<PictureModeIcon colors={colors} />}
+        visual={<Icon name="image" size={36} color={colors.primaryDark} />}
       />
 
       <ModeCard
@@ -40,7 +42,7 @@ export function PracticeModesScreen({
         colors={colors}
         styles={styles}
         onPress={onListeningGame}
-        visual={<ListeningModeIcon colors={colors} />}
+        visual={<Icon name="headphones" size={36} color={colors.accent} />}
       />
     </ScrollView>
   );
@@ -76,88 +78,7 @@ function ModeCard({
   );
 }
 
-function PictureModeIcon({ colors }: { colors: AppColors }): React.JSX.Element {
-  return (
-    <View style={[iconStyles.iconFrame, { borderColor: colors.primaryDark }]}>
-      <View style={[iconStyles.sun, { backgroundColor: colors.secondary }]} />
-      <View style={[iconStyles.mountain, { backgroundColor: colors.primary }]} />
-      <View style={[iconStyles.mountainSmall, { backgroundColor: colors.accent }]} />
-    </View>
-  );
-}
-
-function ListeningModeIcon({ colors }: { colors: AppColors }): React.JSX.Element {
-  return (
-    <View style={iconStyles.listenWrap}>
-      <View style={[iconStyles.speaker, { backgroundColor: colors.accent }]} />
-      <View style={[iconStyles.soundOne, { borderColor: colors.primaryDark }]} />
-      <View style={[iconStyles.soundTwo, { borderColor: colors.primaryDark }]} />
-    </View>
-  );
-}
-
 type PracticeModesStyles = ReturnType<typeof createStyles>;
-
-const iconStyles = StyleSheet.create({
-  iconFrame: {
-    width: 74,
-    height: 58,
-    borderWidth: 3,
-    borderRadius: radius.md,
-    overflow: "hidden"
-  },
-  sun: {
-    position: "absolute",
-    top: 8,
-    right: 10,
-    width: 14,
-    height: 14,
-    borderRadius: 7
-  },
-  mountain: {
-    position: "absolute",
-    left: 8,
-    bottom: -8,
-    width: 44,
-    height: 44,
-    transform: [{ rotate: "45deg" }]
-  },
-  mountainSmall: {
-    position: "absolute",
-    right: 6,
-    bottom: -6,
-    width: 34,
-    height: 34,
-    transform: [{ rotate: "45deg" }]
-  },
-  listenWrap: {
-    width: 74,
-    height: 58,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  speaker: {
-    width: 28,
-    height: 34,
-    borderRadius: 8
-  },
-  soundOne: {
-    position: "absolute",
-    right: 16,
-    width: 24,
-    height: 34,
-    borderRightWidth: 3,
-    borderRadius: 18
-  },
-  soundTwo: {
-    position: "absolute",
-    right: 7,
-    width: 38,
-    height: 48,
-    borderRightWidth: 3,
-    borderRadius: 24
-  }
-});
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
@@ -187,21 +108,16 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     badge: {
-      color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.primaryDark
     },
     modeTitle: {
-      color: colors.ink,
-      fontSize: 22,
-      lineHeight: 28,
-      fontWeight: "900"
+      ...typography.h1,
+      color: colors.ink
     },
     modeSubtitle: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.muted
     }
   });
 }

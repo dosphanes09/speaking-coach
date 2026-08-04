@@ -18,9 +18,10 @@ const {
   validateOptionalTextField,
   validateTextField,
   validateUploadMetadata,
-  validateUploadedFile
+  validateUploadedFile,
+  validateChatMessages
 } = require("./validation");
-const { analyzeTranscript, transcribeFile } = require("./openaiClient");
+const { analyzeTranscript, chatWithCoach, transcribeFile } = require("./openaiClient");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -128,6 +129,7 @@ const registrationRateLimit = rateLimit({
 });
 
 app.use("/api/auth", express.json({ limit: "4kb", strict: true }));
+app.use("/api/chat", express.json({ limit: "48kb", strict: true }));
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -255,7 +257,9 @@ app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), a
     };
 
     const analysis = await analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext, {
-      expectedDurationSeconds
+      expectedDurationSeconds,
+      audioFilePath: req.file.path,
+      audioMimeType: fileInfo.mimeType
     });
 
     res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
@@ -269,6 +273,25 @@ app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), a
     if (filePath) {
       fs.unlink(filePath).catch(() => undefined);
     }
+  }
+});
+
+app.post("/api/chat", analysisAuthentication, async (req, res, next) => {
+  try {
+    const level = validateLevel(req.body.level);
+    const messages = validateChatMessages(req.body.messages);
+    const recentMessages = messages.slice(-config.maxChatHistoryMessages);
+    const dailyLimit = await assertDailyLimit(req, config.maxDailyChatMessagesPerUser, "chat");
+
+    const reply = await chatWithCoach(recentMessages, level);
+    if (!reply) {
+      throw new HttpError(422, "empty_chat_reply", "Coach reply could not be created.");
+    }
+
+    res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+    res.json({ reply });
+  } catch (error) {
+    next(error);
   }
 });
 

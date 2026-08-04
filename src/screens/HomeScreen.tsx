@@ -1,14 +1,18 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AppButton } from "@/components/AppButton";
-import { Card } from "@/components/Card";
-import { Header } from "@/components/Header";
+import { Icon } from "@/components/Icon";
+import { NavListCard, NavListItem } from "@/components/NavListItem";
+import { RingProgress } from "@/components/RingProgress";
 import { SpeakingRecord } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
 import { StreakSummary } from "@/services/streak/streakService";
+
+const WEEKLY_STREAK_GOAL_DAYS = 7;
+const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface HomeScreenProps {
   records: SpeakingRecord[];
@@ -39,143 +43,161 @@ export function HomeScreen({
   const isLoveMode = themeMode === "love";
   const latestRecord = records[0];
   const latestOverallScore = latestRecord ? normalizeScores(latestRecord.scores).overall : 0;
+  const recordsThisWeek = useMemo(() => countRecordsSince(records, WEEK_IN_MS), [records]);
+  const greeting = useMemo(() => getGreeting(), []);
+  const streakProgress = Math.min(1, streakSummary.currentStreakDays / WEEKLY_STREAK_GOAL_DAYS);
 
   return (
     <View style={styles.screen}>
-      <Header title="Daily Speaking Coach" rightLabel="Settings" onRightPress={onSettings} />
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.topBar}>
+          <View style={styles.greetingBlock}>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.h1}>Ready to practice?</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            onPress={onSettings}
+            hitSlop={4}
+            style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
+          >
+            <Icon name="settings" size={18} color="#FFFFFF" />
+          </Pressable>
+        </View>
+
         {isLoveMode ? (
           <View style={styles.loveBanner}>
             <Text style={styles.loveBannerIcon}>❤️</Text>
-            <Text style={styles.loveBannerText}>Her pratik biraz daha sevgiyle, biraz daha güvenle.</Text>
+            <Text style={styles.loveBannerText}>Every practice session, a little more love, a little more confidence.</Text>
           </View>
         ) : null}
 
-        <View style={styles.quickActions}>
-          <HomeShortcut
-            label="Kayıtlar"
-            accessibilityLabel="Geçmiş kayıtlarım"
-            onPress={onHistory}
-            colors={colors}
-            icon={<NotebookIcon colors={colors} />}
-          />
-          <HomeShortcut
-            label="Gelişim"
-            accessibilityLabel="Gelişimim"
-            onPress={onProgress}
-            colors={colors}
-            icon={<RisingBarsIcon colors={colors} />}
-          />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Start speaking practice"
+          onPress={onStartThinking}
+          style={({ pressed }) => [styles.hero, pressed && styles.heroPressed]}
+        >
+          <View style={styles.heroGlow} />
+          <Text style={styles.heroEyebrow}>Speaking practice</Text>
+          <Text style={styles.heroTitle}>Prepare, speak, and get instant feedback</Text>
+          <View style={styles.heroCta}>
+            <Text style={styles.heroCtaText}>Start practice</Text>
+            <Icon name="arrow-right" size={15} color={colors.primaryDark} />
+          </View>
+        </Pressable>
+
+        <View style={styles.streakCard}>
+          <RingProgress size={50} strokeWidth={5} progress={streakProgress} color={colors.primary} trackColor={colors.primaryTint}>
+            <Text style={styles.streakRingText}>🔥{streakSummary.currentStreakDays}</Text>
+          </RingProgress>
+          <View style={styles.streakTextBlock}>
+            <Text style={styles.streakTitle}>{streakSummary.currentStreakDays}-day streak</Text>
+            <Text style={styles.streakSubtitle}>{streakSummary.helperText}</Text>
+          </View>
         </View>
 
-        <Card style={styles.streakCard}>
-          <View style={styles.streakHeader}>
-            <View>
-              <Text style={styles.streakLabel}>Streak</Text>
-              <Text style={styles.streakValue}>{streakSummary.currentStreakDays} gün</Text>
-            </View>
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakBadgeText}>{streakSummary.statusLabelTR}</Text>
-            </View>
+        <View style={styles.chipRow}>
+          <View style={styles.chip}>
+            <Text style={styles.chipValue}>{records.length}</Text>
+            <Text style={styles.chipLabel}>Records</Text>
           </View>
-          <Text style={styles.streakHelp}>{streakSummary.helperTextTR}</Text>
-        </Card>
-
-        <Card style={styles.practiceCard}>
-          <Text style={styles.practiceEyebrow}>Speaking practice</Text>
-          <Text style={styles.practiceTitle}>Hazırlan, konuş, geri bildirim al.</Text>
-          <Text style={styles.practiceHelp}>
-            Konu içeride seçilir ve analiz için kullanılır. Hazırlık süresi bitince kayıt otomatik başlar.
-          </Text>
-          <AppButton label="Pratiğe Başla" onPress={onStartThinking} icon="→" />
-        </Card>
-
-        <View style={styles.grid}>
-          <Card style={styles.statCard}>
-            <Text style={styles.statValue}>{records.length}</Text>
-            <Text style={styles.statLabel}>Kayıt</Text>
-          </Card>
-          <Card style={styles.statCard}>
-            <Text style={styles.statValue}>
-              {latestRecord ? formatScore100(latestOverallScore) : "-"}
-            </Text>
-            <Text style={styles.statLabel}>Son Skor</Text>
-          </Card>
+          <View style={styles.chip}>
+            <Text style={styles.chipValue}>{latestRecord ? formatScore100(latestOverallScore) : "–"}</Text>
+            <Text style={styles.chipLabel}>Last score</Text>
+          </View>
+          <View style={styles.chip}>
+            <Text style={styles.chipValue}>{recordsThisWeek}</Text>
+            <Text style={styles.chipLabel}>This week</Text>
+          </View>
         </View>
 
         {latestRecord ? (
-          <Card style={styles.latestCard}>
-            <Text style={styles.latestTitle}>Son Pratik</Text>
-            <Text style={styles.latestTopic}>Son konuşma kaydın hazır.</Text>
-            <Text style={styles.latestMeta}>{formatReadableDate(latestRecord.createdAt)}</Text>
-          </Card>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View last practice in history"
+            onPress={onHistory}
+            style={({ pressed }) => [styles.latestCard, pressed && styles.latestCardPressed]}
+          >
+            <View style={styles.latestIconWrap}>
+              <Icon name="check-circle" size={17} color={colors.primaryDark} />
+            </View>
+            <View style={styles.textBlockFlex}>
+              <Text style={styles.latestTitle}>Last practice ready</Text>
+              <Text style={styles.latestMeta}>{formatReadableDate(latestRecord.createdAt)}</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={colors.muted} />
+          </Pressable>
         ) : null}
 
-        <View style={styles.actions}>
-          <AppButton label="Anlık Sohbet" onPress={onChat} variant="secondary" />
-          <AppButton label="Gramer Pratiği" onPress={onLearning} variant="ghost" />
-          <AppButton label="Practice Modes" onPress={onPracticeModes} variant="ghost" />
-        </View>
+        <Text style={styles.sectionTitle}>Explore</Text>
+        <NavListCard>
+          <NavListItem
+            label="Records"
+            sublabel="Every practice you've saved"
+            iconName="folder"
+            iconColor={colors.primaryDark}
+            iconBackground={colors.primaryTint}
+            onPress={onHistory}
+          />
+          <NavListItem
+            label="Progress"
+            sublabel="Scores and trends over time"
+            iconName="trending-up"
+            iconColor={colors.accent}
+            iconBackground={colors.accentTint}
+            onPress={onProgress}
+          />
+          <NavListItem
+            label="Instant Chat"
+            sublabel="Text or voice practice"
+            iconName="message-circle"
+            iconColor={colors.secondary}
+            iconBackground={colors.secondaryTint}
+            onPress={onChat}
+          />
+          <NavListItem
+            label="Grammar Roadmap"
+            sublabel="A1 to C2, structured path"
+            iconName="book-open"
+            iconColor={colors.warning}
+            iconBackground={colors.warningTint}
+            onPress={onLearning}
+          />
+          <NavListItem
+            label="Practice Modes"
+            sublabel="Picture and listening games"
+            iconName="grid"
+            iconColor={colors.success}
+            iconBackground={colors.successTint}
+            onPress={onPracticeModes}
+            isLast
+          />
+        </NavListCard>
 
         <Text style={styles.signature}>
-          {isLoveMode ? "made by seni çok seven Yağız ❤️" : "made by Yağız"}
+          {isLoveMode ? "made with love, for you, by Yağız" : "made with care by Yağız"}
         </Text>
       </ScrollView>
     </View>
   );
 }
 
-function HomeShortcut({
-  label,
-  accessibilityLabel,
-  onPress,
-  colors,
-  icon
-}: {
-  label: string;
-  accessibilityLabel: string;
-  onPress: () => void;
-  colors: AppColors;
-  icon: React.ReactNode;
-}): React.JSX.Element {
-  const styles = createStyles(colors);
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => [styles.shortcut, pressed ? styles.shortcutPressed : null]}
-    >
-      <View style={styles.shortcutIconWrap}>{icon}</View>
-      <Text style={styles.shortcutText}>{label}</Text>
-    </Pressable>
-  );
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return "Good morning";
+  }
+  if (hour < 18) {
+    return "Good afternoon";
+  }
+  return "Good evening";
 }
 
-function NotebookIcon({ colors }: { colors: AppColors }): React.JSX.Element {
-  const styles = createStyles(colors);
-
-  return (
-    <View style={styles.notebook}>
-      <View style={styles.notebookSpine} />
-      <View style={styles.notebookLine} />
-      <View style={[styles.notebookLine, styles.notebookLineShort]} />
-    </View>
-  );
-}
-
-function RisingBarsIcon({ colors }: { colors: AppColors }): React.JSX.Element {
-  const styles = createStyles(colors);
-
-  return (
-    <View style={styles.chartIcon}>
-      <View style={[styles.chartBar, styles.chartBarOne]} />
-      <View style={[styles.chartBar, styles.chartBarTwo]} />
-      <View style={[styles.chartBar, styles.chartBarThree]} />
-    </View>
-  );
+function countRecordsSince(records: SpeakingRecord[], windowMs: number): number {
+  const cutoff = Date.now() - windowMs;
+  return records.filter((record) => Date.parse(record.createdAt) >= cutoff).length;
 }
 
 function createStyles(colors: AppColors) {
@@ -185,12 +207,43 @@ function createStyles(colors: AppColors) {
       paddingHorizontal: spacing.md
     },
     content: {
-      gap: spacing.md,
-      paddingBottom: spacing.lg
+      gap: spacing.sm,
+      paddingBottom: spacing.lg,
+      paddingTop: spacing.sm
     },
-    quickActions: {
+    topBar: {
       flexDirection: "row",
-      gap: spacing.sm
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: spacing.xs
+    },
+    greetingBlock: {
+      flexShrink: 1
+    },
+    greeting: {
+      ...typography.caption,
+      color: colors.muted
+    },
+    h1: {
+      ...typography.h1,
+      color: colors.ink,
+      marginTop: 2
+    },
+    settingsButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000000",
+      shadowOpacity: 0.12,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2
+    },
+    settingsButtonPressed: {
+      opacity: 0.85
     },
     loveBanner: {
       minHeight: 48,
@@ -210,195 +263,159 @@ function createStyles(colors: AppColors) {
     loveBannerText: {
       flex: 1,
       color: colors.primaryDark,
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: "800"
+      ...typography.bodyStrong
     },
-    shortcut: {
-      flex: 1,
-      minHeight: 64,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.line,
-      backgroundColor: colors.surface,
+    hero: {
+      borderRadius: radius.xl,
+      padding: spacing.lg,
+      backgroundColor: colors.primaryDark,
+      overflow: "hidden",
+      marginTop: spacing.xs,
+      shadowColor: colors.primaryDark,
+      shadowOpacity: 0.35,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 4
+    },
+    heroPressed: {
+      opacity: 0.94,
+      transform: [{ scale: 0.995 }]
+    },
+    heroGlow: {
+      position: "absolute",
+      right: -50,
+      top: -50,
+      width: 170,
+      height: 170,
+      borderRadius: 999,
+      backgroundColor: "rgba(255,255,255,0.08)"
+    },
+    heroEyebrow: {
+      ...typography.label,
+      color: "rgba(255,255,255,0.78)"
+    },
+    heroTitle: {
+      ...typography.h1,
+      color: "#FFFFFF",
+      maxWidth: 230,
+      marginTop: spacing.xs,
+      marginBottom: spacing.md
+    },
+    heroCta: {
+      alignSelf: "flex-start",
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.sm
+      gap: spacing.xs,
+      backgroundColor: "#FFFFFF",
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 999
     },
-    shortcutPressed: {
-      opacity: 0.82,
-      transform: [{ scale: 0.99 }]
-    },
-    shortcutIconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: radius.md,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.surfaceMuted
-    },
-    shortcutText: {
-      color: colors.ink,
-      fontSize: 16,
-      fontWeight: "900"
+    heroCtaText: {
+      ...typography.bodyStrong,
+      color: colors.primaryDark
     },
     streakCard: {
-      gap: spacing.sm
-    },
-    streakHeader: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      gap: spacing.sm
-    },
-    streakLabel: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: "900",
-      textTransform: "uppercase"
-    },
-    streakValue: {
-      color: colors.ink,
-      fontSize: 28,
-      lineHeight: 34,
-      fontWeight: "900"
-    },
-    streakBadge: {
-      maxWidth: "48%",
-      borderRadius: radius.md,
-      backgroundColor: colors.surfaceMuted,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs
-    },
-    streakBadgeText: {
-      color: colors.primaryDark,
-      fontSize: 13,
-      lineHeight: 18,
-      fontWeight: "900",
-      textAlign: "center"
-    },
-    streakHelp: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
-    },
-    notebook: {
-      width: 21,
-      height: 25,
-      borderRadius: 4,
-      borderWidth: 2,
-      borderColor: colors.primaryDark,
+      gap: spacing.md,
       backgroundColor: colors.surface,
-      paddingLeft: 7,
-      paddingTop: 7,
-      gap: 4
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      shadowColor: "#000000",
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 1
     },
-    notebookSpine: {
-      position: "absolute",
-      left: 4,
-      top: 3,
-      bottom: 3,
-      width: 2,
-      borderRadius: 1,
-      backgroundColor: colors.primaryDark
-    },
-    notebookLine: {
-      width: 9,
-      height: 2,
-      borderRadius: 1,
-      backgroundColor: colors.primaryDark
-    },
-    notebookLineShort: {
-      width: 6
-    },
-    chartIcon: {
-      width: 24,
-      height: 24,
-      flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "center",
-      gap: 3
-    },
-    chartBar: {
-      width: 5,
-      borderRadius: 3,
-      backgroundColor: colors.primaryDark
-    },
-    chartBarOne: {
-      height: 9,
-      opacity: 0.65
-    },
-    chartBarTwo: {
-      height: 15,
-      opacity: 0.82
-    },
-    chartBarThree: {
-      height: 22
-    },
-    practiceCard: {
-      gap: spacing.md
-    },
-    practiceEyebrow: {
-      color: colors.primaryDark,
+    streakRingText: {
       fontSize: 13,
-      fontWeight: "900",
-      textTransform: "uppercase"
-    },
-    practiceTitle: {
-      color: colors.ink,
-      fontSize: 26,
-      lineHeight: 32,
-      fontWeight: "900"
-    },
-    practiceHelp: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: "700"
-    },
-    actions: {
-      gap: spacing.sm
-    },
-    grid: {
-      flexDirection: "row",
-      gap: spacing.sm
-    },
-    statCard: {
-      flex: 1,
-      minHeight: 92,
-      justifyContent: "center"
-    },
-    statValue: {
-      color: colors.ink,
-      fontSize: 30,
-      fontWeight: "900"
-    },
-    statLabel: {
-      color: colors.muted,
-      fontWeight: "700"
-    },
-    latestCard: {
-      gap: spacing.xs
-    },
-    latestTitle: {
-      color: colors.muted,
-      fontWeight: "800",
-      textTransform: "uppercase"
-    },
-    latestTopic: {
-      color: colors.ink,
-      fontSize: 18,
       fontWeight: "800"
     },
+    streakTextBlock: {
+      flex: 1
+    },
+    streakTitle: {
+      ...typography.bodyStrong,
+      color: colors.ink
+    },
+    streakSubtitle: {
+      ...typography.caption,
+      color: colors.muted,
+      marginTop: 2
+    },
+    chipRow: {
+      flexDirection: "row",
+      gap: spacing.sm
+    },
+    chip: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      paddingVertical: spacing.sm + 2,
+      alignItems: "center",
+      shadowColor: "#000000",
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 1
+    },
+    chipValue: {
+      fontSize: 19,
+      fontWeight: "800",
+      color: colors.ink
+    },
+    chipLabel: {
+      ...typography.caption,
+      color: colors.muted,
+      marginTop: 2
+    },
+    latestCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      shadowColor: "#000000",
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 1
+    },
+    latestCardPressed: {
+      opacity: 0.85
+    },
+    latestIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      backgroundColor: colors.primaryTint,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    textBlockFlex: {
+      flex: 1
+    },
+    latestTitle: {
+      ...typography.bodyStrong,
+      color: colors.ink
+    },
     latestMeta: {
-      color: colors.muted
+      ...typography.caption,
+      color: colors.muted,
+      marginTop: 1
+    },
+    sectionTitle: {
+      ...typography.label,
+      color: colors.muted,
+      marginTop: spacing.sm,
+      marginBottom: 2,
+      marginLeft: 2
     },
     signature: {
+      ...typography.caption,
       color: colors.muted,
-      fontSize: 13,
-      fontWeight: "800",
       textAlign: "center",
       paddingTop: spacing.sm,
       paddingBottom: spacing.xs

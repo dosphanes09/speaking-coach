@@ -35,7 +35,7 @@ export async function syncStreakReminder(records: SpeakingRecord[]): Promise<voi
     const summary = calculateStreak(records, now);
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Speaking streak zamanı",
+        title: "Time for your speaking streak",
         body: buildReminderBody(summary.currentStreakDays),
         data: {
           type: "speaking-streak-reminder"
@@ -133,8 +133,8 @@ function getNextReminderDate(practicedToday: boolean, now: Date): Date {
 
 function buildReminderBody(currentStreakDays: number): string {
   if (currentStreakDays > 0) {
-    return `Streak'in ${currentStreakDays} gün. Bugün 1 dakikalık speaking kaydı alarak seriyi güçlendir.`;
+    return `Your streak is ${currentStreakDays} days. Strengthen it today with a 1-minute speaking recording.`;
   }
 
-  return "Bugün 1 dakikalık speaking kaydı alarak yeni streak başlatabilirsin.";
+  return "Start a new streak today with a 1-minute speaking recording.";
 }

@@ -37,7 +37,7 @@ export async function shareSpeakingReportPdf(reportUri: string): Promise<void> {
   const canShare = await Sharing.isAvailableAsync();
 
   if (!canShare) {
-    throw new Error("Bu cihazda PDF paylaşımı kullanılamıyor.");
+    throw new Error("PDF sharing is not available on this device.");
   }
 
   await Sharing.shareAsync(reportUri, {
@@ -109,10 +109,10 @@ export function buildSpeakingReportHtml({ topic, transcript, analysis }: Speakin
   const exercises = resolvePersonalizedExercises(analysis, transcript);
   const dailyPlan = resolveDailyStudyPlan(analysis, topic, transcript);
   const normalizedScores = normalizeScores(analysis.scores);
-  const levelEstimate = estimateLevel(normalizedScores, topic.level);
+  const levelEstimate = resolveLevelEstimate(analysis, normalizedScores, topic.level);
 
   return `<!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -221,18 +221,18 @@ export function buildSpeakingReportHtml({ topic, transcript, analysis }: Speakin
       </section>
 
       <section class="section">
-        <h2>Konuşma Konusu</h2>
+        <h2>Speaking Topic</h2>
         <p>${escapeHtml(topic.title)}</p>
       </section>
 
       <section class="section">
-        <h2>Kullanıcının Transcript'i</h2>
+        <h2>Your Transcript</h2>
         <div class="text-box">${escapeHtml(transcript || analysis.originalTranscript)}</div>
       </section>
 
       <section class="section">
-        <h2>Seviye Tahmini ve Genel Değerlendirme</h2>
-        <p><strong>Seviye tahmini:</strong> ${escapeHtml(levelEstimate)}</p>
+        <h2>Level Estimate and Overall Evaluation</h2>
+        <p><strong>Level estimate:</strong> ${escapeHtml(levelEstimate)}</p>
         <p>${escapeHtml(buildOverallEvaluation(analysis))}</p>
         ${scoresHtml(normalizedScores)}
       </section>
@@ -244,11 +244,12 @@ export function buildSpeakingReportHtml({ topic, transcript, analysis }: Speakin
 
       <section class="section">
         <h2>Vocabulary Suggestions</h2>
-        ${listHtml(analysis.vocabularySuggestions, "Bu analizde özel vocabulary önerisi bulunamadı.")}
+        ${listHtml(analysis.vocabularySuggestions, "No specific vocabulary suggestions were found in this analysis.")}
       </section>
 
       <section class="section">
         <h2>Pronunciation & Fluency Feedback</h2>
+        <p class="meta">Pronunciation notes are estimated from the transcript only, not from audio analysis.</p>
         <p><strong>Pronunciation:</strong> ${escapeHtml(analysis.speakingFeedback.pronunciationNotes)}</p>
         <p><strong>Fluency:</strong> ${escapeHtml(analysis.speakingFeedback.fluency)}</p>
         <p><strong>Repetition:</strong> ${escapeHtml(analysis.speakingFeedback.repetitionProblems)}</p>
@@ -261,12 +262,12 @@ export function buildSpeakingReportHtml({ topic, transcript, analysis }: Speakin
       </section>
 
       <section class="section">
-        <h2>Kişiye Özel Alıştırmalar</h2>
+        <h2>Personalized Exercises</h2>
         ${exercisesHtml(exercises)}
       </section>
 
       <section class="section">
-        <h2>Bugünün Kişisel Çalışma Planı</h2>
+        <h2>Today's Personal Study Plan</h2>
         ${dailyPlanHtml(dailyPlan)}
       </section>
     </main>
@@ -302,14 +303,14 @@ function resolveDailyStudyPlan(
 
   return {
     focusAreas,
-    grammarTaskTR: firstMistake
-      ? `5 dakika: "${firstMistake.problem}" hatasını incele. Doğru hali yüksek sesle 3 kez oku, sonra aynı yapıyla 3 yeni cümle kur.`
-      : "5 dakika: Corrected version içinden 3 cümle seç ve aynı yapıyla yeni cümleler kur.",
-    vocabularyTaskTR: firstVocabularySuggestion
-      ? `5 dakika: Bu öneriyi kullanarak mini drill yap: ${firstVocabularySuggestion}. Aynı fikri daha güçlü 3 farklı cümleyle söyle.`
-      : "5 dakika: Cevabındaki basit kelimeleri seç, her biri için daha doğal bir alternatif yaz ve cümlede kullan.",
-    pronunciationFluencyTaskTR: buildFluencyTask(analysis),
-    retrySpeakingPromptTR: `5 dakika: Aynı konuya tekrar cevap ver: "${topic.title}". Bu kez en az bir neden, bir örnek ve kısa bir sonuç cümlesi ekle.`,
+    grammarTask: firstMistake
+      ? `5 minutes: Review the mistake "${firstMistake.problem}". Read the correct version aloud 3 times, then build 3 new sentences using the same structure.`
+      : "5 minutes: Pick 3 sentences from the corrected version and build new sentences using the same structure.",
+    vocabularyTask: firstVocabularySuggestion
+      ? `5 minutes: Do a mini drill using this suggestion: ${firstVocabularySuggestion}. Say the same idea 3 different, stronger ways.`
+      : "5 minutes: Pick the simple words in your answer, write a more natural alternative for each, and use it in a sentence.",
+    pronunciationFluencyTask: buildFluencyTask(analysis),
+    retrySpeakingPrompt: `5 minutes: Answer the same topic again: "${topic.title}". This time add at least one reason, one example, and a short conclusion sentence.`,
     estimatedDurationMinutes: estimateDailyDuration(transcript)
   };
 }
@@ -323,13 +324,13 @@ function normalizeDailyStudyPlan(
 
   return {
     focusAreas: normalizeStringArray(plan.focusAreas, fallback.focusAreas),
-    grammarTaskTR: normalizeText(plan.grammarTaskTR, fallback.grammarTaskTR),
-    vocabularyTaskTR: normalizeText(plan.vocabularyTaskTR, fallback.vocabularyTaskTR),
-    pronunciationFluencyTaskTR: normalizeText(
-      plan.pronunciationFluencyTaskTR,
-      fallback.pronunciationFluencyTaskTR
+    grammarTask: normalizeText(plan.grammarTask, fallback.grammarTask),
+    vocabularyTask: normalizeText(plan.vocabularyTask, fallback.vocabularyTask),
+    pronunciationFluencyTask: normalizeText(
+      plan.pronunciationFluencyTask,
+      fallback.pronunciationFluencyTask
     ),
-    retrySpeakingPromptTR: normalizeText(plan.retrySpeakingPromptTR, fallback.retrySpeakingPromptTR),
+    retrySpeakingPrompt: normalizeText(plan.retrySpeakingPrompt, fallback.retrySpeakingPrompt),
     estimatedDurationMinutes: clampDuration(plan.estimatedDurationMinutes)
   };
 }
@@ -345,9 +346,9 @@ function buildPersonalizedExercises(
   if (firstMistake) {
     exercises.push({
       title: "Grammar correction drill",
-      goal: `Bu yapıyı güçlendir: ${firstMistake.problem}`,
-      instructionsTR:
-        "Önce hatalı cümleyi ve düzeltilmiş halini karşılaştır. Sonra aynı gramer yapısıyla 3 yeni İngilizce cümle kur.",
+      goal: `Strengthen this structure: ${firstMistake.problem}`,
+      instructions:
+        "First compare the mistaken sentence with its corrected version. Then build 3 new English sentences using the same grammar structure.",
       examples: buildGrammarExamples(analysis)
     });
   }
@@ -355,9 +356,9 @@ function buildPersonalizedExercises(
   if (analysis.vocabularySuggestions.length > 0 || normalizedScores.vocabulary <= LOW_SCORE_THRESHOLD) {
     exercises.push({
       title: "Mini vocabulary drill",
-      goal: "Daha doğal ve güçlü kelime seçimleri kullanmak.",
-      instructionsTR:
-        "Aşağıdaki önerileri yüksek sesle oku. Sonra her alternatif kelimeyle kendi cevabına uygun yeni bir cümle kur.",
+      goal: "Use more natural and stronger word choices.",
+      instructions:
+        "Read the suggestions below out loud. Then build a new sentence that fits your own answer using each alternative word.",
       examples: normalizeStringArray(analysis.vocabularySuggestions.slice(0, 5), [
         "important -> essential: This skill is essential for my career.",
         "good -> valuable: It was a valuable experience for me.",
@@ -369,9 +370,9 @@ function buildPersonalizedExercises(
   if (normalizedScores.fluency <= LOW_SCORE_THRESHOLD || hasRepetitionIssue(analysis)) {
     exercises.push({
       title: "Shadowing and repetition",
-      goal: "Daha akıcı, daha az duraksayan bir cevap üretmek.",
-      instructionsTR:
-        "Native-like answer içinden 2 kısa cümle seç. Her cümleyi önce yavaş, sonra doğal hızda 5 kez tekrar et.",
+      goal: "Produce a more fluent answer with fewer hesitations.",
+      instructions:
+        "Pick 2 short sentences from the native-like answer. Repeat each sentence slowly first, then at a natural pace, 5 times.",
       examples: buildShadowingExamples(analysis.correctedVersion)
     });
   }
@@ -379,9 +380,9 @@ function buildPersonalizedExercises(
   if (isShortOrSurfaceLevel(transcript, analysis)) {
     exercises.push({
       title: "Idea expansion exercise",
-      goal: "Cevabı daha derin ve ikna edici hale getirmek.",
-      instructionsTR:
-        "Cevabını 3 parçaya genişlet: fikir, neden, örnek. Her bölüm için tek cümle kur ve sonra bunları bağla.",
+      goal: "Make your answer deeper and more convincing.",
+      instructions:
+        "Expand your answer into 3 parts: idea, reason, example. Build one sentence for each part, then connect them.",
       examples: [
         "My main point is that ...",
         "The main reason is that ...",
@@ -393,12 +394,12 @@ function buildPersonalizedExercises(
 
   if (hasTurkishThinkingIssue(analysis)) {
     exercises.push({
-      title: "Türkçe düşünme kaynaklı correction drill",
-      goal: "Türkçeden kelime kelime çeviri yerine doğal İngilizce cümle düzeni kurmak.",
-      instructionsTR:
-        "Önce Türkçe düşündüğün fikri kısa yaz. Sonra birebir çevirmeden İngilizce cümleyi özne + fiil + tamamlayıcı düzeniyle yeniden kur.",
+      title: "Turkish-thinking transfer correction drill",
+      goal: "Build a natural English sentence order instead of translating word-for-word from Turkish.",
+      instructions:
+        "First write the idea you thought in Turkish, briefly. Then rebuild the English sentence in subject + verb + complement order, without translating word-for-word.",
       examples: [
-        "Türkçe fikir: İngilizcemi geliştirmek istiyorum çünkü işimde lazım.",
+        "Word-for-word attempt: English improve want because job need.",
         "Natural English: I want to improve my English because I need it for my job.",
         "Pattern: I want to ... because ..."
       ]
@@ -408,9 +409,9 @@ function buildPersonalizedExercises(
   if (exercises.length === 0) {
     exercises.push({
       title: "Polished answer rehearsal",
-      goal: "İyi cevabı daha doğal ve güvenli söylemek.",
-      instructionsTR:
-        "Corrected version'ı 3 parçaya böl. Her parçayı yüksek sesle oku, sonra ekrana bakmadan aynı fikri kendi kelimelerinle tekrar söyle.",
+      goal: "Say the good answer more naturally and confidently.",
+      instructions:
+        "Split the corrected version into 3 parts. Read each part out loud, then say the same idea again in your own words without looking at the screen.",
       examples: buildShadowingExamples(analysis.correctedVersion)
     });
   }
@@ -473,7 +474,7 @@ function scoreFocusAreas(scores: NormalizedSpeakingScores): string[] {
 function buildFluencyTask(analysis: AnalysisResult): string {
   const shadowingLine = buildShadowingExamples(analysis.correctedVersion)[0];
 
-  return `5 dakika: Şu cümleyi shadowing yap: "${shadowingLine}". Önce yavaş oku, sonra doğal hızda 5 kez tekrar et.`;
+  return `5 minutes: Shadow this sentence: "${shadowingLine}". Read it slowly first, then repeat it at a natural pace 5 times.`;
 }
 
 function estimateDailyDuration(transcript: string): number {
@@ -496,6 +497,23 @@ function clampDuration(value: number): number {
   }
 
   return Math.min(25, Math.max(15, Math.round(value)));
+}
+
+function resolveLevelEstimate(
+  analysis: AnalysisResult,
+  normalizedScores: NormalizedSpeakingScores,
+  topicLevel: Topic["level"]
+): string {
+  // Prefer the AI's own estimate (the same value already shown in-app on the Speaking
+  // Analytics card) so the PDF never disagrees with what the learner already saw.
+  // Only fall back to a locally computed estimate if the analysis genuinely has none.
+  const aiEstimate = analysis.speakingAnalytics?.estimatedCEFRLevel?.trim();
+
+  if (aiEstimate) {
+    return aiEstimate.toLowerCase().includes("topic level") ? aiEstimate : `${aiEstimate} (topic level: ${topicLevel})`;
+  }
+
+  return estimateLevel(normalizedScores, topicLevel);
 }
 
 function estimateLevel(scores: NormalizedSpeakingScores, topicLevel: Topic["level"]): string {
@@ -523,7 +541,7 @@ function estimateLevel(scores: NormalizedSpeakingScores, topicLevel: Topic["leve
 function buildOverallEvaluation(analysis: AnalysisResult): string {
   const normalizedScores = normalizeScores(analysis.scores);
 
-  return `${analysis.improvementPlan.whatWentWell} Ana gelişim odağı: ${analysis.improvementPlan.tomorrowFocus} Overall score: ${formatScore(normalizedScores.overall)}/100.`;
+  return `${analysis.improvementPlan.whatWentWell} Main improvement focus: ${analysis.improvementPlan.tomorrowFocus} Overall score: ${formatScore(normalizedScores.overall)}/100.`;
 }
 
 function scoresHtml(scores: NormalizedSpeakingScores): string {
@@ -544,7 +562,7 @@ function scoreBoxHtml(label: string, value: number): string {
 
 function mistakesHtml(analysis: AnalysisResult): string {
   if (analysis.mistakes.length === 0) {
-    return `<p class="muted">Bu konuşmada belirgin grammar correction bulunamadı.</p>`;
+    return `<p class="muted">No notable grammar corrections were found in this recording.</p>`;
   }
 
   const rows = analysis.mistakes
@@ -577,22 +595,22 @@ function exercisesHtml(exercises: PersonalizedExercise[]): string {
       (exercise) => `<div class="exercise">
         <h3>${escapeHtml(exercise.title)}</h3>
         <p><strong>Goal:</strong> ${escapeHtml(exercise.goal)}</p>
-        <p>${escapeHtml(exercise.instructionsTR)}</p>
-        ${listHtml(exercise.examples, "Bu alıştırma için örnek bulunamadı.")}
+        <p>${escapeHtml(exercise.instructions)}</p>
+        ${listHtml(exercise.examples, "No examples were found for this exercise.")}
       </div>`
     )
     .join("");
 }
 
 function dailyPlanHtml(plan: DailyStudyPlan): string {
-  return `<p><strong>Süre:</strong> ${plan.estimatedDurationMinutes} dakika</p>
-    <p><strong>Odak alanları:</strong></p>
-    ${listHtml(plan.focusAreas, "Bugün doğal ve akıcı tekrar çalışması yap.")}
+  return `<p><strong>Duration:</strong> ${plan.estimatedDurationMinutes} minutes</p>
+    <p><strong>Focus areas:</strong></p>
+    ${listHtml(plan.focusAreas, "Do a natural, fluent repetition practice today.")}
     <div class="plan-grid">
-      <div class="plan-item"><strong>Grammar:</strong> ${escapeHtml(plan.grammarTaskTR)}</div>
-      <div class="plan-item"><strong>Vocabulary:</strong> ${escapeHtml(plan.vocabularyTaskTR)}</div>
-      <div class="plan-item"><strong>Pronunciation & Fluency:</strong> ${escapeHtml(plan.pronunciationFluencyTaskTR)}</div>
-      <div class="plan-item"><strong>Retry speaking:</strong> ${escapeHtml(plan.retrySpeakingPromptTR)}</div>
+      <div class="plan-item"><strong>Grammar:</strong> ${escapeHtml(plan.grammarTask)}</div>
+      <div class="plan-item"><strong>Vocabulary:</strong> ${escapeHtml(plan.vocabularyTask)}</div>
+      <div class="plan-item"><strong>Pronunciation & Fluency:</strong> ${escapeHtml(plan.pronunciationFluencyTask)}</div>
+      <div class="plan-item"><strong>Retry speaking:</strong> ${escapeHtml(plan.retrySpeakingPrompt)}</div>
     </div>`;
 }
 
@@ -612,8 +630,8 @@ function isValidExercise(exercise: PersonalizedExercise): boolean {
       exercise.title.trim() &&
       typeof exercise.goal === "string" &&
       exercise.goal.trim() &&
-      typeof exercise.instructionsTR === "string" &&
-      exercise.instructionsTR.trim() &&
+      typeof exercise.instructions === "string" &&
+      exercise.instructions.trim() &&
       Array.isArray(exercise.examples) &&
       exercise.examples.length > 0
   );
@@ -684,7 +702,7 @@ function formatReportDate(value: string): string {
   const date = new Date(value);
   const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
 
-  return safeDate.toLocaleDateString("tr-TR", {
+  return safeDate.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "long",
     year: "numeric",

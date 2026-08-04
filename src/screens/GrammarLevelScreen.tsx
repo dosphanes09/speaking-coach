@@ -10,6 +10,7 @@ import { GrammarLevelContent, GrammarSpeakingChallenge } from "@/data/grammarRoa
 import { SpeakingRecord } from "@/types/models";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface GrammarLevelScreenProps {
@@ -57,7 +58,7 @@ export function GrammarLevelScreen({
           {levelContent.topics.length} tense topics / {levelContent.speakingChallenges.length} speaking challenges
         </Text>
         <Text style={styles.scoreMeta}>
-          {levelRecords.length} kayıt / Ortalama {levelRecords.length ? formatScore100(averageOverallScore(levelRecords)) : "-"}
+          {levelRecords.length} records / Average {levelRecords.length ? formatScore100(averageOverallScore(levelRecords)) : "-"}
         </Text>
       </Card>
 
@@ -81,7 +82,7 @@ export function GrammarLevelScreen({
         </Text>
       </Card>
       <SpeakingChallengeCard challenge={activeChallenge} onStart={onStartChallenge} />
-      <AppButton label="Yeni Soru" onPress={showNewQuestion} variant="ghost" />
+      <AppButton label="New Question" onPress={showNewQuestion} variant="ghost" />
     </ScrollView>
   );
 }
@@ -132,20 +133,16 @@ function createStyles(colors: AppColors) {
     gap: spacing.sm
   },
   summary: {
-    color: colors.ink,
-    fontSize: 16,
-    lineHeight: 23
+    ...typography.bodyLarge,
+    color: colors.ink
   },
   meta: {
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.primaryDark
   },
   scoreMeta: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: "900"
+    ...typography.bodyStrong,
+    color: colors.accent
   },
   stack: {
     gap: spacing.sm
@@ -155,15 +152,12 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.surfaceMuted
   },
   challengeIntroTitle: {
-    color: colors.ink,
-    fontSize: 17,
-    fontWeight: "900",
-    lineHeight: 23
+    ...typography.h2,
+    color: colors.ink
   },
   challengeIntroText: {
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 20
+    ...typography.body,
+    color: colors.muted
   }
   });
 }

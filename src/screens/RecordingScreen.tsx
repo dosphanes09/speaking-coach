@@ -9,6 +9,7 @@ import { PracticeQuestionCard } from "@/components/PracticeQuestionCard";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { RecordedMedia, RecordingType, Topic } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { deleteMedia, getMimeType, persistRecording } from "@/services/media/mediaStorage";
 import { clampRecordingSeconds, formatPracticeDuration } from "@/utils/practiceTiming";
@@ -316,8 +317,8 @@ export function RecordingScreen({
         ) : null}
         {status === "finished" && recordedMedia ? (
           <>
-            <AppButton label="Save and Continue" onPress={() => onRecorded(recordedMedia)} icon="→" />
-            <AppButton label="Retry" onPress={retry} variant="ghost" icon="↻" />
+            <AppButton label="Save and Continue" onPress={() => onRecorded(recordedMedia)} icon="arrow-right" />
+            <AppButton label="Retry" onPress={retry} variant="ghost" icon="refresh-cw" />
           </>
         ) : null}
       </View>
@@ -344,15 +345,12 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.surfaceMuted
   },
   notesTitle: {
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.primaryDark
   },
   notesBody: {
+    ...typography.bodyLarge,
     color: colors.ink,
-    fontSize: 16,
-    lineHeight: 23,
     fontWeight: "700"
   },
   camera: {
@@ -376,26 +374,26 @@ function createStyles(colors: AppColors) {
     fontWeight: "900"
   },
   timerLabel: {
-    color: colors.muted,
-    fontWeight: "700"
+    ...typography.bodyStrong,
+    color: colors.muted
   },
   durationHint: {
+    ...typography.bodyStrong,
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: "700",
     marginTop: spacing.xs
   },
   autoStartHint: {
+    ...typography.bodyStrong,
     color: colors.primaryDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: "800",
     marginTop: spacing.xs
   },
   error: {
+    ...typography.bodyStrong,
     color: colors.danger,
-    fontWeight: "700",
     lineHeight: 20
   },
   actions: {

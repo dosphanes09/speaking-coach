@@ -93,7 +93,7 @@ export async function analyzeSpeechWithBackend({
     if (response.status === 401) {
       throw new Error(
         error?.message ||
-          "Backend bu analiz için cihaz aktivasyonu istiyor. Ayarlar bölümünden davet koduyla etkinleştir."
+          "This backend requires device activation for analysis. Activate it with an invite code in Settings."
       );
     }
     if (error?.code === "openai_not_configured") {

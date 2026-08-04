@@ -4,6 +4,7 @@ import { Card } from "@/components/Card";
 import { PictureSceneIllustration } from "@/components/PictureSceneIllustration";
 import { PicturePrompt } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PicturePromptCardProps {
@@ -98,16 +99,12 @@ function createStyles(colors: AppColors) {
       gap: spacing.md
     },
     level: {
-      color: colors.primaryDark,
-      fontSize: 13,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.primaryDark
     },
     title: {
-      color: colors.ink,
-      fontSize: 24,
-      lineHeight: 30,
-      fontWeight: "900"
+      ...typography.display,
+      color: colors.ink
     },
     guideBlock: {
       gap: spacing.xs
@@ -119,26 +116,20 @@ function createStyles(colors: AppColors) {
       paddingLeft: spacing.sm
     },
     observeTitle: {
-      color: colors.ink,
-      fontSize: 16,
-      lineHeight: 22,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     observeText: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.muted
     },
     sectionTitle: {
-      color: colors.ink,
-      fontSize: 16,
-      lineHeight: 22,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     bullet: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.muted
     },
     chipSection: {
       gap: spacing.sm
@@ -149,12 +140,12 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     chip: {
+      ...typography.bodyStrong,
       overflow: "hidden",
       borderRadius: radius.sm,
       backgroundColor: colors.surfaceMuted,
       color: colors.primaryDark,
       fontSize: 13,
-      fontWeight: "800",
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs
     }

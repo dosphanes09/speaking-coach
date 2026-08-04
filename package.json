@@ -11,9 +11,17 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "check:apk": "node scripts/check-apk.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter",
+    "test:scoreUtils": "tsx scripts/scoreUtilsSelfTest.ts",
+    "test:streak": "tsx scripts/streakServiceSelfTest.ts",
+    "test:recordClassification": "tsx scripts/recordClassificationSelfTest.ts",
+    "test:analysisEnrichment": "tsx scripts/analysisEnrichmentSelfTest.ts",
+    "test:practiceTiming": "tsx scripts/practiceTimingSelfTest.ts",
+    "test:beforeAfter": "tsx scripts/beforeAfterServiceSelfTest.ts"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~54.0.35",
     "expo-av": "~16.0.8",
@@ -36,6 +44,7 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.10",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "tsx": "^4.19.0"
   }
 }

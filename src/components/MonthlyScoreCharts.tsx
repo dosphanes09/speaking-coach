@@ -4,6 +4,7 @@ import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
 import { ScoreMetric, SpeakingRecord } from "@/types/models";
 import { normalizeScores, SCORE_LABELS, SCORE_METRICS } from "@/services/progress/scoreUtils";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface MonthlyScoreChartsProps {
@@ -37,25 +38,25 @@ export function MonthlyScoreCharts({ records }: MonthlyScoreChartsProps): React.
   const recordsInMonth = records.filter((record) => isRecordInMonth(record, activeMonth));
 
   if (records.length === 0) {
-    return <Text style={styles.emptyText}>Grafik için önce en az bir analiz kaydı gerekiyor.</Text>;
+    return <Text style={styles.emptyText}>At least one analysis record is needed for the chart.</Text>;
   }
 
   if (recordsInMonth.length === 0) {
     return (
       <Text style={styles.emptyText}>
-        {activeMonth.label} içinde henüz analiz kaydı yok.
+        No analysis records yet in {activeMonth.label}.
       </Text>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.monthTitle}>{activeMonth.label} içindeki günlük skor ilerleyişi</Text>
+      <Text style={styles.monthTitle}>Daily score progress in {activeMonth.label}</Text>
       {SCORE_METRICS.map((metric) => (
         <View key={metric} style={styles.chartBlock}>
           <View style={styles.chartHeader}>
             <Text style={styles.chartTitle}>{SCORE_LABELS[metric]}</Text>
-            <Text style={styles.chartMeta}>Günlük skor</Text>
+            <Text style={styles.chartMeta}>Daily score</Text>
           </View>
           <DailyLineChart
             activeMonth={activeMonth}
@@ -167,7 +168,7 @@ function getActiveMonth(records: SpeakingRecord[]): ActiveMonth {
   const year = baseDate.getFullYear();
   const monthIndex = baseDate.getMonth();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const label = baseDate.toLocaleDateString("tr-TR", {
+  const label = baseDate.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric"
   });
@@ -239,10 +240,8 @@ function createStyles(colors: AppColors) {
       gap: spacing.md
     },
     monthTitle: {
-      color: colors.ink,
-      fontSize: 15,
-      fontWeight: "900",
-      lineHeight: 21
+      ...typography.bodyStrong,
+      color: colors.ink
     },
     chartBlock: {
       gap: spacing.sm,
@@ -257,19 +256,16 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     chartTitle: {
-      color: colors.ink,
-      fontSize: 15,
-      fontWeight: "900"
+      ...typography.bodyStrong,
+      color: colors.ink
     },
     chartMeta: {
-      color: colors.muted,
-      fontSize: 12,
-      fontWeight: "700"
+      ...typography.caption,
+      color: colors.muted
     },
     emptyText: {
-      color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20
+      ...typography.body,
+      color: colors.muted
     }
   });
 }

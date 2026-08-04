@@ -7,6 +7,7 @@ import { getGrammarRecordLevel } from "@/services/records/recordClassification";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
 import { GrammarLevel, SpeakingRecord } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface GrammarHomeScreenProps {
@@ -47,7 +48,7 @@ export function GrammarHomeScreen({
                   {level.topics.length} topics / {level.speakingChallenges.length} challenges
                 </Text>
                 <Text style={styles.scoreMeta}>
-                  {levelRecords.length} kayıt / Ortalama {levelRecords.length ? formatScore100(averageScore) : "-"}
+                  {levelRecords.length} records / Average {levelRecords.length ? formatScore100(averageScore) : "-"}
                 </Text>
               </Card>
             </Pressable>
@@ -82,31 +83,24 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     level: {
-      color: colors.primaryDark,
-      fontSize: 30,
-      fontWeight: "900"
+      ...typography.display,
+      color: colors.primaryDark
     },
     title: {
-      color: colors.ink,
-      fontSize: 18,
-      fontWeight: "900",
-      lineHeight: 24
+      ...typography.h2,
+      color: colors.ink
     },
     summary: {
-      color: colors.muted,
-      fontSize: 15,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.muted
     },
     meta: {
-      color: colors.accent,
-      fontSize: 13,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.accent
     },
     scoreMeta: {
-      color: colors.primaryDark,
-      fontSize: 14,
-      fontWeight: "900"
+      ...typography.bodyStrong,
+      color: colors.primaryDark
     }
   });
 }

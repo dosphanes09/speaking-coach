@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Topic } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
 
@@ -84,32 +85,27 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     eyebrow: {
+      ...typography.label,
       flex: 1,
-      color: colors.primaryDark,
-      fontSize: 12,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      color: colors.primaryDark
     },
     badge: {
+      ...typography.label,
       overflow: "hidden",
       borderRadius: radius.sm,
       backgroundColor: colors.surface,
       color: colors.primaryDark,
       fontSize: 12,
-      fontWeight: "900",
       paddingHorizontal: spacing.sm,
       paddingVertical: 4
     },
     question: {
-      color: colors.ink,
-      fontSize: 21,
-      lineHeight: 28,
-      fontWeight: "900"
+      ...typography.display,
+      color: colors.ink
     },
     helper: {
+      ...typography.body,
       color: colors.muted,
-      fontSize: 14,
-      lineHeight: 20,
       fontWeight: "700"
     }
   });

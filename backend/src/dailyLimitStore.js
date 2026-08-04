@@ -27,50 +27,52 @@ function pruneOldDays(dayKey) {
   }
 }
 
-function assertInMemoryDailyLimit(req, maxDailyAnalysesPerUser) {
+function assertInMemoryDailyLimit(req, maxPerUser, kind) {
   const dayKey = getDayKey();
   pruneOldDays(dayKey);
 
-  const key = `${getDevelopmentClientKey(req)}:${dayKey}`;
+  const key = `${kind}:${getDevelopmentClientKey(req)}:${dayKey}`;
   const current = counters.get(key) || 0;
-  if (current >= maxDailyAnalysesPerUser) {
-    throw new HttpError(429, "daily_limit_exceeded", "Daily analysis limit reached.");
+  if (current >= maxPerUser) {
+    throw new HttpError(429, "daily_limit_exceeded", `Daily ${kind} limit reached.`);
   }
 
   counters.set(key, current + 1);
   return {
-    remaining: Math.max(0, maxDailyAnalysesPerUser - current - 1)
+    remaining: Math.max(0, maxPerUser - current - 1)
   };
 }
 
-async function assertPersistentDailyLimit(req, maxDailyAnalysesPerUser) {
+async function assertPersistentDailyLimit(req, maxPerUser, kind) {
   const subject = req.auth?.subject;
   if (!subject) {
     throw new HttpError(401, "authentication_required", "Device activation is required.");
   }
 
   const dayKey = getDayKey();
-  const key = `quota:analysis:${subject}:${dayKey}`;
+  const key = `quota:${kind}:${subject}:${dayKey}`;
   const current = await runRedis(async (redis) => {
     const count = await redis.incr(key);
     await redis.expire(key, 2 * 24 * 60 * 60);
     return count;
   });
 
-  if (current > maxDailyAnalysesPerUser) {
-    throw new HttpError(429, "daily_limit_exceeded", "Daily analysis limit reached.");
+  if (current > maxPerUser) {
+    throw new HttpError(429, "daily_limit_exceeded", `Daily ${kind} limit reached.`);
   }
 
   return {
-    remaining: Math.max(0, maxDailyAnalysesPerUser - current)
+    remaining: Math.max(0, maxPerUser - current)
   };
 }
 
-async function assertDailyLimit(req, maxDailyAnalysesPerUser) {
+// `kind` namespaces the counter (e.g. "analysis" vs "chat") so unrelated
+// features don't silently share and exhaust the same daily quota.
+async function assertDailyLimit(req, maxPerUser, kind = "analysis") {
   if (config.requireAppAuth) {
-    return assertPersistentDailyLimit(req, maxDailyAnalysesPerUser);
+    return assertPersistentDailyLimit(req, maxPerUser, kind);
   }
-  return assertInMemoryDailyLimit(req, maxDailyAnalysesPerUser);
+  return assertInMemoryDailyLimit(req, maxPerUser, kind);
 }
 
 module.exports = {

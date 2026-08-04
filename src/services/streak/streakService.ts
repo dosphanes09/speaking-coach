@@ -9,8 +9,8 @@ export interface StreakSummary {
   daysSinceLastPractice: number | null;
   graceDaysRemaining: number;
   lastPracticeDayKey: string | null;
-  statusLabelTR: string;
-  helperTextTR: string;
+  statusLabel: string;
+  helperText: string;
 }
 
 export function calculateStreak(records: SpeakingRecord[], now = new Date()): StreakSummary {
@@ -27,8 +27,8 @@ export function calculateStreak(records: SpeakingRecord[], now = new Date()): St
       daysSinceLastPractice: null,
       graceDaysRemaining: 0,
       lastPracticeDayKey: null,
-      statusLabelTR: "Henüz başlamadı",
-      helperTextTR: "Bugün bir speaking kaydı alarak ilk streak gününü başlat."
+      statusLabel: "Not started yet",
+      helperText: "Record your first speaking practice today to start your streak."
     };
   }
 
@@ -47,8 +47,8 @@ export function calculateStreak(records: SpeakingRecord[], now = new Date()): St
     daysSinceLastPractice,
     graceDaysRemaining,
     lastPracticeDayKey,
-    statusLabelTR: buildStatusLabel(practicedToday, currentStreakDays, graceDaysRemaining),
-    helperTextTR: buildHelperText(practicedToday, currentStreakDays, graceDaysRemaining)
+    statusLabel: buildStatusLabel(practicedToday, currentStreakDays, graceDaysRemaining),
+    helperText: buildHelperText(practicedToday, currentStreakDays, graceDaysRemaining)
   };
 }
 
@@ -77,18 +77,18 @@ function buildStatusLabel(
   graceDaysRemaining: number
 ): string {
   if (practicedToday) {
-    return "Bugün tamam";
+    return "Done for today";
   }
 
   if (currentStreakDays > 0) {
     if (graceDaysRemaining === 0) {
-      return "Son koruma günü";
+      return "Last day of grace";
     }
 
-    return `${graceDaysRemaining} gün koruma`;
+    return `${graceDaysRemaining}-day grace period`;
   }
 
-  return "Streak sıfırlandı";
+  return "Streak reset";
 }
 
 function buildHelperText(
@@ -97,18 +97,18 @@ function buildHelperText(
   graceDaysRemaining: number
 ): string {
   if (practicedToday) {
-    return "Bugünkü speaking kaydın alındı. Seri devam ediyor.";
+    return "Today's speaking practice is logged. Your streak continues.";
   }
 
   if (currentStreakDays > 0) {
     if (graceDaysRemaining === 0) {
-      return "Bugün kayıt almazsan streak sıfırlanır. 1 dakikalık pratik yeterli.";
+      return "Your streak resets if you don't practice today. One minute is enough.";
     }
 
-    return `Bugün kayıt alırsan streak güçlenir. Kaçırırsan ${graceDaysRemaining} gün koruma hakkın kalır.`;
+    return `Practice today to grow your streak. If you miss it, you have ${graceDaysRemaining} grace day(s) left.`;
   }
 
-  return "Yeni bir speaking kaydı alarak streak'i yeniden başlatabilirsin.";
+  return "Record a new speaking practice to start your streak again.";
 }
 
 function fromLocalDayKey(dayKey: string): Date {

@@ -37,6 +37,17 @@ export function buildLatestTopicComparison(
   return buildBeforeAfterComparison(previousRecord, currentRecord);
 }
 
+/**
+ * All other attempts (across all history, not just the single most recent one) that answer
+ * the same question as `currentRecord`, newest first. Powers the "retry this question" flow:
+ * once a learner deliberately re-answers a past question, this is what lets the record detail
+ * screen list every attempt at that same question side by side instead of only the one
+ * automatically-shown before/after comparison.
+ */
+export function findTopicAttempts(currentRecord: SpeakingRecord, allRecords: SpeakingRecord[]): SpeakingRecord[] {
+  return recordsForSameTopic(currentRecord, allRecords).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export function buildBeforeAfterComparison(
   beforeRecord: SpeakingRecord,
   afterRecord: SpeakingRecord
@@ -77,18 +88,18 @@ function findPreviousTopicRecord(
   currentRecord: SpeakingRecord,
   previousRecords: SpeakingRecord[]
 ): SpeakingRecord | null {
+  return recordsForSameTopic(currentRecord, previousRecords).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+}
+
+function recordsForSameTopic(currentRecord: SpeakingRecord, allRecords: SpeakingRecord[]): SpeakingRecord[] {
   const currentTopicTitle = normalizeTopicTitle(currentRecord.topic.title);
 
-  return (
-    previousRecords
-      .filter((record) => record.id !== currentRecord.id)
-      .filter(
-        (record) =>
-          record.topic.id === currentRecord.topic.id ||
-          normalizeTopicTitle(record.topic.title) === currentTopicTitle
-      )
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
-  );
+  return allRecords
+    .filter((record) => record.id !== currentRecord.id)
+    .filter(
+      (record) =>
+        record.topic.id === currentRecord.topic.id || normalizeTopicTitle(record.topic.title) === currentTopicTitle
+    );
 }
 
 function estimateWordsPerMinute(record: SpeakingRecord): number {

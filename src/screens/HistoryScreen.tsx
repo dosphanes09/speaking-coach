@@ -10,6 +10,7 @@ import {
 } from "@/services/records/recordClassification";
 import { GrammarLevel, ListeningGameResult, SpeakingRecord } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
@@ -43,31 +44,31 @@ export function HistoryScreen({
 
       {records.length === 0 && listeningResults.length === 0 ? (
         <Card>
-          <Text style={styles.emptyText}>Henüz kayıt yok.</Text>
+          <Text style={styles.emptyText}>No records yet.</Text>
         </Card>
       ) : null}
 
       <HistorySection
-        title="Genel Speaking Kayıtları"
+        title="General Speaking Records"
         records={generalRecords}
-        emptyText="Henüz genel speaking kaydı yok."
+        emptyText="No general speaking records yet."
         onSelectRecord={onSelectRecord}
         styles={styles}
       />
 
       <HistorySection
-        title="Picture Description Kayıtları"
+        title="Picture Description Records"
         records={pictureRecords}
-        emptyText="Henüz picture description kaydı yok."
+        emptyText="No picture description records yet."
         onSelectRecord={onSelectRecord}
         styles={styles}
       />
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Grammar Practice Kayıtları</Text>
+        <Text style={styles.sectionTitle}>Grammar Practice Records</Text>
         {grammarRecords.length === 0 ? (
           <Card>
-            <Text style={styles.emptyText}>Henüz grammar practice kaydı yok.</Text>
+            <Text style={styles.emptyText}>No grammar practice records yet.</Text>
           </Card>
         ) : (
           GRAMMAR_LEVELS.map((level) => {
@@ -85,7 +86,7 @@ export function HistoryScreen({
                     <Text style={styles.score}>{formatScore100(averageOverallScore(levelRecords))}</Text>
                   </View>
                   <Text style={styles.meta}>
-                    {levelRecords.length} kayıt / Ortalama skor
+                    {levelRecords.length} records / Average score
                   </Text>
                 </Card>
                 <View style={styles.list}>
@@ -169,7 +170,7 @@ function HistoryRecordCard({
         {grammarLabel ? <Text style={styles.grammarMeta}>{grammarLabel}</Text> : null}
         <Text style={styles.meta}>
           {record.media.type} / {record.media.durationSeconds}s / {record.analysis.generatedBy} / PDF{" "}
-          {record.pdfReportUri ? "hazır" : "yok"}
+          {record.pdfReportUri ? "ready" : "none"}
         </Text>
       </Card>
     </Pressable>
@@ -188,7 +189,7 @@ function ListeningResultsSection({
       <Text style={styles.sectionTitle}>Listening Picture Match</Text>
       {results.length === 0 ? (
         <Card>
-          <Text style={styles.emptyText}>Henüz listening picture match sonucu yok.</Text>
+          <Text style={styles.emptyText}>No listening picture match results yet.</Text>
         </Card>
       ) : (
         <View style={styles.list}>
@@ -246,10 +247,8 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     sectionTitle: {
-      color: colors.ink,
-      fontSize: 19,
-      lineHeight: 25,
-      fontWeight: "900"
+      ...typography.h1,
+      color: colors.ink
     },
     grammarGroup: {
       gap: spacing.sm
@@ -259,18 +258,15 @@ function createStyles(colors: AppColors) {
       backgroundColor: colors.surfaceMuted
     },
     groupTitle: {
-      color: colors.ink,
-      fontSize: 18,
-      lineHeight: 24,
-      fontWeight: "900"
+      ...typography.h2,
+      color: colors.ink
     },
     list: {
       gap: spacing.sm
     },
     emptyText: {
-      color: colors.muted,
-      fontSize: 16,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.muted
     },
     recordCard: {
       gap: spacing.sm
@@ -282,34 +278,29 @@ function createStyles(colors: AppColors) {
       gap: spacing.md
     },
     recordDate: {
-      color: colors.muted,
-      fontWeight: "700"
+      ...typography.bodyStrong,
+      color: colors.muted
     },
     score: {
-      color: colors.primaryDark,
-      fontSize: 20,
-      fontWeight: "900"
+      ...typography.h1,
+      color: colors.primaryDark
     },
     topic: {
-      color: colors.ink,
-      fontSize: 18,
-      lineHeight: 24,
-      fontWeight: "800"
+      ...typography.h2,
+      color: colors.ink
     },
     grammarMeta: {
+      ...typography.bodyStrong,
       color: colors.accent,
       fontSize: 13,
-      lineHeight: 18,
-      fontWeight: "800"
+      lineHeight: 18
     },
     modeMeta: {
-      color: colors.primaryDark,
-      fontSize: 12,
-      lineHeight: 17,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.primaryDark
     },
     meta: {
+      ...typography.caption,
       color: colors.muted
     }
   });

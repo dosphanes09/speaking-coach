@@ -1,6 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Icon, IconName } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 
 interface HeaderProps {
@@ -8,7 +10,7 @@ interface HeaderProps {
   subtitle?: string;
   onBack?: () => void;
   rightLabel?: string;
-  rightIcon?: string;
+  rightIcon?: IconName;
   onRightPress?: () => void;
 }
 
@@ -36,7 +38,7 @@ export function Header({
             hitSlop={4}
             style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
           >
-            <Text style={styles.navIcon}>‹</Text>
+            <Icon name="chevron-left" size={18} color={colors.primaryDark} />
             <Text style={styles.navText}>Back</Text>
           </Pressable>
         ) : (
@@ -50,7 +52,7 @@ export function Header({
             hitSlop={4}
             style={({ pressed }) => [styles.navButton, styles.rightButton, pressed && styles.navButtonPressed]}
           >
-            {resolvedRightIcon ? <Text style={styles.rightIcon}>{resolvedRightIcon}</Text> : null}
+            {resolvedRightIcon ? <Icon name={resolvedRightIcon} size={16} color={colors.accent} /> : null}
             <Text style={styles.rightText}>{rightLabel}</Text>
           </Pressable>
         ) : (
@@ -66,13 +68,13 @@ export function Header({
   );
 }
 
-function resolveActionIcon(label?: string): string | undefined {
+function resolveActionIcon(label?: string): IconName | undefined {
   const normalizedLabel = label?.toLowerCase();
   if (normalizedLabel === "settings") {
-    return "⚙";
+    return "settings";
   }
   if (normalizedLabel === "clear") {
-    return "×";
+    return "x";
   }
   return undefined;
 }
@@ -112,29 +114,16 @@ function createStyles(colors: AppColors) {
       opacity: 0.86,
       transform: [{ scale: 0.985 }]
     },
-    navIcon: {
-      color: colors.primaryDark,
-      fontSize: 24,
-      lineHeight: 24,
-      fontWeight: "900"
-    },
     navText: {
-      color: colors.primaryDark,
-      fontSize: 15,
-      fontWeight: "800"
+      ...typography.bodyStrong,
+      color: colors.primaryDark
     },
     rightButton: {
       minWidth: 96
     },
-    rightIcon: {
-      color: colors.accent,
-      fontSize: 16,
-      fontWeight: "900"
-    },
     rightText: {
-      color: colors.accent,
-      fontSize: 15,
-      fontWeight: "800"
+      ...typography.bodyStrong,
+      color: colors.accent
     },
     navPlaceholder: {
       minWidth: 88
@@ -145,11 +134,9 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     title: {
+      ...typography.display,
       flexShrink: 1,
-      color: colors.ink,
-      fontSize: 30,
-      lineHeight: 36,
-      fontWeight: "800"
+      color: colors.ink
     },
     titleHeart: {
       color: colors.accent,
@@ -158,9 +145,8 @@ function createStyles(colors: AppColors) {
       fontWeight: "900"
     },
     subtitle: {
-      color: colors.muted,
-      fontSize: 16,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.muted
     }
   });
 }

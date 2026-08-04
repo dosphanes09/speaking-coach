@@ -7,6 +7,7 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { getRandomPicturePrompt, PICTURE_LEVELS } from "@/data/picturePrompts";
 import { PicturePrompt, TopicLevel } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PictureDescriptionScreenProps {
@@ -67,10 +68,8 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     label: {
-      color: colors.muted,
-      fontSize: 13,
-      fontWeight: "900",
-      textTransform: "uppercase"
+      ...typography.label,
+      color: colors.muted
     },
     actions: {
       gap: spacing.sm

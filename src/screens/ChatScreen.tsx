@@ -14,6 +14,7 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppSettings, ChatMessage, RecordedMedia } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createMockChatReply } from "@/services/chat/mockChatService";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/services/storage/chatRepository";
 import { deleteMedia, getMimeType, persistRecording } from "@/services/media/mediaStorage";
 import { analyzeSpeechWithBackend } from "@/services/backend/analyzeSpeechService";
+import { chatWithBackendCoach } from "@/services/backend/chatService";
 import { getClientId } from "@/services/storage/clientIdentity";
 import { createId } from "@/utils/id";
 
@@ -97,23 +99,44 @@ export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Ele
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   }
 
+  async function createCoachReply(history: ChatMessage[], latestText: string): Promise<ChatMessage> {
+    if (!canUseBackend) {
+      return createMockChatReply(latestText);
+    }
+
+    const clientId = await getClientId();
+    const replyText = await chatWithBackendCoach({
+      backendBaseUrl: settings.backendBaseUrl,
+      clientId,
+      targetLevel: settings.targetLevel,
+      history
+    });
+
+    return {
+      id: createId("chat"),
+      role: "assistant",
+      kind: "text",
+      text: replyText,
+      source: "backend",
+      createdAt: new Date().toISOString()
+    };
+  }
+
   async function createAssistantReply(nextMessages: ChatMessage[], latestText: string): Promise<void> {
     setIsSending(true);
     setError("");
 
     try {
-      const reply = await createMockChatReply(latestText);
+      const reply = await createCoachReply(nextMessages, latestText);
       await persistMessages([...nextMessages, reply]);
     } catch (caughtError) {
       const fallback = await createMockChatReply(latestText);
-      await persistMessages([
-        ...nextMessages,
-        {
-          ...fallback,
-          text: fallback.text
-        }
-      ]);
-      setError(caughtError instanceof Error ? caughtError.message : "Chat response failed.");
+      await persistMessages([...nextMessages, fallback]);
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Chat response failed. Showing a local reply instead."
+      );
     } finally {
       setIsSending(false);
     }
@@ -311,11 +334,11 @@ export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Ele
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Header
         title="Practice Chat"
-        subtitle={canUseBackend ? "Text locally, voice through your backend" : "Text chat with local coach mode"}
+        subtitle={canUseBackend ? "Chat with your real AI coach" : "Text chat with local coach mode"}
         onBack={onBack}
         rightLabel="Clear"
         onRightPress={clearChat}
@@ -407,9 +430,8 @@ function createStyles(colors: AppColors) {
     paddingBottom: spacing.md
   },
   emptyText: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.muted
   },
   bubble: {
     maxWidth: "86%",
@@ -428,9 +450,7 @@ function createStyles(colors: AppColors) {
     borderColor: colors.line
   },
   bubbleLabel: {
-    fontSize: 12,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label
   },
   userLabel: {
     color: "#FFFFFF"
@@ -439,8 +459,7 @@ function createStyles(colors: AppColors) {
     color: colors.accent
   },
   bubbleText: {
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge
   },
   userText: {
     color: "#FFFFFF"
@@ -449,14 +468,14 @@ function createStyles(colors: AppColors) {
     color: colors.ink
   },
   statusText: {
+    ...typography.bodyStrong,
     color: colors.muted,
-    fontWeight: "700",
     textAlign: "center"
   },
   errorText: {
+    ...typography.bodyStrong,
     color: colors.danger,
-    lineHeight: 20,
-    fontWeight: "700"
+    lineHeight: 20
   },
   composer: {
     gap: spacing.sm,

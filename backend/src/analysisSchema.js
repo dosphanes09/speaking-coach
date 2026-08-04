@@ -8,6 +8,34 @@ const wordFrequencySchema = {
   }
 };
 
+const errorCategoryEnum = [
+  "grammar",
+  "vocabulary",
+  "fluency",
+  "pronunciation",
+  "coherence",
+  "naturalness",
+  "turkish-transfer",
+  "other"
+];
+
+const errorSeverityEnum = ["low", "medium", "high"];
+
+const topicRelevanceEnum = ["off_topic", "partially_relevant", "fully_relevant"];
+
+// Independent, structured judgment of whether the learner actually addressed the assigned
+// topic/prompt, instead of folding "content & relevance" into coherence/naturalness scores
+// with no dedicated check of on-topic-ness at all.
+const topicRelevanceSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["addressedTopic", "explanation"],
+  properties: {
+    addressedTopic: { type: "string", enum: topicRelevanceEnum },
+    explanation: { type: "string" }
+  }
+};
+
 const errorPatternSchema = {
   type: "object",
   additionalProperties: false,
@@ -23,24 +51,12 @@ const errorPatternSchema = {
   ],
   properties: {
     id: { type: "string" },
-    category: {
-      type: "string",
-      enum: [
-        "grammar",
-        "vocabulary",
-        "fluency",
-        "pronunciation",
-        "coherence",
-        "naturalness",
-        "turkish-transfer",
-        "other"
-      ]
-    },
+    category: { type: "string", enum: errorCategoryEnum },
     label: { type: "string" },
     explanationTR: { type: "string" },
     exampleOriginal: { type: "string" },
     exampleCorrected: { type: "string" },
-    severity: { type: "string", enum: ["low", "medium", "high"] },
+    severity: { type: "string", enum: errorSeverityEnum },
     isTurkishTransferError: { type: "boolean" }
   }
 };
@@ -53,14 +69,22 @@ const grammarFocusFeedbackSchema = {
     "missedGrammarOpportunities",
     "tenseAccuracy",
     "betterSentenceAlternatives",
-    "levelAppropriateSuggestions"
+    "levelAppropriateSuggestions",
+    "targetStructureUsage"
   ],
   properties: {
     expectedGrammarUsed: { type: "string" },
     missedGrammarOpportunities: { type: "array", items: { type: "string" } },
     tenseAccuracy: { type: "string" },
     betterSentenceAlternatives: { type: "array", items: { type: "string" } },
-    levelAppropriateSuggestions: { type: "array", items: { type: "string" } }
+    levelAppropriateSuggestions: { type: "array", items: { type: "string" } },
+    // Structured signal for whether the learner actually used the targeted grammar
+    // structure, so scoring can react to it directly instead of parsing free text.
+    // "not_applicable" must be used whenever no grammar focus was given for this attempt.
+    targetStructureUsage: {
+      type: "string",
+      enum: ["not_applicable", "not_used", "used_with_errors", "used_correctly"]
+    }
   }
 };
 
@@ -81,7 +105,8 @@ const analysisJsonSchema = {
     "progressTags",
     "repeatedMistakeCandidates",
     "grammarFocusFeedback",
-    "improvementPlan"
+    "improvementPlan",
+    "topicRelevance"
   ],
   properties: {
     originalTranscript: { type: "string" },
@@ -91,13 +116,28 @@ const analysisJsonSchema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["id", "originalSentence", "problem", "correctVersion", "explanation"],
+        required: [
+          "id",
+          "originalSentence",
+          "problem",
+          "correctVersion",
+          "explanation",
+          "category",
+          "severity",
+          "isTurkishTransferError"
+        ],
         properties: {
           id: { type: "string" },
           originalSentence: { type: "string" },
           problem: { type: "string" },
           correctVersion: { type: "string" },
-          explanation: { type: "string" }
+          explanation: { type: "string" },
+          // Same classification vocabulary as errorPatterns, filled in directly by you here
+          // so the Grammar Corrections list and the recurring-pattern grouping always agree
+          // (the app derives error patterns mechanically from these fields).
+          category: { type: "string", enum: errorCategoryEnum },
+          severity: { type: "string", enum: errorSeverityEnum },
+          isTurkishTransferError: { type: "boolean" }
         }
       }
     },
@@ -191,6 +231,7 @@ const analysisJsonSchema = {
       items: errorPatternSchema
     },
     grammarFocusFeedback: grammarFocusFeedbackSchema,
+    topicRelevance: topicRelevanceSchema,
     improvementPlan: {
       type: "object",
       additionalProperties: false,

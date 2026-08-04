@@ -219,6 +219,15 @@ export interface Mistake {
   problem: string;
   correctVersion: string;
   explanation: string;
+  /**
+   * Structured classification of this individual mistake, filled in directly by the
+   * backend model so errorPatterns[] can be derived mechanically from mistakes[] instead
+   * of being independently (and inconsistently) re-classified on the client.
+   * Optional for backward compatibility with records analyzed before this field existed.
+   */
+  category?: ErrorPatternCategory;
+  severity?: ErrorPatternSeverity;
+  isTurkishTransferError?: boolean;
 }
 
 export interface SpeakingFeedback {
@@ -238,6 +247,20 @@ export interface GrammarFocusFeedback {
   tenseAccuracy: string;
   betterSentenceAlternatives: string[];
   levelAppropriateSuggestions: string[];
+  /**
+   * Whether the learner actually used the targeted grammar structure in this attempt.
+   * "not_applicable" means no grammar focus was targeted (e.g. general/picture-description
+   * practice). Optional for backward compatibility with records analyzed before this field
+   * existed; scoring treats a missing value the same as "not_applicable" (no penalty).
+   */
+  targetStructureUsage?: "not_applicable" | "not_used" | "used_with_errors" | "used_correctly";
+}
+
+export type TopicRelevanceLevel = "off_topic" | "partially_relevant" | "fully_relevant";
+
+export interface TopicRelevance {
+  addressedTopic: TopicRelevanceLevel;
+  explanation: string;
 }
 
 export interface ImprovementPlan {
@@ -251,16 +274,16 @@ export interface ImprovementPlan {
 export interface PersonalizedExercise {
   title: string;
   goal: string;
-  instructionsTR: string;
+  instructions: string;
   examples: string[];
 }
 
 export interface DailyStudyPlan {
   focusAreas: string[];
-  grammarTaskTR: string;
-  vocabularyTaskTR: string;
-  pronunciationFluencyTaskTR: string;
-  retrySpeakingPromptTR: string;
+  grammarTask: string;
+  vocabularyTask: string;
+  pronunciationFluencyTask: string;
+  retrySpeakingPrompt: string;
   estimatedDurationMinutes: number;
 }
 
@@ -278,11 +301,32 @@ export interface AnalysisResult {
   progressTags?: ProgressTag[];
   repeatedMistakeCandidates?: ErrorPattern[];
   grammarFocusFeedback?: GrammarFocusFeedback;
+  /**
+   * Independent judgment of whether the learner actually addressed the assigned topic/prompt,
+   * separate from grammar/fluency quality. Optional for backward compatibility with records
+   * analyzed before this field existed; scoring treats a missing value as "fully_relevant"
+   * (no penalty).
+   */
+  topicRelevance?: TopicRelevance;
   improvementPlan: ImprovementPlan;
   personalizedExercises?: PersonalizedExercise[];
   dailyStudyPlan?: DailyStudyPlan;
   generatedBy: "mock" | "backend" | "manual-prompt";
   createdAt: string;
+  /**
+   * Which analysis path actually produced this result: "audio" means the model listened to
+   * the real recording directly; "transcript" means it analyzed text only (either because
+   * audio analysis is disabled, no audio was available, or it was attempted and failed).
+   * Always present on records analyzed by the backend after this field was introduced;
+   * optional/absent for older stored records analyzed before it existed.
+   */
+  analysisSource?: "audio" | "transcript";
+  /**
+   * True only when the backend actually attempted direct audio-based analysis and it
+   * failed, so it fell back to the transcript-only path. Absent/false means either
+   * audio analysis was not attempted (disabled, or no audio available) or it succeeded.
+   */
+  audioAnalysisFallback?: boolean;
 }
 
 export interface SpeakingRecord {

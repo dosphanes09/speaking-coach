@@ -17,6 +17,7 @@ import {
 } from "@/services/records/recordClassification";
 import { AnalysisResult, RecordedMedia, SpeakingRecord, Topic } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createId } from "@/utils/id";
 
@@ -105,7 +106,7 @@ export function AnalysisScreen({
       setPdfError(
         pdfCreateError instanceof Error
           ? pdfCreateError.message
-          : "PDF raporu oluşturulamadı. Lütfen tekrar deneyin."
+          : "PDF report could not be created. Please try again."
       );
     } finally {
       setIsCreatingPdf(false);
@@ -143,12 +144,12 @@ export function AnalysisScreen({
 
       <View style={styles.actions}>
         <AppButton
-          label={savedRecord?.pdfReportUri ? "PDF Raporunu Aç" : "PDF Raporu Oluştur"}
+          label={savedRecord?.pdfReportUri ? "Open PDF Report" : "Create PDF Report"}
           onPress={handleCreatePdf}
           loading={isCreatingPdf}
         />
         {savedRecord ? (
-          <AppButton label="Ana Sayfaya Dön" onPress={onHome} />
+          <AppButton label="Back to Home" onPress={onHome} />
         ) : null}
       </View>
     </ScrollView>
@@ -165,6 +166,7 @@ function createStyles(colors: AppColors) {
       borderColor: colors.danger
     },
     errorText: {
+      ...typography.body,
       color: colors.danger,
       lineHeight: 21
     },

@@ -23,9 +23,9 @@ function createStyles(colors: AppColors) {
     borderColor: colors.line,
     padding: spacing.md,
     shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 1
   }
   });

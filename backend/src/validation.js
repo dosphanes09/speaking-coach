@@ -73,6 +73,28 @@ function validateOptionalDurationSeconds(value, fallback) {
   return Math.max(duration, fallback);
 }
 
+function validateChatMessages(value) {
+  if (!Array.isArray(value)) {
+    throw new HttpError(400, "invalid_input", "messages must be an array.");
+  }
+
+  if (value.length === 0 || value.length > 40) {
+    throw new HttpError(400, "invalid_input", "messages length is not allowed.");
+  }
+
+  return value.map((item) => {
+    const role = item && (item.role === "user" || item.role === "assistant") ? item.role : null;
+    if (!role) {
+      throw new HttpError(400, "invalid_input", "messages[].role must be 'user' or 'assistant'.");
+    }
+
+    return {
+      role,
+      text: validateTextField(item?.text, "messages[].text", config.maxChatMessageLength)
+    };
+  });
+}
+
 async function readDetectedMime(filePath) {
   const { fileTypeFromFile } = await import("file-type");
   const detected = await fileTypeFromFile(filePath);
@@ -125,5 +147,6 @@ module.exports = {
   validateDurationSeconds,
   validateOptionalDurationSeconds,
   validateUploadMetadata,
-  validateUploadedFile
+  validateUploadedFile,
+  validateChatMessages
 };

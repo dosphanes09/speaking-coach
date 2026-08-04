@@ -1,8 +1,19 @@
 import { Topic, TopicLevel } from "@/types/models";
 
 export const THINKING_SECONDS = 30;
-export const MIN_RECORDING_SECONDS = 60;
+/**
+ * Hard floor for how much speaking time a learner is ever given. 60 seconds proved too
+ * short to produce a meaningful, gradeable answer for most topics, so every topic now gets
+ * at least 90 seconds regardless of its computed complexity.
+ */
+export const MIN_RECORDING_SECONDS = 90;
 export const MAX_RECORDING_SECONDS = 120;
+/**
+ * Mid-tier duration for topics with moderate complexity, strictly between MIN and MAX so the
+ * three complexity tiers below still produce three distinct durations instead of collapsing
+ * the low and mid tiers into the same value once MIN_RECORDING_SECONDS was raised to 90.
+ */
+const MID_RECORDING_SECONDS = 105;
 
 const LEVEL_COMPLEXITY: Record<TopicLevel, number> = {
   A1: 0,
@@ -27,7 +38,7 @@ export function getRecommendedRecordingSeconds(topic: Topic): number {
   }
 
   if (complexity >= 12) {
-    return 90;
+    return MID_RECORDING_SECONDS;
   }
 
   return MIN_RECORDING_SECONDS;

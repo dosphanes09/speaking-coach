@@ -4,6 +4,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { GrammarSpeakingChallenge } from "@/data/grammarRoadmap";
 import { AppColors, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface SpeakingChallengeCardProps {
@@ -34,21 +35,16 @@ function createStyles(colors: AppColors) {
     gap: spacing.sm
   },
   prompt: {
-    color: colors.ink,
-    fontSize: 16,
-    fontWeight: "900",
-    lineHeight: 22
+    ...typography.h2,
+    color: colors.ink
   },
   meta: {
-    color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: "900",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.primaryDark
   },
   expected: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19
+    ...typography.caption,
+    color: colors.muted
   }
   });
 }

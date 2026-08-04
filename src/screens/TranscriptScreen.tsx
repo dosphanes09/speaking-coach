@@ -5,7 +5,8 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { MediaPreview } from "@/components/MediaPreview";
 import { AnalysisResult, AppSettings, RecordedMedia, Topic } from "@/types/models";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { analyzeSpeechWithBackend } from "@/services/backend/analyzeSpeechService";
 import { getClientId } from "@/services/storage/clientIdentity";
@@ -113,9 +114,9 @@ export function TranscriptScreen({
             onPress={handleAnalyzeSpeech}
             loading={isProcessing}
             variant="secondary"
-            icon="↻"
+            icon="refresh-cw"
           />
-          <AppButton label="Open Settings" onPress={onOpenSettings} variant="ghost" icon="⚙" />
+          <AppButton label="Open Settings" onPress={onOpenSettings} variant="ghost" icon="settings" />
           <AppButton
             label="Show Feedback"
             onPress={() => {
@@ -124,7 +125,7 @@ export function TranscriptScreen({
               }
             }}
             disabled={!analysis || isProcessing}
-            icon="→"
+            icon="arrow-right"
           />
         </View>
       </ScrollView>
@@ -145,32 +146,29 @@ function createStyles(colors: AppColors) {
       gap: spacing.sm
     },
     cardTitle: {
-      color: colors.ink,
-      fontSize: 18,
-      fontWeight: "800"
+      ...typography.h2,
+      color: colors.ink
     },
     transcriptBox: {
       minHeight: 180,
       borderWidth: 1,
       borderColor: colors.line,
-      borderRadius: 8,
+      borderRadius: radius.sm,
       padding: spacing.md,
       backgroundColor: colors.background,
       justifyContent: "center"
     },
     transcriptText: {
-      color: colors.ink,
-      fontSize: 16,
-      lineHeight: 23
+      ...typography.bodyLarge,
+      color: colors.ink
     },
     statusText: {
-      color: colors.muted,
-      fontSize: 15,
-      lineHeight: 22
+      ...typography.bodyLarge,
+      color: colors.muted
     },
     error: {
+      ...typography.bodyStrong,
       color: colors.danger,
-      fontWeight: "700",
       lineHeight: 20
     },
     actions: {

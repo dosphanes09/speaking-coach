@@ -1,9 +1,11 @@
 const fs = require("node:fs/promises");
 const { config } = require("./config");
 const { HttpError } = require("./errors");
+const { logWarn } = require("./logger");
 const { analysisJsonSchema } = require("./analysisSchema");
-const { buildSpeakingAnalysisPrompt } = require("./prompt");
+const { buildSpeakingAnalysisPrompt, buildChatSystemPrompt } = require("./prompt");
 const { calibrateAnalysisScores } = require("./scoringCalibrator");
+const { convertToWav, readAsBase64, deleteQuietly } = require("./audioConversion");
 
 function retryableStatus(status) {
   return status === 408 || status === 409 || status === 429 || status >= 500;
@@ -102,34 +104,23 @@ function extractOutputText(responseJson) {
   throw new HttpError(502, "invalid_openai_response", "Speech analysis service returned an invalid response.");
 }
 
-async function analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext = null, options = {}) {
-  const expectedDurationSeconds = options.expectedDurationSeconds || durationSeconds;
+const SYSTEM_INSTRUCTION =
+  "You are a supportive but honest English speaking teacher. Return only valid JSON that matches the schema.";
+
+async function requestAnalysisFromModel(model, userContent) {
   const response = await fetchWithTimeoutAndRetry("https://api.openai.com/v1/responses", () => ({
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
-      model: config.openAiAnalysisModel,
+      model,
       input: [
         {
           role: "system",
-          content: [
-            {
-              type: "input_text",
-              text:
-                "You are a supportive but honest English speaking teacher. Return only valid JSON that matches the schema."
-            }
-          ]
+          content: [{ type: "input_text", text: SYSTEM_INSTRUCTION }]
         },
         {
           role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
-                expectedDurationSeconds
-              })
-            }
-          ]
+          content: userContent
         }
       ],
       text: {
@@ -145,21 +136,140 @@ async function analyzeTranscript(topic, transcript, level, durationSeconds, anal
   }));
 
   const json = await response.json();
-  const parsed = JSON.parse(extractOutputText(json));
-  const calibrated = calibrateAnalysisScores(parsed, {
-    transcript,
-    durationSeconds,
+  return JSON.parse(extractOutputText(json));
+}
+
+async function analyzeTranscriptFromText(topic, transcript, level, durationSeconds, analysisContext, expectedDurationSeconds) {
+  const prompt = buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
     expectedDurationSeconds
+  });
+
+  return requestAnalysisFromModel(config.openAiAnalysisModel, [{ type: "input_text", text: prompt }]);
+}
+
+async function analyzeTranscriptFromAudio(
+  topic,
+  transcript,
+  level,
+  durationSeconds,
+  analysisContext,
+  expectedDurationSeconds,
+  audioFilePath,
+  audioMimeType
+) {
+  const prompt = buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
+    expectedDurationSeconds,
+    audioAttached: true
+  });
+
+  // Most audio-input models document reliable support for wav; the app can record
+  // m4a/webm/mp4 depending on device, so we normalize everything to a mono 16kHz WAV
+  // before sending it, rather than trusting every recorded container to be accepted as-is.
+  // If the file is already wav, skip the conversion step entirely.
+  const alreadyWav = audioMimeType === "audio/wav" || audioMimeType === "audio/x-wav";
+  let convertedPath;
+
+  try {
+    const wavPath = alreadyWav ? audioFilePath : await convertToWav(audioFilePath);
+    convertedPath = alreadyWav ? undefined : wavPath;
+    const base64Audio = await readAsBase64(wavPath);
+
+    return await requestAnalysisFromModel(config.openAiAudioAnalysisModel, [
+      { type: "input_text", text: prompt },
+      { type: "input_audio", input_audio: { data: base64Audio, format: "wav" } }
+    ]);
+  } finally {
+    await deleteQuietly(convertedPath);
+  }
+}
+
+async function analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext = null, options = {}) {
+  const expectedDurationSeconds = options.expectedDurationSeconds || durationSeconds;
+  const canUseAudio = config.enableAudioAnalysis && Boolean(options.audioFilePath);
+
+  let parsed;
+  let generatedFromAudio = false;
+  let audioAttemptFailed = false;
+
+  if (canUseAudio) {
+    try {
+      parsed = await analyzeTranscriptFromAudio(
+        topic,
+        transcript,
+        level,
+        durationSeconds,
+        analysisContext,
+        expectedDurationSeconds,
+        options.audioFilePath,
+        options.audioMimeType
+      );
+      generatedFromAudio = true;
+    } catch (error) {
+      // Audio-based analysis is a newer path with real external dependencies (ffmpeg,
+      // an audio-capable model). If anything about it fails, fall back to the
+      // proven transcript-only path instead of failing the whole request.
+      audioAttemptFailed = true;
+      logWarn("audio_analysis_failed_falling_back_to_text", {
+        code: error?.code || "audio_analysis_error"
+      });
+    }
+  }
+
+  if (!parsed) {
+    parsed = await analyzeTranscriptFromText(topic, transcript, level, durationSeconds, analysisContext, expectedDurationSeconds);
+  }
+
+  // Prefer the model's own audio-grounded transcript (when available) as the basis for the
+  // deterministic, length-based scoring guardrails, since audio is now the source of truth.
+  const transcriptForCalibration =
+    generatedFromAudio && parsed.originalTranscript ? parsed.originalTranscript : transcript;
+
+  const calibrated = calibrateAnalysisScores(parsed, {
+    transcript: transcriptForCalibration,
+    durationSeconds,
+    expectedDurationSeconds,
+    pronunciationIsAudioGrounded: generatedFromAudio
   });
 
   return {
     ...calibrated,
     generatedBy: "backend",
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    // Explicit, always-present signal of which analysis path actually produced this result,
+    // so the app can show it unconditionally (not only on failure, which audioAnalysisFallback
+    // already covers) instead of the user having to infer it from a sentence buried in the
+    // pronunciation notes text.
+    analysisSource: generatedFromAudio ? "audio" : "transcript",
+    audioAnalysisFallback: audioAttemptFailed
   };
+}
+
+async function chatWithCoach(messages, level) {
+  const response = await fetchWithTimeoutAndRetry("https://api.openai.com/v1/responses", () => ({
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      model: config.openAiChatModel,
+      input: [
+        {
+          role: "system",
+          content: [{ type: "input_text", text: buildChatSystemPrompt(level) }]
+        },
+        ...messages.map((message) => ({
+          role: message.role,
+          content: [{ type: "input_text", text: message.text }]
+        }))
+      ],
+      max_output_tokens: config.openAiChatMaxOutputTokens
+    })
+  }));
+
+  const json = await response.json();
+  return extractOutputText(json).trim();
 }
 
 module.exports = {
   transcribeFile,
-  analyzeTranscript
+  analyzeTranscript,
+  chatWithCoach
 };

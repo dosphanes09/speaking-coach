@@ -4,11 +4,13 @@ import { AnalysisResult } from "@/types/models";
 import { Card } from "./Card";
 import { ErrorPatternsCard } from "./ErrorPatternsCard";
 import { GrammarFocusFeedbackCard } from "./GrammarFocusFeedbackCard";
+import { Icon } from "./Icon";
 import { MistakesTable } from "./MistakesTable";
 import { ScoreBreakdownCard } from "./ScoreBreakdownCard";
 import { SectionTitle } from "./SectionTitle";
 import { SpeakingAnalyticsCard } from "./SpeakingAnalyticsCard";
-import { AppColors, spacing } from "@/theme/colors";
+import { AppColors, radius, spacing } from "@/theme/colors";
+import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface AnalysisResultViewProps {
@@ -27,6 +29,44 @@ export function AnalysisResultView({
 
   return (
     <View style={styles.container}>
+      {analysis.analysisSource ? (
+        <View
+          style={[
+            styles.sourceBadge,
+            analysis.analysisSource === "audio" ? styles.sourceBadgeAudio : styles.sourceBadgeTranscript
+          ]}
+        >
+          <Icon
+            name={analysis.analysisSource === "audio" ? "mic" : "file-text"}
+            size={14}
+            color={analysis.analysisSource === "audio" ? colors.primaryDark : colors.muted}
+          />
+          <Text
+            style={[
+              styles.sourceBadgeText,
+              { color: analysis.analysisSource === "audio" ? colors.primaryDark : colors.muted }
+            ]}
+          >
+            {analysis.analysisSource === "audio"
+              ? "Audio-based analysis — pronunciation was scored from your actual recording"
+              : "Transcript-based analysis — pronunciation was estimated from text only"}
+          </Text>
+        </View>
+      ) : null}
+
+      {analysis.audioAnalysisFallback ? (
+        <Card style={styles.noticeCard}>
+          <View style={styles.noticeRow}>
+            <Icon name="alert-triangle" size={16} color={colors.warning} />
+            <Text style={styles.noticeText}>
+              This analysis used your transcript instead of the audio recording — direct audio
+              analysis was temporarily unavailable for this attempt. Scores and feedback are
+              still valid, but pronunciation notes are transcript-based this time.
+            </Text>
+          </View>
+        </Card>
+      ) : null}
+
       {showOriginal ? (
         <>
           <SectionTitle>Original Transcript</SectionTitle>
@@ -157,6 +197,44 @@ function createStyles(colors: AppColors) {
   container: {
     gap: spacing.sm
   },
+  sourceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1
+  },
+  sourceBadgeAudio: {
+    backgroundColor: colors.primaryTint,
+    borderColor: colors.primary
+  },
+  sourceBadgeTranscript: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.line
+  },
+  sourceBadgeText: {
+    ...typography.label,
+    flexShrink: 1
+  },
+  noticeCard: {
+    backgroundColor: colors.warningTint,
+    borderColor: colors.warning,
+    borderRadius: radius.lg
+  },
+  noticeRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.xs
+  },
+  noticeText: {
+    ...typography.body,
+    color: colors.ink,
+    flex: 1,
+    flexShrink: 1
+  },
   feedbackCard: {
     gap: spacing.sm
   },
@@ -164,20 +242,16 @@ function createStyles(colors: AppColors) {
     gap: spacing.xs
   },
   label: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase"
+    ...typography.label,
+    color: colors.muted
   },
   body: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22
+    ...typography.bodyLarge,
+    color: colors.ink
   },
   listItem: {
+    ...typography.bodyLarge,
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 22,
     marginBottom: spacing.xs
   }
   });
