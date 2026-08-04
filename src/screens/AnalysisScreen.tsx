@@ -159,7 +159,7 @@ export function AnalysisScreen({
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
-      padding: spacing.md,
+      padding: spacing.screen,
       gap: spacing.md
     },
     errorCard: {
@@ -168,7 +168,8 @@ function createStyles(colors: AppColors) {
     errorText: {
       ...typography.body,
       color: colors.danger,
-      lineHeight: 21
+      fontSize: 16,
+      lineHeight: 22
     },
     actions: {
       gap: spacing.sm,

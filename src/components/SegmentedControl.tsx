@@ -32,7 +32,12 @@ export function SegmentedControl<T extends string>({
             accessibilityState={{ selected, disabled }}
             onPress={() => onChange(option)}
             disabled={disabled}
-            style={[styles.option, selected && styles.selected, disabled && styles.disabled]}
+            style={({ pressed }) => [
+              styles.option,
+              selected && styles.selected,
+              pressed && !disabled && styles.pressed,
+              disabled && styles.disabled
+            ]}
           >
             <Text style={[styles.label, selected && styles.selectedLabel]}>{labels?.[option] ?? option}</Text>
           </Pressable>
@@ -44,33 +49,42 @@ export function SegmentedControl<T extends string>({
 
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.md,
-    padding: 4,
-    gap: 4
-  },
-  option: {
-    flex: 1,
-    minHeight: 40,
-    borderRadius: radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm
-  },
-  selected: {
-    backgroundColor: colors.surface
-  },
-  disabled: {
-    opacity: 0.55
-  },
-  label: {
-    color: colors.muted,
-    fontWeight: "700"
-  },
-  selectedLabel: {
-    color: colors.ink
-  }
+    container: {
+      flexDirection: "row",
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.line,
+      padding: 4,
+      gap: 4
+    },
+    option: {
+      flex: 1,
+      minHeight: 44,
+      borderRadius: radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.sm
+    },
+    selected: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.line
+    },
+    pressed: {
+      opacity: 0.88
+    },
+    disabled: {
+      opacity: 0.55
+    },
+    label: {
+      color: colors.muted,
+      fontSize: 14,
+      fontWeight: "600"
+    },
+    selectedLabel: {
+      color: colors.ink,
+      fontWeight: "700"
+    }
   });
 }
