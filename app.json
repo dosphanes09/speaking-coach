@@ -32,7 +32,7 @@
     },
     "android": {
       "package": "com.yagiz.dailyspeakingcoach.render",
-      "versionCode": 18,
+      "versionCode": 19,
       "allowBackup": false,
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
