@@ -95,6 +95,114 @@ function validateChatMessages(value) {
   });
 }
 
+const LESSON_LEVELS = ["A2", "B1", "B2", "C1"];
+
+/**
+ * The app lets a learner sit at A1 or C2, but lesson calibration is only defined for A2-C1,
+ * so the two outer levels are folded into the nearest defined band instead of silently
+ * producing an uncalibrated lesson.
+ */
+function toLessonLevel(level) {
+  const normalized = String(level || "B1").trim().toUpperCase();
+  if (normalized === "A1") {
+    return "A2";
+  }
+  if (normalized === "C2") {
+    return "C1";
+  }
+  return LESSON_LEVELS.includes(normalized) ? normalized : "B1";
+}
+
+function validateLessonStage(value) {
+  const normalized = String(value || "core").trim().toLowerCase();
+  if (normalized !== "core" && normalized !== "practice") {
+    throw new HttpError(400, "invalid_input", "stage must be 'core' or 'practice'.");
+  }
+  return normalized;
+}
+
+function validateStringList(value, fieldName, { maxItems, maxLength }) {
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    throw new HttpError(400, "invalid_input", `${fieldName} must be an array.`);
+  }
+
+  if (value.length > maxItems) {
+    throw new HttpError(400, "invalid_input", `${fieldName} has too many items.`);
+  }
+
+  return value
+    .map((item) => String(item ?? "").trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (item.length > maxLength) {
+        throw new HttpError(400, "invalid_input", `${fieldName} contains an item that is too long.`);
+      }
+      return item;
+    });
+}
+
+function validateLearnerProfile(value) {
+  const profile = value && typeof value === "object" ? value : {};
+
+  return {
+    level: validateLevel(profile.level),
+    nativeLanguage: validateOptionalTextField(profile.nativeLanguage, "profile.nativeLanguage", 60) || "Turkish",
+    interests: validateStringList(profile.interests, "profile.interests", { maxItems: 12, maxLength: 80 }),
+    goal: validateOptionalTextField(profile.goal, "profile.goal", 200),
+    weakPoints: validateStringList(profile.weakPoints, "profile.weakPoints", { maxItems: 8, maxLength: 120 }),
+    context: validateStringList(profile.context, "profile.context", { maxItems: 12, maxLength: 160 })
+  };
+}
+
+function validateRecentTopics(value) {
+  return validateStringList(value, "recentTopics", { maxItems: 20, maxLength: 120 });
+}
+
+/**
+ * Stage 2 is generated from the finished stage-1 lesson, which the app sends back. Only the
+ * fields the practice prompt actually reads are kept, and each one is length-capped, so a
+ * client cannot turn this endpoint into an arbitrary-length prompt.
+ */
+function validateLessonCoreInput(value) {
+  const core = value && typeof value === "object" ? value : null;
+  if (!core) {
+    throw new HttpError(400, "invalid_input", "core is required for the practice stage.");
+  }
+
+  const readingText = String(core.reading?.text || "").trim();
+  if (!readingText || readingText.length > config.maxLessonReadingLength) {
+    throw new HttpError(400, "invalid_input", "core.reading.text is invalid.");
+  }
+
+  const vocabulary = Array.isArray(core.vocabulary) ? core.vocabulary.slice(0, 24) : [];
+  const collocations = Array.isArray(core.collocations) ? core.collocations.slice(0, 12) : [];
+
+  return {
+    topicSlug: validateOptionalTextField(core.topicSlug, "core.topicSlug", 120),
+    title: validateOptionalTextField(core.title, "core.title", 200),
+    subtitle: validateOptionalTextField(core.subtitle, "core.subtitle", 300),
+    level: toLessonLevel(core.level),
+    reading: { text: readingText },
+    vocabulary: vocabulary.map((item) => ({
+      word: validateOptionalTextField(item?.word, "core.vocabulary[].word", 80),
+      pos: validateOptionalTextField(item?.pos, "core.vocabulary[].pos", 40),
+      definition: validateOptionalTextField(item?.definition, "core.vocabulary[].definition", 300)
+    })),
+    collocations: collocations.map((item) => ({
+      phrase: validateOptionalTextField(item?.phrase, "core.collocations[].phrase", 120),
+      register: validateOptionalTextField(item?.register, "core.collocations[].register", 20)
+    }))
+  };
+}
+
+function validateSessionSummary(value) {
+  return validateTextField(value, "sessionSummary", config.maxSessionSummaryLength);
+}
+
 async function readDetectedMime(filePath) {
   const { fileTypeFromFile } = await import("file-type");
   const detected = await fileTypeFromFile(filePath);
@@ -148,5 +256,11 @@ module.exports = {
   validateOptionalDurationSeconds,
   validateUploadMetadata,
   validateUploadedFile,
-  validateChatMessages
+  validateChatMessages,
+  toLessonLevel,
+  validateLessonStage,
+  validateLearnerProfile,
+  validateRecentTopics,
+  validateLessonCoreInput,
+  validateSessionSummary
 };

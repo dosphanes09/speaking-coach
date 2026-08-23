@@ -4,6 +4,22 @@ const { HttpError } = require("./errors");
 const { logWarn } = require("./logger");
 const { analysisJsonSchema } = require("./analysisSchema");
 const { buildSpeakingAnalysisPrompt, buildChatSystemPrompt } = require("./prompt");
+const { lessonCoreJsonSchema, lessonPracticeJsonSchema, learnerProfileJsonSchema } = require("./lessonSchema");
+const {
+  LESSON_SYSTEM_INSTRUCTION,
+  PROFILE_SYSTEM_INSTRUCTION,
+  buildLessonCorePrompt,
+  buildLessonPracticePrompt,
+  buildProfileUpdatePrompt
+} = require("./lessonPrompt");
+const {
+  validateLessonCore,
+  validateLessonPractice,
+  normalizeLessonCore,
+  normalizeLessonPractice,
+  normalizeLearnerProfileFromModel
+} = require("./lessonValidation");
+const { toLessonLevel } = require("./validation");
 const { calibrateAnalysisScores } = require("./scoringCalibrator");
 const { convertToWav, readAsBase64, deleteQuietly } = require("./audioConversion");
 
@@ -11,12 +27,18 @@ function retryableStatus(status) {
   return status === 408 || status === 409 || status === 429 || status >= 500;
 }
 
-async function fetchWithTimeoutAndRetry(url, optionsFactory) {
+async function fetchWithTimeoutAndRetry(url, optionsFactory, overrides = {}) {
   const maxAttempts = config.openAiMaxRetries + 1;
+  // Lesson generation legitimately takes minutes, so the caller can widen the per-attempt
+  // timeout instead of every feature sharing the analysis timeout.
+  const timeoutMs = overrides.timeoutMs || config.openAiTimeoutMs;
+  // Names the feature in user-facing errors, so a lesson failure does not tell the learner
+  // that "speech analysis" is unavailable.
+  const serviceLabel = overrides.serviceLabel || "Speech analysis service";
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), config.openAiTimeoutMs);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(url, {
@@ -33,7 +55,7 @@ async function fetchWithTimeoutAndRetry(url, optionsFactory) {
         continue;
       }
 
-      throw new HttpError(502, "openai_request_failed", "Speech analysis service is unavailable.");
+      throw new HttpError(502, "openai_request_failed", `${serviceLabel} is unavailable.`);
     } catch (error) {
       clearTimeout(timeout);
       if (error instanceof HttpError) {
@@ -44,11 +66,11 @@ async function fetchWithTimeoutAndRetry(url, optionsFactory) {
         continue;
       }
 
-      throw new HttpError(504, "openai_timeout", "Speech analysis service timed out.");
+      throw new HttpError(504, "openai_timeout", `${serviceLabel} timed out.`);
     }
   }
 
-  throw new HttpError(502, "openai_request_failed", "Speech analysis service is unavailable.");
+  throw new HttpError(502, "openai_request_failed", `${serviceLabel} is unavailable.`);
 }
 
 function authHeaders(extra = {}) {
@@ -268,8 +290,158 @@ async function chatWithCoach(messages, level) {
   return extractOutputText(json).trim();
 }
 
+async function requestStructuredJson({
+  model,
+  systemText,
+  userText,
+  schemaName,
+  schema,
+  maxOutputTokens,
+  timeoutMs,
+  temperature,
+  serviceLabel
+}) {
+  const response = await fetchWithTimeoutAndRetry(
+    "https://api.openai.com/v1/responses",
+    () => ({
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        model,
+        input: [
+          {
+            role: "system",
+            content: [{ type: "input_text", text: systemText }]
+          },
+          {
+            role: "user",
+            content: [{ type: "input_text", text: userText }]
+          }
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: schemaName,
+            strict: true,
+            schema
+          }
+        },
+        max_output_tokens: maxOutputTokens,
+        ...(Number.isFinite(temperature) ? { temperature } : {})
+      })
+    }),
+    { timeoutMs, serviceLabel }
+  );
+
+  const json = await response.json();
+  const outputText = extractOutputText(json);
+
+  try {
+    return JSON.parse(outputText);
+  } catch {
+    // Nearly always a response that hit max_output_tokens mid-JSON.
+    throw new HttpError(502, "invalid_lesson_json", "The lesson service returned an unreadable response.");
+  }
+}
+
+/**
+ * Generates one part of a lesson, verifies it, and — if the verification found blocking
+ * problems — regenerates ONCE with those problems fed back into the prompt. If the second
+ * attempt still has issues, the better of the two is returned with the remaining problems
+ * surfaced as warnings: a lesson with a flaw the app can mention beats no lesson at all.
+ */
+async function generateVerifiedLessonPart({ buildPrompt, schemaName, schema, verify, logLabel }) {
+  let issues = [];
+  let best = null;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const raw = await requestStructuredJson({
+      model: config.openAiLessonModel,
+      systemText: LESSON_SYSTEM_INSTRUCTION,
+      userText: buildPrompt(issues),
+      schemaName,
+      schema,
+      maxOutputTokens: config.openAiLessonMaxOutputTokens,
+      timeoutMs: config.openAiLessonTimeoutMs,
+      temperature: config.openAiLessonTemperature,
+      serviceLabel: "Lesson service"
+    });
+
+    const result = verify(raw);
+    if (!best || result.issues.length < best.result.issues.length) {
+      best = { raw, result };
+    }
+
+    if (result.issues.length === 0) {
+      break;
+    }
+
+    issues = result.issues;
+    logWarn("lesson_part_rejected", {
+      status: 422,
+      code: "lesson_verification_failed",
+      path: `${logLabel}:attempt-${attempt}`
+    });
+  }
+
+  return best;
+}
+
+async function generateLessonCore({ profile, recentTopics, todayContext }) {
+  const lessonProfile = { ...profile, lessonLevel: toLessonLevel(profile.level) };
+
+  const best = await generateVerifiedLessonPart({
+    logLabel: "core",
+    schemaName: "daily_lesson_core",
+    schema: lessonCoreJsonSchema,
+    buildPrompt: (issues) => buildLessonCorePrompt({ profile: lessonProfile, recentTopics, todayContext, issues }),
+    verify: (raw) => validateLessonCore(raw, { lessonLevel: lessonProfile.lessonLevel, recentTopics })
+  });
+
+  return {
+    lesson: normalizeLessonCore(best.raw),
+    warnings: [...best.result.issues, ...best.result.warnings]
+  };
+}
+
+async function generateLessonPractice({ profile, core }) {
+  const lessonProfile = { ...profile, lessonLevel: toLessonLevel(profile.level) };
+
+  const best = await generateVerifiedLessonPart({
+    logLabel: "practice",
+    schemaName: "daily_lesson_practice",
+    schema: lessonPracticeJsonSchema,
+    buildPrompt: (issues) => buildLessonPracticePrompt({ profile: lessonProfile, core, issues }),
+    verify: (raw) => validateLessonPractice(raw, core)
+  });
+
+  return {
+    practice: normalizeLessonPractice(best.raw),
+    warnings: [...best.result.issues, ...best.result.warnings]
+  };
+}
+
+async function updateLearnerProfile({ profile, sessionSummary, topicSlug }) {
+  const raw = await requestStructuredJson({
+    model: config.openAiLessonModel,
+    systemText: PROFILE_SYSTEM_INSTRUCTION,
+    userText: buildProfileUpdatePrompt({ profile, sessionSummary, topicSlug }),
+    schemaName: "learner_profile",
+    schema: learnerProfileJsonSchema,
+    maxOutputTokens: 1200,
+    timeoutMs: config.openAiTimeoutMs,
+    temperature: config.openAiLessonTemperature,
+    serviceLabel: "Learner profile service"
+  });
+
+  return normalizeLearnerProfileFromModel(raw, profile);
+}
+
 module.exports = {
   transcribeFile,
   analyzeTranscript,
-  chatWithCoach
+  chatWithCoach,
+  generateLessonCore,
+  generateLessonPractice,
+  updateLearnerProfile
 };

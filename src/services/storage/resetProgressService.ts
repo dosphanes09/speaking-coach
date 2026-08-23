@@ -4,6 +4,8 @@ import { deleteSpeakingReportPdf } from "@/services/pdf/speakingReportPdf";
 import { clearStreakReminder } from "@/services/notifications/streakReminderService";
 import { clearChatMessages } from "@/services/storage/chatRepository";
 import { resetClientId } from "@/services/storage/clientIdentity";
+import { clearDailyLesson } from "@/services/storage/dailyLessonRepository";
+import { clearLearnerProfile } from "@/services/storage/learnerProfileRepository";
 import { clearListeningResults } from "@/services/storage/listeningResultsRepository";
 import { clearRecords, listRecords } from "@/services/storage/recordsRepository";
 import { resetSettings } from "@/services/storage/settingsRepository";
@@ -30,7 +32,11 @@ export async function resetAllLocalProgress(): Promise<ResetProgressResult> {
     clearChatMessages(),
     resetClientId(),
     clearDeviceActivation(),
-    clearStreakReminder()
+    clearStreakReminder(),
+    // The daily lesson and the learner profile it is generated from are progress too: leaving
+    // them behind would rebuild tomorrow's lesson from a history the learner just erased.
+    clearDailyLesson(),
+    clearLearnerProfile()
   ]);
 
   const settings = await resetSettings();

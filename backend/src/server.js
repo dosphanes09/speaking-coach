@@ -19,9 +19,21 @@ const {
   validateTextField,
   validateUploadMetadata,
   validateUploadedFile,
-  validateChatMessages
+  validateChatMessages,
+  validateLessonStage,
+  validateLearnerProfile,
+  validateRecentTopics,
+  validateLessonCoreInput,
+  validateSessionSummary
 } = require("./validation");
-const { analyzeTranscript, chatWithCoach, transcribeFile } = require("./openaiClient");
+const {
+  analyzeTranscript,
+  chatWithCoach,
+  transcribeFile,
+  generateLessonCore,
+  generateLessonPractice,
+  updateLearnerProfile
+} = require("./openaiClient");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -130,6 +142,10 @@ const registrationRateLimit = rateLimit({
 
 app.use("/api/auth", express.json({ limit: "4kb", strict: true }));
 app.use("/api/chat", express.json({ limit: "48kb", strict: true }));
+// The practice stage sends the finished reading text back so the model can see it, which is
+// the largest legitimate body in the app.
+app.use("/api/daily-lesson", express.json({ limit: "64kb", strict: true }));
+app.use("/api/learner-profile", express.json({ limit: "32kb", strict: true }));
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -290,6 +306,70 @@ app.post("/api/chat", analysisAuthentication, async (req, res, next) => {
 
     res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
     res.json({ reply });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Daily lesson generation, in two stages.
+ *
+ * "core" picks the topic and writes the reading text; "practice" turns that finished text into
+ * grammar, exercises, speaking tasks and an answer key. The app shows the core as soon as it
+ * arrives and loads the practice part behind it, so the learner is never staring at a blank
+ * screen for a minute — and the second call can see the actual text, which is what keeps the
+ * answer key honest.
+ */
+app.post("/api/daily-lesson", analysisAuthentication, async (req, res, next) => {
+  try {
+    const stage = validateLessonStage(req.body.stage);
+    const profile = validateLearnerProfile(req.body.profile);
+
+    if (stage === "core") {
+      const recentTopics = validateRecentTopics(req.body.recentTopics);
+      const todayContext = validateOptionalTextField(
+        req.body.todayContext,
+        "todayContext",
+        config.maxLessonContextLength
+      );
+      const dailyLimit = await assertDailyLimit(req, config.maxDailyLessonsPerUser, "lesson");
+
+      const { lesson, warnings } = await generateLessonCore({ profile, recentTopics, todayContext });
+
+      res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+      res.json({ stage, lesson, warnings });
+      return;
+    }
+
+    const core = validateLessonCoreInput(req.body.core);
+    // The practice stage belongs to a lesson that already spent a lesson credit, so it gets
+    // its own, looser counter instead of a second full credit — while still being bounded.
+    const dailyLimit = await assertDailyLimit(req, config.maxDailyLessonsPerUser * 3, "lesson-practice");
+
+    const { practice, warnings } = await generateLessonPractice({ profile, core });
+
+    res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+    res.json({ stage, practice, warnings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Folds what happened in a session back into the learner profile that drives tomorrow's
+ * lesson. Deliberately conservative: see the update rules in lessonPrompt.js.
+ */
+app.post("/api/learner-profile", analysisAuthentication, async (req, res, next) => {
+  try {
+    const profile = validateLearnerProfile(req.body.profile);
+    const sessionSummary = validateSessionSummary(req.body.sessionSummary);
+    const topicSlug = validateOptionalTextField(req.body.topicSlug, "topicSlug", 120);
+    const dailyLimit = await assertDailyLimit(req, config.maxDailyProfileUpdatesPerUser, "profile");
+
+    const updatedProfile = await updateLearnerProfile({ profile, sessionSummary, topicSlug });
+
+    res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+    res.json({ profile: updatedProfile });
   } catch (error) {
     next(error);
   }

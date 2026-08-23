@@ -44,6 +44,7 @@ import { ProgressScreen } from "@/screens/ProgressScreen";
 import { SettingsScreen } from "@/screens/SettingsScreen";
 import { ChatScreen } from "@/screens/ChatScreen";
 import { LearningScreen } from "@/screens/LearningScreen";
+import { DailyLessonScreen } from "@/screens/DailyLessonScreen";
 import { hideAndroidNavigationBar } from "@/services/device/androidImmersiveMode";
 import { AppBottomBar } from "@/components/AppBottomBar";
 import { syncStreakReminder } from "@/services/notifications/streakReminderService";
@@ -256,6 +257,17 @@ export default function App(): React.JSX.Element {
           <LearningScreen
             onBack={goBack}
             onGrammarRoadmap={() => setRoute({ name: "grammarHome" })}
+            onDailyLesson={() => setRoute({ name: "dailyLesson" })}
+          />
+        );
+      case "dailyLesson":
+        return (
+          <DailyLessonScreen
+            settings={settings}
+            onBack={goBack}
+            // A lesson speaking task enters the same thinking -> recording -> analysis flow as
+            // every other practice, so it is scored, saved and charted like the rest.
+            onStartSpeakingTask={(topic) => setRoute({ name: "thinking", topic })}
           />
         );
       case "grammarHome":
@@ -485,6 +497,7 @@ function getBackRoute(route: AppRoute): AppRoute | null {
     case "progress":
       return { name: "home" };
     case "grammarHome":
+    case "dailyLesson":
       return { name: "learning" };
     case "grammarLevel":
       return { name: "grammarHome" };

@@ -12,13 +12,14 @@
     "web": "expo start --web",
     "check:apk": "node scripts/check-apk.mjs",
     "typecheck": "tsc --noEmit",
-    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter",
+    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter && npm run test:dailyLesson",
     "test:scoreUtils": "tsx scripts/scoreUtilsSelfTest.ts",
     "test:streak": "tsx scripts/streakServiceSelfTest.ts",
     "test:recordClassification": "tsx scripts/recordClassificationSelfTest.ts",
     "test:analysisEnrichment": "tsx scripts/analysisEnrichmentSelfTest.ts",
     "test:practiceTiming": "tsx scripts/practiceTimingSelfTest.ts",
-    "test:beforeAfter": "tsx scripts/beforeAfterServiceSelfTest.ts"
+    "test:beforeAfter": "tsx scripts/beforeAfterServiceSelfTest.ts",
+    "test:dailyLesson": "tsx scripts/dailyLessonSelfTest.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

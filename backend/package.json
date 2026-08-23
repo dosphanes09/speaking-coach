@@ -11,7 +11,8 @@
     "dev": "node --watch src/server.js",
     "generate:security-secrets": "node scripts/generateSecuritySecrets.js",
     "test:security": "node scripts/securitySelfTest.js",
-    "test:scoring": "node scripts/scoringSelfTest.js"
+    "test:scoring": "node scripts/scoringSelfTest.js",
+    "test:lesson": "node scripts/lessonSelfTest.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

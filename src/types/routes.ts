@@ -15,6 +15,7 @@ export type MainRoute =
   | { name: "analysis"; topic: Topic; media: RecordedMedia; transcript: string; analysisResult: AnalysisResult }
   | { name: "history" }
   | { name: "recordDetail"; record: SpeakingRecord }
-  | { name: "progress" };
+  | { name: "progress" }
+  | { name: "dailyLesson" };
 
 export type AppRoute = MainRoute | { name: "settings"; returnTo?: MainRoute };

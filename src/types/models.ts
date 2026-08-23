@@ -85,6 +85,7 @@ export type RouteName =
   | "history"
   | "recordDetail"
   | "progress"
+  | "dailyLesson"
   | "settings";
 
 export interface Topic {
@@ -366,4 +367,179 @@ export interface AppSettings {
   targetLevel: TopicLevel;
   backendBaseUrl: string;
   themeMode: ThemeMode;
+}
+
+/**
+ * Everything the daily lesson generator knows about the learner. Interests, weak points and
+ * context grow over time from the learner's own sessions (see learnerProfileRepository), and
+ * they are the difference between a generic lesson and one that feels written for them.
+ */
+export interface LearnerProfile {
+  level: TopicLevel;
+  nativeLanguage: string;
+  interests: string[];
+  goal: string;
+  weakPoints: string[];
+  context: string[];
+  updatedAt: string;
+}
+
+export interface LessonVocabularyItem {
+  word: string;
+  pos: string;
+  definition: string;
+  translation: string;
+  example: string;
+}
+
+export interface LessonPronunciationWord {
+  word: string;
+  respelling: string;
+  stress: string;
+  l1Error: string;
+}
+
+export interface LessonCollocation {
+  phrase: string;
+  meaning: string;
+  register: string;
+}
+
+/**
+ * Part 1 of a lesson: the topic and the text everything else is built from. Shown to the
+ * learner as soon as it arrives, while part 2 is still generating.
+ */
+export interface DailyLessonCore {
+  topicSlug: string;
+  title: string;
+  subtitle: string;
+  level: string;
+  estimatedMinutes: number;
+  warmUp: string[];
+  reading: {
+    /** Target words are wrapped in **double asterisks**; parseMarkedText renders them. */
+    text: string;
+    wordCount: number;
+  };
+  vocabulary: LessonVocabularyItem[];
+  pronunciation: {
+    words: LessonPronunciationWord[];
+    shadowing: string[];
+  };
+  collocations: LessonCollocation[];
+}
+
+export interface LessonGrammarFormRow {
+  type: string;
+  pattern: string;
+  example: string;
+}
+
+export interface LessonGrammarUsage {
+  context: string;
+  explanation: string;
+  example: string;
+}
+
+export interface LessonGrammarError {
+  wrong: string;
+  right: string;
+  why: string;
+}
+
+export interface LessonGrammar {
+  structure: string;
+  coreIdea: string;
+  form: LessonGrammarFormRow[];
+  usage: LessonGrammarUsage[];
+  commonErrors: LessonGrammarError[];
+}
+
+export interface LessonComprehensionQuestion {
+  question: string;
+  type: "open" | "mcq";
+  options: string[];
+}
+
+export interface LessonMatchingPair {
+  left: string;
+  right: string;
+}
+
+export interface LessonGrammarGapFillItem {
+  sentence: string;
+  verb: string;
+}
+
+export interface LessonTransformationItem {
+  prompt: string;
+  cue: string;
+}
+
+export interface LessonExercises {
+  comprehension: LessonComprehensionQuestion[];
+  matching: LessonMatchingPair[];
+  gapFillVocab: {
+    wordBank: string[];
+    items: string[];
+  };
+  grammarPractice: {
+    gapFill: LessonGrammarGapFillItem[];
+    transformation: LessonTransformationItem[];
+  };
+  errorCorrection: string[];
+}
+
+export interface LessonSpeakingTask {
+  number: number;
+  duration: string;
+  instruction: string;
+  targetPhrases: string[];
+  /** What the recorded attempt is scored against; fed into the existing speech analysis. */
+  assess: {
+    vocabulary: string[];
+    grammar: string;
+  };
+  /** Only filled in for the roleplay task; empty strings on the others. */
+  roleplay: {
+    scenario: string;
+    learnerRole: string;
+    appRole: string;
+    goals: string[];
+  };
+}
+
+export interface LessonAnswerKey {
+  comprehension: Array<{ answer: string; note: string }>;
+  gapFillVocab: string[];
+  grammarPractice: {
+    gapFill: string[];
+    transformation: string[];
+  };
+  errorCorrection: Array<{ corrected: string; note: string }>;
+}
+
+/** Part 2 of a lesson: everything derived from the finished reading text. */
+export interface DailyLessonPractice {
+  grammar: LessonGrammar;
+  exercises: LessonExercises;
+  speakingTasks: LessonSpeakingTask[];
+  followUpQuestions: string[];
+  answerKey: LessonAnswerKey;
+  profileQuestion: string;
+}
+
+export interface DailyLesson {
+  id: string;
+  /** YYYY-MM-DD, so one lesson per calendar day is generated and then reused. */
+  dateKey: string;
+  createdAt: string;
+  level: TopicLevel;
+  todayContext: string;
+  core: DailyLessonCore;
+  practice?: DailyLessonPractice;
+  /** Verification findings the backend could not fix; shown honestly instead of hidden. */
+  warnings: string[];
+  /** The learner's own answer to the lesson's profile question, once they give one. */
+  profileAnswer?: string;
 }

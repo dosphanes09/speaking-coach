@@ -10,11 +10,13 @@ import { useThemeColors } from "@/theme/ThemeProvider";
 interface LearningScreenProps {
   onBack: () => void;
   onGrammarRoadmap: () => void;
+  onDailyLesson: () => void;
 }
 
 export function LearningScreen({
   onBack,
-  onGrammarRoadmap
+  onGrammarRoadmap,
+  onDailyLesson
 }: LearningScreenProps): React.JSX.Element {
   const colors = useThemeColors();
   const styles = createStyles(colors);
@@ -24,12 +26,23 @@ export function LearningScreen({
       <Header title="Learning" subtitle="Grammar lessons and guided speaking tasks" onBack={onBack} />
 
       <Card style={styles.heroCard}>
+        <Text style={styles.kicker}>Daily Lesson</Text>
+        <Text style={styles.title}>A lesson written for you today</Text>
+        <Text style={styles.body}>
+          Tell it what you did today and it writes one complete lesson around that: a reading text, the
+          vocabulary and pronunciation from it, one grammar focus, exercises with an answer key, and three
+          speaking tasks you record right here.
+        </Text>
+        <AppButton label="Open Daily Lesson" icon="book-open" onPress={onDailyLesson} />
+      </Card>
+
+      <Card style={styles.heroCard}>
         <Text style={styles.kicker}>Grammar Roadmap</Text>
         <Text style={styles.title}>A1-C2 tense practice</Text>
         <Text style={styles.body}>
           Learn each tense with structure, common mistakes, speaking patterns, and level-based speaking prompts.
         </Text>
-        <AppButton label="Open Grammar Roadmap" onPress={onGrammarRoadmap} />
+        <AppButton label="Open Grammar Roadmap" variant="ghost" onPress={onGrammarRoadmap} />
       </Card>
 
       <View style={styles.grid}>
@@ -38,8 +51,8 @@ export function LearningScreen({
           <Text style={styles.smallLabel}>CEFR levels</Text>
         </Card>
         <Card style={styles.smallCard}>
-          <Text style={styles.smallValue}>Tense</Text>
-          <Text style={styles.smallLabel}>focused roadmap</Text>
+          <Text style={styles.smallValue}>Daily</Text>
+          <Text style={styles.smallLabel}>personalised lesson</Text>
         </Card>
       </View>
     </ScrollView>

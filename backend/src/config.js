@@ -11,6 +11,20 @@ function readNumber(name, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/**
+ * Like readNumber, but returns null when the variable is unset and allows 0. Used for
+ * settings that must stay *absent* from the API request unless the operator opted in.
+ */
+function readOptionalNumber(name) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || raw.trim() === "") {
+    return null;
+  }
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function readBoolean(name, fallback) {
   const raw = process.env[name];
   if (!raw) {
@@ -46,6 +60,16 @@ const config = {
   openAiChatModel: process.env.OPENAI_CHAT_MODEL || "gpt-5.4-mini",
   openAiAudioAnalysisModel: process.env.OPENAI_AUDIO_ANALYSIS_MODEL || "gpt-audio",
   enableAudioAnalysis: readBoolean("ENABLE_AUDIO_ANALYSIS", true),
+  openAiLessonModel: process.env.OPENAI_LESSON_MODEL || "gpt-5.4-mini",
+  // A full lesson part is a long structured answer; a truncated JSON response is the most
+  // common failure mode when this is set too low.
+  openAiLessonMaxOutputTokens: readNumber("OPENAI_LESSON_MAX_OUTPUT_TOKENS", 9000),
+  // Lesson generation regularly runs 30-60s per part, well past the 30s analysis timeout.
+  openAiLessonTimeoutMs: readNumber("OPENAI_LESSON_TIMEOUT_MS", 120000),
+  // Left unset by default: only sent to the API when the operator explicitly configures it,
+  // because not every model accepts a temperature parameter. 0.7-0.8 is the useful band —
+  // lower makes every day's lesson read the same, higher breaks level calibration.
+  openAiLessonTemperature: readOptionalNumber("OPENAI_LESSON_TEMPERATURE"),
   openAiTimeoutMs: readNumber("OPENAI_TIMEOUT_MS", 30000),
   openAiMaxRetries: Math.min(readNumber("OPENAI_MAX_RETRIES", 1), 2),
   openAiMaxOutputTokens: readNumber("OPENAI_MAX_OUTPUT_TOKENS", 8000),
@@ -64,6 +88,13 @@ const config = {
   maxAudioDurationSeconds: readNumber("MAX_AUDIO_DURATION_SECONDS", 120),
   maxDailyAnalysesPerUser: readNumber("MAX_DAILY_ANALYSES_PER_USER", 10),
   maxDailyChatMessagesPerUser: readNumber("MAX_DAILY_CHAT_MESSAGES_PER_USER", 60),
+  // One lesson a day is the product; the extra headroom covers a learner who regenerates
+  // because the topic missed, plus the odd failed attempt.
+  maxDailyLessonsPerUser: readNumber("MAX_DAILY_LESSONS_PER_USER", 3),
+  maxDailyProfileUpdatesPerUser: readNumber("MAX_DAILY_PROFILE_UPDATES_PER_USER", 10),
+  maxLessonContextLength: readNumber("MAX_LESSON_CONTEXT_LENGTH", 600),
+  maxLessonReadingLength: readNumber("MAX_LESSON_READING_LENGTH", 9000),
+  maxSessionSummaryLength: readNumber("MAX_SESSION_SUMMARY_LENGTH", 4000),
   maxChatMessageLength: readNumber("MAX_CHAT_MESSAGE_LENGTH", 1200),
   maxChatHistoryMessages: readNumber("MAX_CHAT_HISTORY_MESSAGES", 12),
   rateLimitWindowMs: readNumber("RATE_LIMIT_WINDOW_MS", 15 * 60 * 1000),
