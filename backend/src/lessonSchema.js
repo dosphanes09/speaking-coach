@@ -315,6 +315,34 @@ const lessonPracticeJsonSchema = {
   }
 };
 
+/**
+ * A short list of narrow angles inside whatever the learner mentioned, offered before the
+ * lesson is written. "Batman" on its own produces an encyclopedia entry; "why Batman has no
+ * superpowers and why that was a deliberate commercial decision" produces a lesson worth
+ * reading. The learner picks, so the lesson lands on what they were actually curious about.
+ */
+const lessonAnglesJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["angles"],
+  properties: {
+    angles: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "description"],
+        properties: {
+          // Short, in English — this becomes the lesson's direction.
+          title: { type: "string" },
+          // One sentence in the learner's native language, so choosing takes no effort.
+          description: { type: "string" }
+        }
+      }
+    }
+  }
+};
+
 const learnerProfileJsonSchema = {
   type: "object",
   additionalProperties: false,
@@ -332,5 +360,6 @@ const learnerProfileJsonSchema = {
 module.exports = {
   lessonCoreJsonSchema,
   lessonPracticeJsonSchema,
+  lessonAnglesJsonSchema,
   learnerProfileJsonSchema
 };

@@ -14,8 +14,10 @@ import {
   isLessonForDate,
   parseMarkedText,
   splitLessonParagraphs,
-  stripLessonMarkers
+  stripLessonMarkers,
+  toLessonLevel
 } from "../src/services/lesson/dailyLessonLogic";
+import { buildDailyLessonFileName, buildDailyLessonHtml, escapeHtml } from "../src/services/pdf/dailyLessonPdfHtml";
 import { DailyLesson, LessonSpeakingTask } from "../src/types/models";
 
 function makeTask(overrides: Partial<LessonSpeakingTask> = {}): LessonSpeakingTask {
@@ -52,6 +54,125 @@ function makeLesson(overrides: Partial<DailyLesson> = {}): DailyLesson {
     },
     ...overrides
   };
+}
+
+
+function makePracticeLesson(): DailyLesson {
+  const base = makeLesson();
+
+  return makeLesson({
+    core: { ...base.core, warmUp: ["Question one?", "Question two?", "Question three?"] },
+    practice: {
+      grammar: {
+        structure: "Past perfect",
+        coreIdea: "Step back to an earlier moment.",
+        form: [{ type: "Positive", pattern: "had + past participle", example: "It had ended." }],
+        usage: [{ context: "Background", explanation: "why", example: "example" }],
+        commonErrors: [{ wrong: "I have played it yesterday.", right: "I played it yesterday.", why: "finished time" }]
+      },
+      exercises: {
+        comprehension: [
+          { question: "An open question?", type: "open", options: [] },
+          { question: "A choice question?", type: "mcq", options: ["one", "two"] }
+        ],
+        matching: [
+          { left: "left one", right: "right one" },
+          { left: "left two", right: "right two" },
+          { left: "left three", right: "right three" },
+          { left: "left four", right: "right four" }
+        ],
+        gapFillVocab: { wordBank: ["resilient"], items: ["A sentence with a ___ gap."] },
+        grammarPractice: {
+          gapFill: [{ sentence: "He ___ already left.", verb: "have" }],
+          transformation: [{ prompt: "Join these two sentences.", cue: "by the time" }]
+        },
+        errorCorrection: ["He said he has already seen it."]
+      },
+      speakingTasks: [makeTask(), makeTask({ number: 2 }), makeTask({ number: 3 })],
+      followUpQuestions: ["And you?"],
+      answerKey: {
+        comprehension: [{ answer: "A model answer.", note: "Others work too." }, { answer: "b", note: "" }],
+        gapFillVocab: ["resilient"],
+        grammarPractice: { gapFill: ["had"], transformation: ["By the time it ended, he had left."] },
+        errorCorrection: [{ corrected: "He said he had already seen it.", note: "reported speech" }]
+      },
+      profileQuestion: "What changed your mind recently?"
+    }
+  });
+}
+
+function testPdfEscapesUserText() {
+  assert.equal(escapeHtml('<b>"x" & \'y\'</b>'), "&lt;b&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/b&gt;");
+}
+
+function testPdfRendersEverySection() {
+  const html = buildDailyLessonHtml(makePracticeLesson());
+
+  for (const expected of [
+    "Why things break",
+    "Before you read",
+    "Reading",
+    "Key vocabulary",
+    "Grammar focus",
+    "Exercises",
+    "Speaking",
+    "Answer key"
+  ]) {
+    assert.ok(html.includes(expected), `the worksheet is missing the "${expected}" section`);
+  }
+
+  // Target words are bolded rather than printed with their ** markers.
+  assert.ok(html.includes('<strong class="target">resilient</strong>'));
+  assert.ok(!html.includes("**"), "raw ** markers must never reach the printed page");
+  // The answer key must start on its own page so the learner does not read it by accident.
+  assert.ok(html.includes(".answer-key { page-break-before: always; }"));
+}
+
+function testPdfMatchingAnswersAgreeWithTheExercise() {
+  const html = buildDailyLessonHtml(makePracticeLesson());
+  const letters = ["A", "B", "C", "D"];
+
+  // Every option letter shown in the exercise also appears in the answer key line.
+  for (const letter of letters) {
+    assert.ok(html.includes(`<strong>${letter}.</strong>`), `option ${letter} missing from the exercise`);
+    assert.ok(html.includes(`–${letter}`), `letter ${letter} missing from the answer key`);
+  }
+}
+
+function testPdfSurvivesALessonWithoutExercises() {
+  const html = buildDailyLessonHtml(makeLesson());
+
+  assert.ok(html.includes("have not been generated yet"));
+  assert.ok(!html.includes("Answer key"));
+}
+
+function testPdfRecomputesAMissingWordCount() {
+  const lesson = makeLesson();
+  const html = buildDailyLessonHtml({
+    ...lesson,
+    core: { ...lesson.core, reading: { text: "one **two** three four", wordCount: 0 } }
+  });
+
+  assert.ok(html.includes("4 words"), "a stored lesson without a word count must not print 'undefined words'");
+}
+
+function testPdfFileNameIsSafeAndDated() {
+  const name = buildDailyLessonFileName(makeLesson());
+
+  assert.ok(name.startsWith("Daily English - 2026-08-23 - "));
+  assert.ok(name.endsWith(".pdf"));
+  assert.ok(!/[<>:"/\\|?*]/.test(name), "the file name must not contain characters the file system rejects");
+}
+
+function testLevelsOutsideTheCalibratedBandAreFolded() {
+  // The generator is only calibrated for A2-C1; A1 and C2 must land on the nearest defined band
+  // rather than silently producing an uncalibrated text.
+  assert.equal(toLessonLevel("A1"), "A2");
+  assert.equal(toLessonLevel("C2"), "C1");
+  assert.equal(toLessonLevel("A2"), "A2");
+  assert.equal(toLessonLevel("B1"), "B1");
+  assert.equal(toLessonLevel("B2"), "B2");
+  assert.equal(toLessonLevel("C1"), "C1");
 }
 
 function testParseMarkedTextSplitsTargetWords() {
@@ -203,6 +324,13 @@ function testProfileSummaryIncludesTheAnswerAndContext() {
 }
 
 const tests = [
+  testPdfEscapesUserText,
+  testPdfRendersEverySection,
+  testPdfMatchingAnswersAgreeWithTheExercise,
+  testPdfSurvivesALessonWithoutExercises,
+  testPdfRecomputesAMissingWordCount,
+  testPdfFileNameIsSafeAndDated,
+  testLevelsOutsideTheCalibratedBandAreFolded,
   testParseMarkedTextSplitsTargetWords,
   testParseMarkedTextHandlesTextWithoutMarkers,
   testStripMarkersAndParagraphs,

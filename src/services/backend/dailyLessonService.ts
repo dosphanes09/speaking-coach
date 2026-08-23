@@ -1,7 +1,8 @@
 import {
   DailyLessonCore,
   DailyLessonPractice,
-  LearnerProfile
+  LearnerProfile,
+  LessonAngle
 } from "@/types/models";
 import { validateBackendBaseUrl } from "@/config/backendConfig";
 import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
@@ -11,6 +12,11 @@ interface ErrorResponse {
     code?: string;
     message?: string;
   };
+}
+
+interface LessonAnglesResponse {
+  stage: "angles";
+  angles: LessonAngle[];
 }
 
 interface LessonCoreResponse {
@@ -96,6 +102,39 @@ async function postJson<T>(url: string, clientId: string, body: unknown, failure
 }
 
 /**
+ * Stage 0: four narrow directions the lesson could take. Fast and cheap compared with the
+ * lesson itself — it exists so the expensive call that follows is aimed at what the learner
+ * actually wanted to read about, instead of a general overview of whatever they typed.
+ */
+export async function fetchDailyLessonAngles({
+  backendBaseUrl,
+  clientId,
+  profile,
+  todayContext,
+  recentTopics
+}: RequestParams & { todayContext: string; recentTopics: string[] }): Promise<LessonAngle[]> {
+  const baseUrl = validateBackendBaseUrl(backendBaseUrl);
+  const json = await postJson<LessonAnglesResponse>(
+    `${baseUrl}/api/daily-lesson`,
+    clientId,
+    {
+      stage: "angles",
+      profile: toBackendProfile(profile),
+      todayContext: todayContext.trim(),
+      recentTopics
+    },
+    "Lesson directions could not be suggested."
+  );
+
+  const angles = Array.isArray(json.angles) ? json.angles.filter((angle) => angle?.title) : [];
+  if (angles.length === 0) {
+    throw new Error("Backend returned no lesson directions.");
+  }
+
+  return angles;
+}
+
+/**
  * Stage 1: topic, reading text, vocabulary, pronunciation, collocations. This is what the
  * learner sees first — generation of the whole lesson in one call takes long enough that it
  * would mean a minute of blank screen.
@@ -105,8 +144,13 @@ export async function fetchDailyLessonCore({
   clientId,
   profile,
   recentTopics,
-  todayContext
-}: RequestParams & { recentTopics: string[]; todayContext: string }): Promise<{
+  todayContext,
+  chosenAngle
+}: RequestParams & {
+  recentTopics: string[];
+  todayContext: string;
+  chosenAngle?: LessonAngle;
+}): Promise<{
   core: DailyLessonCore;
   warnings: string[];
 }> {
@@ -118,7 +162,8 @@ export async function fetchDailyLessonCore({
       stage: "core",
       profile: toBackendProfile(profile),
       recentTopics,
-      todayContext: todayContext.trim()
+      todayContext: todayContext.trim(),
+      ...(chosenAngle ? { chosenAngle } : {})
     },
     "Today's lesson could not be created."
   );

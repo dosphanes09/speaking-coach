@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Icon } from "@/components/Icon";
 import { NavListCard, NavListItem } from "@/components/NavListItem";
@@ -10,6 +10,9 @@ import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
 import { StreakSummary } from "@/services/streak/streakService";
+import { loadDailyLessonState } from "@/services/storage/dailyLessonRepository";
+import { isLessonForDate } from "@/services/lesson/dailyLessonLogic";
+import { toDateKey } from "@/utils/date";
 
 const WEEKLY_STREAK_GOAL_DAYS = 7;
 const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -18,6 +21,7 @@ interface HomeScreenProps {
   records: SpeakingRecord[];
   streakSummary: StreakSummary;
   onStartThinking: () => void;
+  onDailyLesson: () => void;
   onChat: () => void;
   onLearning: () => void;
   onPracticeModes: () => void;
@@ -30,6 +34,7 @@ export function HomeScreen({
   records,
   streakSummary,
   onStartThinking,
+  onDailyLesson,
   onChat,
   onLearning,
   onPracticeModes,
@@ -46,6 +51,7 @@ export function HomeScreen({
   const recordsThisWeek = useMemo(() => countRecordsSince(records, WEEK_IN_MS), [records]);
   const greeting = useMemo(() => getGreeting(), []);
   const streakProgress = Math.min(1, streakSummary.currentStreakDays / WEEKLY_STREAK_GOAL_DAYS);
+  const todaysLesson = useTodaysLesson();
 
   return (
     <View style={styles.screen}>
@@ -86,6 +92,29 @@ export function HomeScreen({
             <Text style={styles.heroCtaText}>Start practice</Text>
             <Icon name="arrow-right" size={15} color={colors.primaryDark} />
           </View>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={todaysLesson ? "Open today's lesson" : "Write today's lesson"}
+          onPress={onDailyLesson}
+          style={({ pressed }) => [styles.lessonCard, pressed && styles.lessonCardPressed]}
+        >
+          <View style={styles.lessonIconWrap}>
+            <Icon name="sunrise" size={19} color={colors.accent} />
+          </View>
+          <View style={styles.textBlockFlex}>
+            <Text style={styles.lessonEyebrow}>Daily Lesson</Text>
+            <Text style={styles.lessonTitle} numberOfLines={2}>
+              {todaysLesson ? todaysLesson.title : "Write today's lesson"}
+            </Text>
+            <Text style={styles.lessonMeta}>
+              {todaysLesson
+                ? `${todaysLesson.level} · ${todaysLesson.wordCount} words · ${todaysLesson.hasPractice ? "ready" : "exercises still loading"}`
+                : "Tell it what's on your mind and it writes one for you"}
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={18} color={colors.muted} />
         </Pressable>
 
         <View style={styles.streakCard}>
@@ -182,6 +211,57 @@ export function HomeScreen({
       </ScrollView>
     </View>
   );
+}
+
+interface TodaysLessonSummary {
+  title: string;
+  level: string;
+  wordCount: number;
+  hasPractice: boolean;
+}
+
+/**
+ * Read on every visit to the home screen rather than passed down from App: the learner can
+ * generate a lesson and come straight back, and a copy held higher up would still be showing
+ * yesterday's state.
+ */
+function useTodaysLesson(): TodaysLessonSummary | null {
+  const [summary, setSummary] = useState<TodaysLessonSummary | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function load(): Promise<void> {
+      try {
+        const state = await loadDailyLessonState();
+        const lesson = state.lesson;
+        if (!isActive) {
+          return;
+        }
+
+        setSummary(
+          lesson && isLessonForDate(lesson, toDateKey())
+            ? {
+                title: lesson.core.title,
+                level: lesson.core.level,
+                wordCount: lesson.core.reading.wordCount,
+                hasPractice: Boolean(lesson.practice)
+              }
+            : null
+        );
+      } catch {
+        // A missing or unreadable lesson simply means the card invites you to write one.
+      }
+    }
+
+    void load();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  return summary;
 }
 
 function getGreeting(): string {
@@ -314,6 +394,44 @@ function createStyles(colors: AppColors) {
     heroCtaText: {
       ...typography.bodyStrong,
       color: colors.primaryDark
+    },
+    lessonCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.accentTint,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.line,
+      padding: spacing.md,
+      marginTop: spacing.xs
+    },
+    lessonCardPressed: {
+      opacity: 0.88,
+      transform: [{ scale: 0.995 }]
+    },
+    lessonIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center"
+    },
+    lessonEyebrow: {
+      ...typography.label,
+      color: colors.accent
+    },
+    lessonTitle: {
+      ...typography.bodyStrong,
+      color: colors.ink,
+      fontSize: 16,
+      marginTop: 2
+    },
+    lessonMeta: {
+      ...typography.caption,
+      color: colors.muted,
+      marginTop: 2
     },
     streakCard: {
       flexDirection: "row",

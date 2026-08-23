@@ -113,12 +113,34 @@ function toLessonLevel(level) {
   return LESSON_LEVELS.includes(normalized) ? normalized : "B1";
 }
 
+const LESSON_STAGES = ["angles", "core", "practice"];
+
 function validateLessonStage(value) {
   const normalized = String(value || "core").trim().toLowerCase();
-  if (normalized !== "core" && normalized !== "practice") {
-    throw new HttpError(400, "invalid_input", "stage must be 'core' or 'practice'.");
+  if (!LESSON_STAGES.includes(normalized)) {
+    throw new HttpError(400, "invalid_input", `stage must be one of: ${LESSON_STAGES.join(", ")}.`);
   }
   return normalized;
+}
+
+/**
+ * The angle the learner picked from the suggestions. Optional: an empty context, or a learner
+ * who asked the app to choose, produces a lesson with no angle attached.
+ */
+function validateChosenAngle(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const title = validateOptionalTextField(value.title, "chosenAngle.title", 200);
+  if (!title) {
+    return null;
+  }
+
+  return {
+    title,
+    description: validateOptionalTextField(value.description, "chosenAngle.description", 400)
+  };
 }
 
 function validateStringList(value, fieldName, { maxItems, maxLength }) {
@@ -259,6 +281,7 @@ module.exports = {
   validateChatMessages,
   toLessonLevel,
   validateLessonStage,
+  validateChosenAngle,
   validateLearnerProfile,
   validateRecentTopics,
   validateLessonCoreInput,

@@ -231,6 +231,7 @@ export default function App(): React.JSX.Element {
         records={freeSpeakingRecords}
         streakSummary={streakSummary}
         onStartThinking={() => setRoute({ name: "thinking", topic: activeTopic })}
+        onDailyLesson={() => setRoute({ name: "dailyLesson" })}
         onChat={() => setRoute({ name: "chat" })}
         onLearning={() => setRoute({ name: "learning" })}
         onPracticeModes={() => setRoute({ name: "practiceModes" })}
@@ -257,7 +258,6 @@ export default function App(): React.JSX.Element {
           <LearningScreen
             onBack={goBack}
             onGrammarRoadmap={() => setRoute({ name: "grammarHome" })}
-            onDailyLesson={() => setRoute({ name: "dailyLesson" })}
           />
         );
       case "dailyLesson":
@@ -491,13 +491,13 @@ function getBackRoute(route: AppRoute): AppRoute | null {
       return null;
     case "chat":
     case "learning":
+    case "dailyLesson":
     case "practiceModes":
     case "thinking":
     case "history":
     case "progress":
       return { name: "home" };
     case "grammarHome":
-    case "dailyLesson":
       return { name: "learning" };
     case "grammarLevel":
       return { name: "grammarHome" };

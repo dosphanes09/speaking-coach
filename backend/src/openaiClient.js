@@ -4,10 +4,16 @@ const { HttpError } = require("./errors");
 const { logWarn } = require("./logger");
 const { analysisJsonSchema } = require("./analysisSchema");
 const { buildSpeakingAnalysisPrompt, buildChatSystemPrompt } = require("./prompt");
-const { lessonCoreJsonSchema, lessonPracticeJsonSchema, learnerProfileJsonSchema } = require("./lessonSchema");
+const {
+  lessonCoreJsonSchema,
+  lessonPracticeJsonSchema,
+  lessonAnglesJsonSchema,
+  learnerProfileJsonSchema
+} = require("./lessonSchema");
 const {
   LESSON_SYSTEM_INSTRUCTION,
   PROFILE_SYSTEM_INSTRUCTION,
+  buildLessonAnglesPrompt,
   buildLessonCorePrompt,
   buildLessonPracticePrompt,
   buildProfileUpdatePrompt
@@ -387,14 +393,50 @@ async function generateVerifiedLessonPart({ buildPrompt, schemaName, schema, ver
   return best;
 }
 
-async function generateLessonCore({ profile, recentTopics, todayContext }) {
+/**
+ * Offers the learner four narrow angles inside whatever they mentioned, before any lesson is
+ * written. This is a small, fast call on purpose: it exists so the expensive call that follows
+ * is aimed at what the learner actually wanted to read about.
+ */
+async function generateLessonAngles({ profile, todayContext, recentTopics }) {
+  const lessonProfile = { ...profile, lessonLevel: toLessonLevel(profile.level) };
+
+  const raw = await requestStructuredJson({
+    model: config.openAiLessonModel,
+    systemText: LESSON_SYSTEM_INSTRUCTION,
+    userText: buildLessonAnglesPrompt({ profile: lessonProfile, todayContext, recentTopics }),
+    schemaName: "daily_lesson_angles",
+    schema: lessonAnglesJsonSchema,
+    maxOutputTokens: 1200,
+    timeoutMs: config.openAiTimeoutMs,
+    temperature: config.openAiLessonTemperature,
+    serviceLabel: "Lesson service"
+  });
+
+  const angles = (Array.isArray(raw?.angles) ? raw.angles : [])
+    .map((angle) => ({
+      title: String(angle?.title || "").trim(),
+      description: String(angle?.description || "").trim()
+    }))
+    .filter((angle) => angle.title)
+    .slice(0, 6);
+
+  if (angles.length === 0) {
+    throw new HttpError(502, "empty_lesson_angles", "No lesson directions could be suggested.");
+  }
+
+  return { angles };
+}
+
+async function generateLessonCore({ profile, recentTopics, todayContext, chosenAngle }) {
   const lessonProfile = { ...profile, lessonLevel: toLessonLevel(profile.level) };
 
   const best = await generateVerifiedLessonPart({
     logLabel: "core",
     schemaName: "daily_lesson_core",
     schema: lessonCoreJsonSchema,
-    buildPrompt: (issues) => buildLessonCorePrompt({ profile: lessonProfile, recentTopics, todayContext, issues }),
+    buildPrompt: (issues) =>
+      buildLessonCorePrompt({ profile: lessonProfile, recentTopics, todayContext, chosenAngle, issues }),
     verify: (raw) => validateLessonCore(raw, { lessonLevel: lessonProfile.lessonLevel, recentTopics })
   });
 
@@ -441,6 +483,7 @@ module.exports = {
   transcribeFile,
   analyzeTranscript,
   chatWithCoach,
+  generateLessonAngles,
   generateLessonCore,
   generateLessonPractice,
   updateLearnerProfile

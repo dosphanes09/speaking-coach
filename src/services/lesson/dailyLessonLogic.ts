@@ -1,4 +1,11 @@
-import { DailyLesson, LessonMatchingPair, LessonSpeakingTask, Topic, TopicLevel } from "@/types/models";
+import {
+  DailyLesson,
+  LessonLevel,
+  LessonMatchingPair,
+  LessonSpeakingTask,
+  Topic,
+  TopicLevel
+} from "@/types/models";
 
 /**
  * Pure logic behind the daily lesson feature.
@@ -25,6 +32,21 @@ export interface MarkedTextSegment {
   text: string;
   /** True for the target words the reading marks with **double asterisks**. */
   marked: boolean;
+}
+
+/**
+ * Lesson calibration is only defined for A2-C1, so a learner sitting at A1 or C2 is folded into
+ * the nearest defined band rather than silently getting an uncalibrated text. The backend does
+ * the same fold; doing it here too means the level shown on the picker is the level generated.
+ */
+export function toLessonLevel(level: TopicLevel): LessonLevel {
+  if (level === "A1") {
+    return "A2";
+  }
+  if (level === "C2") {
+    return "C1";
+  }
+  return level;
 }
 
 export function stripLessonMarkers(text: string): string {

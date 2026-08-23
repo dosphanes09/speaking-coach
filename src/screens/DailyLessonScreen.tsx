@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Speech from "expo-speech";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { Header } from "@/components/Header";
 import { Icon } from "@/components/Icon";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import {
   AppSettings,
   DailyLesson,
+  LESSON_LEVELS,
   LearnerProfile,
+  LessonAngle,
+  LessonLevel,
   LessonSpeakingTask,
   Topic
 } from "@/types/models";
@@ -19,9 +23,11 @@ import {
   buildProfileSessionSummary,
   isLessonForDate,
   parseMarkedText,
-  splitLessonParagraphs
+  splitLessonParagraphs,
+  toLessonLevel
 } from "@/services/lesson/dailyLessonLogic";
 import {
+  fetchDailyLessonAngles,
   fetchDailyLessonCore,
   fetchDailyLessonPractice,
   updateLearnerProfileWithBackend
@@ -29,11 +35,20 @@ import {
 import { loadDailyLessonState, saveDailyLesson } from "@/services/storage/dailyLessonRepository";
 import { loadLearnerProfile, saveLearnerProfile } from "@/services/storage/learnerProfileRepository";
 import { getClientId } from "@/services/storage/clientIdentity";
+import { createAndShareDailyLessonPdf } from "@/services/pdf/dailyLessonPdf";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createId } from "@/utils/id";
 import { toDateKey } from "@/utils/date";
+
+/** Plain-language guide to what each level's text feels like, shown under the picker. */
+const LEVEL_HINTS: Record<LessonLevel, string> = {
+  A2: "Short, concrete text. Simple tenses, everyday words.",
+  B1: "Medium text. Some abstraction, always tied to examples.",
+  B2: "Longer text with a real argument. Idiomatic in places.",
+  C1: "Long, demanding text. Nuance, irony, low-frequency words."
+};
 
 interface DailyLessonScreenProps {
   settings: AppSettings;
@@ -52,6 +67,11 @@ export function DailyLessonScreen({
   const [recentTopics, setRecentTopics] = useState<string[]>([]);
   const [profile, setProfile] = useState<LearnerProfile | null>(null);
   const [todayContext, setTodayContext] = useState("");
+  // The learner picks the level per lesson here rather than inheriting Settings silently —
+  // some days you want an easy read, some days you want to be stretched.
+  const [lessonLevel, setLessonLevel] = useState<LessonLevel>(() => toLessonLevel(settings.targetLevel));
+  const [angles, setAngles] = useState<LessonAngle[]>([]);
+  const [isLoadingAngles, setIsLoadingAngles] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingCore, setIsGeneratingCore] = useState(false);
   const [isGeneratingPractice, setIsGeneratingPractice] = useState(false);
@@ -63,6 +83,8 @@ export function DailyLessonScreen({
   const [profileStatus, setProfileStatus] = useState("");
   // Lets the learner reopen the last lesson on a new day without spending a generation on it.
   const [isViewingPreviousLesson, setIsViewingPreviousLesson] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState("");
   // Guards every setState that can land after the learner has left the screen mid-generation.
   const isMountedRef = useRef(true);
 
@@ -150,31 +172,76 @@ export function DailyLessonScreen({
     [settings.backendBaseUrl]
   );
 
-  const generateLesson = useCallback(async (): Promise<void> => {
+  /**
+   * Asks what specifically the learner wants to read about before writing anything. A bare
+   * "Batman" would otherwise produce a general encyclopedia-style text; four narrow choices
+   * turn it into a lesson about one thing.
+   */
+  const loadAngles = useCallback(async (): Promise<void> => {
+    const trimmedContext = todayContext.trim();
+    if (!trimmedContext) {
+      return;
+    }
+
     const currentProfile = profile ?? (await loadLearnerProfile(settings.targetLevel));
+    setIsLoadingAngles(true);
+    setError("");
+
+    try {
+      const clientId = await getClientId();
+      const suggested = await fetchDailyLessonAngles({
+        backendBaseUrl: settings.backendBaseUrl,
+        clientId,
+        profile: { ...currentProfile, level: lessonLevel },
+        todayContext: trimmedContext,
+        recentTopics
+      });
+
+      if (isMountedRef.current) {
+        setAngles(suggested);
+      }
+    } catch (caughtError) {
+      if (isMountedRef.current) {
+        setError(
+          caughtError instanceof Error ? caughtError.message : "Lesson directions could not be suggested."
+        );
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingAngles(false);
+      }
+    }
+  }, [lessonLevel, profile, recentTopics, settings.backendBaseUrl, settings.targetLevel, todayContext]);
+
+  const generateLesson = useCallback(async (chosenAngle?: LessonAngle): Promise<void> => {
+    const currentProfile = profile ?? (await loadLearnerProfile(settings.targetLevel));
+    const lessonProfile: LearnerProfile = { ...currentProfile, level: lessonLevel };
     setIsGeneratingCore(true);
     setError("");
     setPracticeError("");
     setShowAnswers(false);
     setProfileStatus("");
     setIsViewingPreviousLesson(false);
+    setAngles([]);
 
     try {
       const clientId = await getClientId();
       const { core, warnings } = await fetchDailyLessonCore({
         backendBaseUrl: settings.backendBaseUrl,
         clientId,
-        profile: currentProfile,
+        profile: lessonProfile,
         recentTopics,
-        todayContext
+        todayContext,
+        chosenAngle
       });
 
       const nextLesson: DailyLesson = {
         id: createId("lesson"),
         dateKey: todayKey,
         createdAt: new Date().toISOString(),
-        level: settings.targetLevel,
+        level: lessonLevel,
         todayContext: todayContext.trim(),
+        angle: chosenAngle,
         core,
         warnings
       };
@@ -189,14 +256,23 @@ export function DailyLessonScreen({
       setProfileAnswer("");
       setIsGeneratingCore(false);
 
-      await generatePractice(nextLesson, currentProfile);
+      await generatePractice(nextLesson, lessonProfile);
     } catch (caughtError) {
       if (isMountedRef.current) {
         setError(caughtError instanceof Error ? caughtError.message : "Today's lesson could not be created.");
         setIsGeneratingCore(false);
       }
     }
-  }, [generatePractice, profile, recentTopics, settings.backendBaseUrl, settings.targetLevel, todayContext, todayKey]);
+  }, [
+    generatePractice,
+    lessonLevel,
+    profile,
+    recentTopics,
+    settings.backendBaseUrl,
+    settings.targetLevel,
+    todayContext,
+    todayKey
+  ]);
 
   async function saveProfileAnswer(): Promise<void> {
     const answer = profileAnswer.trim();
@@ -239,6 +315,30 @@ export function DailyLessonScreen({
     }
   }
 
+  async function exportPdf(): Promise<void> {
+    if (!visibleLesson) {
+      return;
+    }
+
+    setIsExportingPdf(true);
+    setPdfStatus("");
+
+    try {
+      await createAndShareDailyLessonPdf(visibleLesson);
+      if (isMountedRef.current) {
+        setPdfStatus("Saved to your device.");
+      }
+    } catch (caughtError) {
+      if (isMountedRef.current) {
+        setPdfStatus(caughtError instanceof Error ? caughtError.message : "The PDF could not be created.");
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsExportingPdf(false);
+      }
+    }
+  }
+
   function speak(text: string): void {
     Speech.stop();
     Speech.speak(text, { language: "en-US", rate: 0.9 });
@@ -270,33 +370,56 @@ export function DailyLessonScreen({
         </Card>
       ) : null}
 
-      {!isLoading && !visibleLesson ? (
+      {!isLoading && !visibleLesson && angles.length === 0 ? (
         <Card style={styles.introCard}>
           <Text style={styles.introTitle}>
             {lesson ? "Ready for a new lesson?" : "Let's write today's lesson"}
           </Text>
+
+          <Text style={styles.fieldLabel}>Level of today's text</Text>
+          <SegmentedControl
+            options={[...LESSON_LEVELS]}
+            value={lessonLevel}
+            onChange={setLessonLevel}
+            disabled={isGeneratingCore || isLoadingAngles}
+          />
+          <Text style={styles.captionText}>{LEVEL_HINTS[lessonLevel]}</Text>
+
+          <Text style={styles.fieldLabel}>What is on your mind today?</Text>
           <Text style={styles.mutedText}>
-            Tell me one thing you did, watched, played or thought about today. A lesson built around that
-            beats a generic one every time — but you can leave it empty and I will pick from your interests.
+            One thing you did, watched, played or wondered about. Even a single word works — I pick
+            a specific, interesting angle inside it and build the whole lesson on that.
           </Text>
           <TextInput
             value={todayContext}
             onChangeText={setTodayContext}
             multiline
             maxLength={600}
-            placeholder="e.g. I watched a documentary about deep sea creatures"
+            placeholder="e.g. Batman, or: I watched a documentary about deep sea creatures"
             placeholderTextColor={colors.muted}
             style={styles.input}
           />
+
           <AppButton
             label={isGeneratingCore ? "Writing your lesson..." : "Generate today's lesson"}
             icon="book-open"
             onPress={() => void generateLesson()}
             loading={isGeneratingCore}
-            disabled={isGeneratingCore}
+            disabled={isGeneratingCore || isLoadingAngles}
           />
+          {todayContext.trim().length > 0 ? (
+            <AppButton
+              label={isLoadingAngles ? "Thinking of directions..." : "Let me pick the direction"}
+              variant="ghost"
+              icon="compass"
+              onPress={() => void loadAngles()}
+              loading={isLoadingAngles}
+              disabled={isLoadingAngles || isGeneratingCore}
+            />
+          ) : null}
+
           <Text style={styles.captionText}>
-            Level {settings.targetLevel} · takes about a minute · uses one of your daily lessons
+            {lessonLevel} · takes about a minute · uses one of your daily lessons
           </Text>
           {lesson && !isTodaysLesson ? (
             <AppButton
@@ -309,6 +432,53 @@ export function DailyLessonScreen({
         </Card>
       ) : null}
 
+      {!isLoading && !visibleLesson && angles.length > 0 ? (
+        <Card style={styles.introCard}>
+          <Text style={styles.kicker}>{todayContext.trim()}</Text>
+          <Text style={styles.introTitle}>Which part interests you?</Text>
+          <Text style={styles.mutedText}>
+            Pick one and the whole lesson — text, vocabulary, exercises, speaking tasks — is built
+            around it.
+          </Text>
+
+          {angles.map((angle) => (
+            <Pressable
+              key={angle.title}
+              accessibilityRole="button"
+              accessibilityLabel={angle.title}
+              onPress={() => void generateLesson(angle)}
+              disabled={isGeneratingCore}
+              style={({ pressed }) => [styles.angleCard, pressed && styles.anglePressed]}
+            >
+              <Text style={styles.angleTitle}>{angle.title}</Text>
+              {angle.description ? <Text style={styles.angleDescription}>{angle.description}</Text> : null}
+            </Pressable>
+          ))}
+
+          {isGeneratingCore ? (
+            <Text style={styles.captionText}>Writing your lesson...</Text>
+          ) : (
+            <>
+              <AppButton
+                label="Other suggestions"
+                variant="ghost"
+                icon="refresh-cw"
+                onPress={() => void loadAngles()}
+                loading={isLoadingAngles}
+                disabled={isLoadingAngles}
+              />
+              <AppButton
+                label="Back"
+                variant="ghost"
+                icon="arrow-left"
+                onPress={() => setAngles([])}
+                disabled={isLoadingAngles}
+              />
+            </>
+          )}
+        </Card>
+      ) : null}
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {visibleLesson ? (
@@ -317,6 +487,9 @@ export function DailyLessonScreen({
           colors={colors}
           styles={styles}
           isGeneratingPractice={isGeneratingPractice}
+          isExportingPdf={isExportingPdf}
+          pdfStatus={pdfStatus}
+          onExportPdf={() => void exportPdf()}
           practiceError={practiceError}
           showAnswers={showAnswers}
           profileAnswer={profileAnswer}
@@ -345,12 +518,15 @@ interface LessonBodyProps {
   colors: AppColors;
   styles: LessonStyles;
   isGeneratingPractice: boolean;
+  isExportingPdf: boolean;
+  pdfStatus: string;
   practiceError: string;
   showAnswers: boolean;
   profileAnswer: string;
   isSavingProfileAnswer: boolean;
   profileStatus: string;
   onToggleAnswers: () => void;
+  onExportPdf: () => void;
   onRetryPractice: () => void;
   onChangeProfileAnswer: (value: string) => void;
   onSaveProfileAnswer: () => void;
@@ -363,12 +539,15 @@ function LessonBody({
   colors,
   styles,
   isGeneratingPractice,
+  isExportingPdf,
+  pdfStatus,
   practiceError,
   showAnswers,
   profileAnswer,
   isSavingProfileAnswer,
   profileStatus,
   onToggleAnswers,
+  onExportPdf,
   onRetryPractice,
   onChangeProfileAnswer,
   onSaveProfileAnswer,
@@ -389,9 +568,21 @@ function LessonBody({
         </Text>
         <Text style={styles.lessonTitle}>{core.title}</Text>
         <Text style={styles.mutedText}>{core.subtitle}</Text>
-        {lesson.todayContext ? (
-          <Text style={styles.captionText}>Built around: {lesson.todayContext}</Text>
+        {lesson.angle ? (
+          <Text style={styles.captionText}>Your choice: {lesson.angle.title}</Text>
         ) : null}
+        {lesson.todayContext ? (
+          <Text style={styles.captionText}>You wrote: {lesson.todayContext}</Text>
+        ) : null}
+        <AppButton
+          label={isExportingPdf ? "Preparing PDF..." : "Save as PDF"}
+          variant="ghost"
+          icon="download"
+          onPress={onExportPdf}
+          loading={isExportingPdf}
+          disabled={isExportingPdf}
+        />
+        {pdfStatus ? <Text style={styles.captionText}>{pdfStatus}</Text> : null}
       </Card>
 
       {lesson.warnings.length > 0 ? (
@@ -748,6 +939,32 @@ function createStyles(colors: AppColors) {
     introTitle: {
       ...typography.h1,
       color: colors.ink
+    },
+    fieldLabel: {
+      ...typography.label,
+      color: colors.accent,
+      marginTop: spacing.xs
+    },
+    angleCard: {
+      gap: 4,
+      padding: spacing.md,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.surfaceMuted
+    },
+    anglePressed: {
+      opacity: 0.86,
+      transform: [{ scale: 0.99 }]
+    },
+    angleTitle: {
+      ...typography.bodyStrong,
+      color: colors.ink,
+      fontSize: 16
+    },
+    angleDescription: {
+      ...typography.body,
+      color: colors.muted
     },
     titleCard: {
       gap: spacing.xs

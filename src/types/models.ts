@@ -384,6 +384,23 @@ export interface LearnerProfile {
   updatedAt: string;
 }
 
+/**
+ * One narrow direction the lesson could take, offered before the lesson is written. A bare
+ * "Batman" becomes four specific choices, so the learner steers the lesson to what they were
+ * actually curious about instead of getting a general overview.
+ */
+export interface LessonAngle {
+  /** Short, in English — this becomes the lesson's direction. */
+  title: string;
+  /** One sentence in the learner's own language, so choosing takes no effort. */
+  description: string;
+}
+
+/** The four CEFR levels the lesson generator is calibrated for. */
+export const LESSON_LEVELS = ["A2", "B1", "B2", "C1"] as const;
+
+export type LessonLevel = (typeof LESSON_LEVELS)[number];
+
 export interface LessonVocabularyItem {
   word: string;
   pos: string;
@@ -536,6 +553,8 @@ export interface DailyLesson {
   createdAt: string;
   level: TopicLevel;
   todayContext: string;
+  /** The direction the learner picked; absent when they let the app choose. */
+  angle?: LessonAngle;
   core: DailyLessonCore;
   practice?: DailyLessonPractice;
   /** Verification findings the backend could not fix; shown honestly instead of hidden. */

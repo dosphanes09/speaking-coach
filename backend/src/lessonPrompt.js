@@ -59,17 +59,71 @@ ${issues.map((issue) => `- ${issue}`).join("\n")}
 `;
 }
 
-function buildLessonCorePrompt({ profile, recentTopics, todayContext, issues }) {
+const SPECIFICITY_RULES = `SPECIFICITY — THIS IS WHAT MAKES OR BREAKS THE LESSON
+- Never write an encyclopedia entry. "Batman is a fictional superhero created in 1939 by Bob Kane..." is exactly the failure to avoid: a summary of a subject rather than a piece of writing about one thing inside it.
+- Take one narrow claim, case, moment, decision, comparison or tension and stay on it for the whole text.
+- Anchor every paragraph in particulars: names, numbers, dates, a specific scene, a concrete consequence. Vague generalities ("it is very popular", "many people think") are wasted words.
+- A reader who already knows the subject well should still learn something they did not know.
+- Assume the learner already knows what the subject IS. Do not spend the opening explaining it.`;
+
+function formatChosenAngle(chosenAngle) {
+  if (!chosenAngle || !chosenAngle.title) {
+    return "";
+  }
+
+  return `
+THE LEARNER CHOSE THIS ANGLE
+title: ${chosenAngle.title}
+${chosenAngle.description ? `note: ${chosenAngle.description}` : ""}
+Build the lesson around exactly this angle. Do not widen it back out into a general overview of
+the subject — the learner already rejected the general version by picking this one.
+`;
+}
+
+function buildLessonAnglesPrompt({ profile, todayContext, recentTopics }) {
+  return `The learner told you what is on their mind today. Before any lesson is written, you propose four different NARROW angles inside that subject and let them pick one.
+
+WHAT MAKES A GOOD ANGLE
+- Narrow enough that a 600-word text can do it justice, and specific enough to be surprising.
+- Four genuinely different directions, not four rewordings of the same idea. Vary them: a how-it-works angle, a history/decision angle, a conflict or debate, a human or everyday consequence, a comparison, an economics angle. Pick whichever four fit the subject best.
+- If the learner wrote a bare noun ("Batman", "football", "coffee"), that is exactly when this matters most. Do NOT offer "an introduction to X" as one of the options.
+- Anchor each angle in something concrete — a specific decision, era, mechanism, number, rivalry or case.
+- Angles must be appropriate for a ${profile.lessonLevel} English learner to read about, but the ideas themselves should be adult and non-obvious.
+- Do not repeat anything already covered in recent_topics.
+
+FORMAT
+- "title": in English, at most about 10 words, written as the direction the lesson would take.
+- "description": ONE sentence in ${profile.nativeLanguage}, telling the learner plainly what that lesson would be about, so choosing takes no effort.
+
+Return exactly 4 angles.
+
+${formatProfileBlock(profile)}
+
+<recent_topics>
+${formatList(recentTopics, "none yet")}
+</recent_topics>
+
+<today_context>
+${todayContext}
+</today_context>`;
+}
+
+function buildLessonCorePrompt({ profile, recentTopics, todayContext, chosenAngle, issues }) {
   const range = READING_WORD_RANGES[profile.lessonLevel];
 
   return `You are writing PART 1 of today's lesson: the topic, the reading text, and the language taken from it. Part 2 (grammar, exercises, speaking tasks, answer key) is generated in a separate call from what you write here.
 
 TOPIC SELECTION
-1. If today_context contains something concrete the learner did, watched, played or thought about, build the lesson around THAT. It is the strongest signal you have — a lesson about the game they played last night outperforms a generic lesson every time.
-2. If today_context is empty, pick from interests, but choose a specific angle, not a category. Not "space" but "why rocket engines are tested by deliberately destroying them".
-3. Never repeat a topic from recent_topics, and avoid topics that merely rephrase one.
-4. Rotate register across days: some lessons narrative, some analytical, some practical/transactional. A learner who only ever reads opinion essays cannot handle a phone call.
-5. The angle should be something a curious adult would actually want to read. The English is the vehicle; the content still has to earn attention.
+1. If an angle was chosen below, that IS the topic. Skip the rest of this section.
+2. Otherwise, whatever the learner wrote in today_context is a SUBJECT, not a topic — and usually a wide one. Before writing a single sentence, narrow it yourself: silently consider three or four different specific angles inside that subject, then commit to the one that is most concrete, most surprising and best suited to a ${profile.lessonLevel} reader. Write only that one. The learner should feel you picked the interesting part for them.
+   - "Batman" is a subject. "Why Batman was deliberately given no superpowers, and what that decision did to the comics industry" is a topic.
+   - "I played football" is a subject. "Why the offside rule exists at all, and what the game looked like before it" is a topic.
+3. If today_context is empty, pick from interests the same way — a specific angle, never a category. Not "space" but "why rocket engines are tested by deliberately destroying them".
+4. Never repeat a topic from recent_topics, and avoid topics that merely rephrase one.
+5. Rotate register across days: some lessons narrative, some analytical, some practical/transactional. A learner who only ever reads opinion essays cannot handle a phone call.
+6. Your "subtitle" must state the specific angle you chose, so the learner can see what you decided to write about.
+
+${SPECIFICITY_RULES}
 
 WHAT TO PRODUCE
 1. warm_up - 3 questions the learner thinks about before reading. Open-ended, no right answer, answerable from their own life.
@@ -87,7 +141,7 @@ ${LEVEL_CALIBRATION}
 
 ${HARD_RULES}
 - Every word in vocabulary MUST literally appear inside reading.text. Check this before you answer; a vocabulary list that does not match the text destroys the learner's trust in the whole lesson.
-${formatIssueBlock(issues)}
+${formatChosenAngle(chosenAngle)}${formatIssueBlock(issues)}
 ${formatProfileBlock(profile)}
 
 <recent_topics>
@@ -179,6 +233,7 @@ ${sessionSummary}
 module.exports = {
   LESSON_SYSTEM_INSTRUCTION,
   PROFILE_SYSTEM_INSTRUCTION,
+  buildLessonAnglesPrompt,
   buildLessonCorePrompt,
   buildLessonPracticePrompt,
   buildProfileUpdatePrompt

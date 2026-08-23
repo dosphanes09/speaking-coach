@@ -21,6 +21,7 @@ const {
   validateUploadedFile,
   validateChatMessages,
   validateLessonStage,
+  validateChosenAngle,
   validateLearnerProfile,
   validateRecentTopics,
   validateLessonCoreInput,
@@ -30,6 +31,7 @@ const {
   analyzeTranscript,
   chatWithCoach,
   transcribeFile,
+  generateLessonAngles,
   generateLessonCore,
   generateLessonPractice,
   updateLearnerProfile
@@ -312,18 +314,32 @@ app.post("/api/chat", analysisAuthentication, async (req, res, next) => {
 });
 
 /**
- * Daily lesson generation, in two stages.
+ * Daily lesson generation, in three stages.
  *
- * "core" picks the topic and writes the reading text; "practice" turns that finished text into
- * grammar, exercises, speaking tasks and an answer key. The app shows the core as soon as it
- * arrives and loads the practice part behind it, so the learner is never staring at a blank
- * screen for a minute — and the second call can see the actual text, which is what keeps the
- * answer key honest.
+ * "angles" offers four narrow directions inside whatever the learner mentioned, so a one-word
+ * input like "Batman" does not turn into an encyclopedia entry; "core" picks up the chosen
+ * angle and writes the reading text; "practice" turns that finished text into grammar,
+ * exercises, speaking tasks and an answer key. The app shows the core as soon as it arrives and
+ * loads the practice part behind it, so the learner is never staring at a blank screen for a
+ * minute — and the last call can see the actual text, which is what keeps the answer key honest.
  */
 app.post("/api/daily-lesson", analysisAuthentication, async (req, res, next) => {
   try {
     const stage = validateLessonStage(req.body.stage);
     const profile = validateLearnerProfile(req.body.profile);
+
+    if (stage === "angles") {
+      const todayContext = validateTextField(req.body.todayContext, "todayContext", config.maxLessonContextLength);
+      const recentTopics = validateRecentTopics(req.body.recentTopics);
+      // Cheap compared with a lesson, but still a model call, so it gets its own bounded counter.
+      const dailyLimit = await assertDailyLimit(req, config.maxDailyLessonsPerUser * 4, "lesson-angles");
+
+      const { angles } = await generateLessonAngles({ profile, todayContext, recentTopics });
+
+      res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+      res.json({ stage, angles });
+      return;
+    }
 
     if (stage === "core") {
       const recentTopics = validateRecentTopics(req.body.recentTopics);
@@ -332,9 +348,15 @@ app.post("/api/daily-lesson", analysisAuthentication, async (req, res, next) => 
         "todayContext",
         config.maxLessonContextLength
       );
+      const chosenAngle = validateChosenAngle(req.body.chosenAngle);
       const dailyLimit = await assertDailyLimit(req, config.maxDailyLessonsPerUser, "lesson");
 
-      const { lesson, warnings } = await generateLessonCore({ profile, recentTopics, todayContext });
+      const { lesson, warnings } = await generateLessonCore({
+        profile,
+        recentTopics,
+        todayContext,
+        chosenAngle
+      });
 
       res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
       res.json({ stage, lesson, warnings });
