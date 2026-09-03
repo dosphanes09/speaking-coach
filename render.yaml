@@ -32,12 +32,37 @@ services:
         value: daily-speaking-coach-api
       - key: AUTH_AUDIENCE
         value: daily-speaking-coach-mobile
+      # 16 MB. A five minute rhetoric recording uploads as a 16 kHz mono WAV,
+      # which is ~9.2 MB; the old 12 MB cap left too little room above that.
       - key: MAX_FILE_SIZE_BYTES
-        value: "12582912"
+        value: "16777216"
+      # English drills stay capped at two minutes.
       - key: MAX_AUDIO_DURATION_SECONDS
         value: "120"
       - key: MAX_DAILY_ANALYSES_PER_USER
         value: "10"
+      # --- Turkish rhetoric module -------------------------------------
+      # Five minutes plus a little headroom.
+      - key: MAX_RHETORIC_DURATION_SECONDS
+        value: "330"
+      # Counted separately: a rhetoric session sends several times more audio,
+      # so one shared counter would let a few long speeches eat the day's
+      # English practice.
+      - key: MAX_DAILY_RHETORIC_ANALYSES_PER_USER
+        value: "6"
+      # The reply carries a fully segmented transcript, so it is much longer.
+      - key: OPENAI_RHETORIC_MAX_OUTPUT_TOKENS
+        value: "12000"
+      # Analysing five minutes of audio does not finish inside the 30 second
+      # budget the one-minute English clips were sized for.
+      - key: OPENAI_RHETORIC_TIMEOUT_MS
+        value: "150000"
+      # Hesitation sounds, pauses and monotony are inaudible in a transcript;
+      # without audio analysis the rhetoric module loses its main measurements.
+      - key: ENABLE_AUDIO_ANALYSIS
+        value: "true"
+      - key: OPENAI_AUDIO_ANALYSIS_MODEL
+        value: gpt-audio
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"
       - key: RATE_LIMIT_MAX_REQUESTS

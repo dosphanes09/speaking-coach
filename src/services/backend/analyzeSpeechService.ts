@@ -1,6 +1,8 @@
 import { AnalysisResult, RecordedMedia, Topic } from "@/types/models";
 import { validateBackendBaseUrl } from "@/config/backendConfig";
 import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
+import { apiFetch } from "@/services/platform/apiClient";
+import { createUploadFile } from "@/services/platform/uploadFile";
 
 interface AnalyzeSpeechParams {
   backendBaseUrl: string;
@@ -60,15 +62,15 @@ export async function analyzeSpeechWithBackend({
     formData.append("expectedGrammarStructures", topic.picturePromptContext.targetGrammar.join("; "));
     formData.append("speakingPrompt", topic.picturePromptContext.speakingQuestions.join(" "));
   }
-  formData.append("file", {
-    uri: media.uri,
-    name: getUploadName(media),
-    type: media.mimeType
-  } as unknown as Blob);
+  // The value appended here is platform-specific: React Native streams the file
+  // from its URI, while the desktop build has to hand over real bytes (and
+  // re-encodes audio to WAV on the way). `createUploadFile` hides that split.
+  const upload = await createUploadFile(media, getUploadName(media));
+  formData.append("file", upload.value, upload.fileName);
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/analyze-speech`, {
+    response = await apiFetch(`${baseUrl}/api/analyze-speech`, {
       method: "POST",
       headers: {
         "X-Client-Id": clientId,

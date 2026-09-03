@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Audio } from "expo-av";
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from "@/services/platform/cameraView";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
@@ -15,6 +15,13 @@ import { deleteMedia, getMimeType, persistRecording } from "@/services/media/med
 import { clampRecordingSeconds, formatPracticeDuration } from "@/utils/practiceTiming";
 
 type RecordingStatus = "idle" | "starting" | "recording" | "finished";
+
+// Chromium records video as WebM, which the backend's upload allowlist rejects
+// (it accepts video/mp4 only). Rather than let the desktop build offer a mode
+// that always fails at the analysis step, the picker is audio-only there.
+// Audio itself is unaffected: it is re-encoded to WAV before upload.
+const supportsVideoRecording = Platform.OS !== "web";
+const recordingModes: RecordingType[] = supportsVideoRecording ? ["audio", "video"] : ["audio"];
 
 interface RecordingScreenProps {
   topic: Topic;
@@ -38,7 +45,9 @@ export function RecordingScreen({
   const colors = useThemeColors();
   const styles = createStyles(colors);
   const maxRecordingSeconds = clampRecordingSeconds(recordingLimitSeconds);
-  const [mode, setMode] = useState<RecordingType>(initialRecordingType);
+  const [mode, setMode] = useState<RecordingType>(
+    supportsVideoRecording ? initialRecordingType : "audio"
+  );
   const [status, setStatus] = useState<RecordingStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [recordedMedia, setRecordedMedia] = useState<RecordedMedia | null>(null);
@@ -273,7 +282,7 @@ export function RecordingScreen({
 
         <Card style={styles.controlCard}>
           <SegmentedControl<RecordingType>
-            options={["audio", "video"]}
+            options={recordingModes}
             labels={{ audio: "Audio", video: "Video" }}
             value={mode}
             onChange={setMode}

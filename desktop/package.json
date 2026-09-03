@@ -1,0 +1,46 @@
+{
+  "name": "daily-speaking-coach-desktop",
+  "productName": "Daily Speaking Coach",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop shell for Daily Speaking Coach",
+  "author": "Yagiz",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:portable": "electron-builder --win portable --x64",
+    "portable": "powershell -NoProfile -ExecutionPolicy Bypass -File build-portable-app.ps1"
+  },
+  "devDependencies": {
+    "electron": "39.8.10",
+    "electron-builder": "^26.16.0"
+  },
+  "build": {
+    "appId": "com.yagiz.dailyspeakingcoach.desktop",
+    "productName": "Daily Speaking Coach",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*",
+      "app-icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "app-icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Daily Speaking Coach"
+    }
+  }
+}

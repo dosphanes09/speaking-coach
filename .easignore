@@ -28,3 +28,4 @@ yarn-error.log*
 credentials.json
 google-services.json
 GoogleService-Info.plist
+/desktop/

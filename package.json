@@ -12,16 +12,22 @@
     "web": "expo start --web",
     "check:apk": "node scripts/check-apk.mjs",
     "typecheck": "tsc --noEmit",
-    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter && npm run test:dailyLesson",
+    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter && npm run test:dailyLesson && npm run test:rhetoricStats",
     "test:scoreUtils": "tsx scripts/scoreUtilsSelfTest.ts",
     "test:streak": "tsx scripts/streakServiceSelfTest.ts",
     "test:recordClassification": "tsx scripts/recordClassificationSelfTest.ts",
     "test:analysisEnrichment": "tsx scripts/analysisEnrichmentSelfTest.ts",
     "test:practiceTiming": "tsx scripts/practiceTimingSelfTest.ts",
     "test:beforeAfter": "tsx scripts/beforeAfterServiceSelfTest.ts",
-    "test:dailyLesson": "tsx scripts/dailyLessonSelfTest.ts"
+    "test:dailyLesson": "tsx scripts/dailyLessonSelfTest.ts",
+    "desktop:web": "expo export --platform web --output-dir desktop/web",
+    "desktop:install": "npm --prefix desktop install",
+    "desktop:start": "npm run desktop:web && npm --prefix desktop start",
+    "desktop:dist": "npm run desktop:web && npm --prefix desktop run dist",
+    "test:rhetoricStats": "tsx scripts/rhetoricStatsSelfTest.ts"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~54.0.35",
@@ -38,14 +44,17 @@
     "expo-speech": "~14.0.8",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-svg": "15.12.1"
+    "react-native-svg": "15.12.1",
+    "react-native-web": "~0.21.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.10",
+    "@types/react-dom": "~19.1.0",
     "babel-preset-expo": "~54.0.10",
-    "typescript": "~5.9.2",
-    "tsx": "^4.19.0"
+    "tsx": "^4.19.0",
+    "typescript": "~5.9.2"
   }
 }

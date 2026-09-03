@@ -1,7 +1,7 @@
 const fs = require("node:fs/promises");
 const { config } = require("./config");
 const { HttpError } = require("./errors");
-const { logWarn } = require("./logger");
+const { logInfo, logWarn } = require("./logger");
 const { analysisJsonSchema } = require("./analysisSchema");
 const { buildSpeakingAnalysisPrompt, buildChatSystemPrompt } = require("./prompt");
 const {
@@ -28,13 +28,18 @@ const {
 const { toLessonLevel } = require("./validation");
 const { calibrateAnalysisScores } = require("./scoringCalibrator");
 const { convertToWav, readAsBase64, deleteQuietly } = require("./audioConversion");
+const { rhetoricJsonSchema } = require("./rhetoricSchema");
+const { RHETORIC_SYSTEM_INSTRUCTION, buildRhetoricAnalysisPrompt } = require("./rhetoricPrompt");
 
 function retryableStatus(status) {
   return status === 408 || status === 409 || status === 429 || status >= 500;
 }
 
 async function fetchWithTimeoutAndRetry(url, optionsFactory, overrides = {}) {
-  const maxAttempts = config.openAiMaxRetries + 1;
+  // Retrying a request that already ran for two and a half minutes usually just
+  // burns the caller's remaining patience (and, behind a proxy, exceeds its
+  // limit), so slow callers can ask for a single attempt.
+  const maxAttempts = overrides.maxAttempts || config.openAiMaxRetries + 1;
   // Lesson generation legitimately takes minutes, so the caller can widen the per-attempt
   // timeout instead of every feature sharing the analysis timeout.
   const timeoutMs = overrides.timeoutMs || config.openAiTimeoutMs;
@@ -94,13 +99,20 @@ function authHeaders(extra = {}) {
   };
 }
 
-async function transcribeFile(filePath, mimeType, originalName) {
+/**
+ * `language` is an ISO-639-1 code and it matters more than it looks: telling the
+ * transcriber the wrong language does not produce a slightly worse result, it
+ * produces confident nonsense (Turkish audio read as if it were English). It
+ * used to be hard-coded to "en", which was fine while the app only taught
+ * English; the Turkish rhetoric module passes "tr".
+ */
+async function transcribeFile(filePath, mimeType, originalName, language = "en", overrides = {}) {
   const buffer = await fs.readFile(filePath);
 
   const response = await fetchWithTimeoutAndRetry("https://api.openai.com/v1/audio/transcriptions", () => {
     const formData = new FormData();
     formData.append("model", config.openAiTranscriptionModel);
-    formData.append("language", "en");
+    formData.append("language", language);
     formData.append("file", new Blob([buffer], { type: mimeType }), originalName);
 
     return {
@@ -108,7 +120,7 @@ async function transcribeFile(filePath, mimeType, originalName) {
       headers: authHeaders(),
       body: formData
     };
-  });
+  }, overrides);
 
   const json = await response.json();
   return String(json.text || "").trim();
@@ -135,7 +147,20 @@ function extractOutputText(responseJson) {
 const SYSTEM_INSTRUCTION =
   "You are a supportive but honest English speaking teacher. Return only valid JSON that matches the schema.";
 
-async function requestAnalysisFromModel(model, userContent) {
+/**
+ * One structured-output call. Everything that differs between the English
+ * analysis and the Turkish rhetoric analysis — system prompt, schema, token
+ * budget — is passed in, so both share the same retry, timeout and parsing.
+ */
+async function requestStructuredOutput({
+  model,
+  systemInstruction,
+  schemaName,
+  schema,
+  userContent,
+  maxOutputTokens,
+  overrides = {}
+}) {
   const response = await fetchWithTimeoutAndRetry("https://api.openai.com/v1/responses", () => ({
     method: "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -144,7 +169,7 @@ async function requestAnalysisFromModel(model, userContent) {
       input: [
         {
           role: "system",
-          content: [{ type: "input_text", text: SYSTEM_INSTRUCTION }]
+          content: [{ type: "input_text", text: systemInstruction }]
         },
         {
           role: "user",
@@ -154,17 +179,60 @@ async function requestAnalysisFromModel(model, userContent) {
       text: {
         format: {
           type: "json_schema",
-          name: "speaking_analysis",
+          name: schemaName,
           strict: true,
-          schema: analysisJsonSchema
+          schema
         }
       },
-      max_output_tokens: config.openAiMaxOutputTokens
+      max_output_tokens: maxOutputTokens
     })
-  }));
+  }), overrides);
 
   const json = await response.json();
+
+  // Logged because this is the only place the real cost of a request is
+  // visible. Audio input is billed differently from text and a five minute
+  // recording is not cheap, so having the counts in the logs is what makes it
+  // possible to answer "what does one session cost" without guessing.
+  logInfo("openai_usage", {
+    status: 200,
+    code: schemaName,
+    path: model,
+    tokens: {
+      input: json?.usage?.input_tokens ?? 0,
+      output: json?.usage?.output_tokens ?? 0,
+      audioInput: json?.usage?.input_tokens_details?.audio_tokens ?? 0
+    }
+  });
+
   return JSON.parse(extractOutputText(json));
+}
+
+async function requestAnalysisFromModel(model, userContent) {
+  return requestStructuredOutput({
+    model,
+    systemInstruction: SYSTEM_INSTRUCTION,
+    schemaName: "speaking_analysis",
+    schema: analysisJsonSchema,
+    userContent,
+    maxOutputTokens: config.openAiMaxOutputTokens
+  });
+}
+
+async function requestRhetoricFromModel(model, userContent) {
+  return requestStructuredOutput({
+    model,
+    systemInstruction: RHETORIC_SYSTEM_INSTRUCTION,
+    schemaName: "rhetoric_analysis",
+    schema: rhetoricJsonSchema,
+    userContent,
+    maxOutputTokens: config.openAiRhetoricMaxOutputTokens,
+    overrides: {
+      timeoutMs: config.openAiRhetoricTimeoutMs,
+      maxAttempts: 1,
+      serviceLabel: "Hitabet analizi"
+    }
+  });
 }
 
 async function analyzeTranscriptFromText(topic, transcript, level, durationSeconds, analysisContext, expectedDurationSeconds) {
@@ -209,6 +277,120 @@ async function analyzeTranscriptFromAudio(
   } finally {
     await deleteQuietly(convertedPath);
   }
+}
+
+/**
+ * Turkish rhetoric analysis.
+ *
+ * Mirrors the English path's shape — try the audio-capable model first, fall
+ * back to transcript-only if anything about the audio attempt fails — but the
+ * stakes of that fallback are higher here. Half of what this feature measures
+ * (hesitation sounds, pause length, monotony) is inaudible in a transcript, so
+ * the result records which source it came from and the app tells the user.
+ */
+async function analyzeRhetoricFromAudio({
+  topic,
+  transcript,
+  durationSeconds,
+  targetDurationSeconds,
+  preparationNotes,
+  mode,
+  audioFilePath,
+  audioMimeType
+}) {
+  const prompt = buildRhetoricAnalysisPrompt({
+    topic,
+    transcript,
+    durationSeconds,
+    targetDurationSeconds,
+    preparationNotes,
+    mode,
+    audioAttached: true
+  });
+
+  // The app already uploads mono 16kHz WAV, so this conversion is normally a
+  // no-op; it stays for recordings that arrive in another container.
+  const alreadyWav = audioMimeType === "audio/wav" || audioMimeType === "audio/x-wav";
+  let convertedPath;
+
+  try {
+    const wavPath = alreadyWav ? audioFilePath : await convertToWav(audioFilePath);
+    convertedPath = alreadyWav ? undefined : wavPath;
+    const base64Audio = await readAsBase64(wavPath);
+
+    return await requestRhetoricFromModel(config.openAiAudioAnalysisModel, [
+      { type: "input_text", text: prompt },
+      { type: "input_audio", input_audio: { data: base64Audio, format: "wav" } }
+    ]);
+  } finally {
+    await deleteQuietly(convertedPath);
+  }
+}
+
+async function analyzeRhetoric({
+  topic,
+  transcript,
+  durationSeconds,
+  targetDurationSeconds,
+  preparationNotes = "",
+  mode = "prepared",
+  audioFilePath,
+  audioMimeType
+}) {
+  const canUseAudio = config.enableAudioAnalysis && Boolean(audioFilePath);
+  let parsed;
+  let generatedFromAudio = false;
+  let audioAttemptFailed = false;
+
+  if (canUseAudio) {
+    try {
+      parsed = await analyzeRhetoricFromAudio({
+        topic,
+        transcript,
+        durationSeconds,
+        targetDurationSeconds,
+        preparationNotes,
+        mode,
+        audioFilePath,
+        audioMimeType
+      });
+      generatedFromAudio = true;
+    } catch (error) {
+      audioAttemptFailed = true;
+      logWarn("rhetoric_audio_analysis_failed_falling_back_to_text", {
+        code: error?.code || "audio_analysis_error"
+      });
+    }
+  }
+
+  if (!parsed) {
+    parsed = await requestRhetoricFromModel(
+      config.openAiChatModel,
+      buildRhetoricAnalysisPrompt({
+        topic,
+        transcript,
+        durationSeconds,
+        targetDurationSeconds,
+        preparationNotes,
+        mode,
+        audioAttached: false
+      })
+    );
+  }
+
+  return {
+    ...parsed,
+    // Recomputed here rather than trusted from the model: these two are simple
+    // arithmetic the app already knows, and a model that guesses them wrong
+    // makes the whole metrics block look unreliable.
+    timeManagement: {
+      ...parsed.timeManagement,
+      targetSeconds: targetDurationSeconds,
+      actualSeconds: durationSeconds
+    },
+    analysisSource: generatedFromAudio ? "audio" : "transcript",
+    audioAnalysisFallback: audioAttemptFailed
+  };
 }
 
 async function analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext = null, options = {}) {
@@ -482,6 +664,7 @@ async function updateLearnerProfile({ profile, sessionSummary, topicSlug }) {
 module.exports = {
   transcribeFile,
   analyzeTranscript,
+  analyzeRhetoric,
   chatWithCoach,
   generateLessonAngles,
   generateLessonCore,

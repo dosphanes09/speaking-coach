@@ -5,6 +5,7 @@ import {
   LessonAngle
 } from "@/types/models";
 import { validateBackendBaseUrl } from "@/config/backendConfig";
+import { apiFetch } from "@/services/platform/apiClient";
 import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
 
 interface ErrorResponse {
@@ -58,7 +59,7 @@ async function postJson<T>(url: string, clientId: string, body: unknown, failure
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

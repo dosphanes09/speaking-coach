@@ -1,0 +1,332 @@
+# Hitabet Modülü — Yol Haritası
+
+Türkçe hitabet, anlatım ve sunum becerisi geliştirme modülü.
+Mevcut İngilizce konuşma pratiği altyapısının üzerine kuruluyor.
+
+---
+
+## 1. Ne yapıyoruz?
+
+**Akış:**
+
+```
+Konu verilir  →  15 dk hazırlık (AI yok, not al)  →  Kayıt (video)
+                                                          ↓
+    Puan + geri bildirim  ←  Ses analizi  ←  Ses parçası yüklenir
+                                                          ↓
+                                         Video yerelde kalır (kendini izle)
+```
+
+**Odak:** kendini ifade etme, akıcılık, dolgu sesleri ("ııı", "yani", "şey"),
+hikâye anlatıcılığı, sunum yeteneği.
+
+**Odak değil:** dil öğretimi. Türkçen zaten iyi; burada ölçtüğümüz şey dil
+bilgisi değil, **etki**.
+
+---
+
+## 2. Alınan kararlar
+
+| Konu | Karar |
+|---|---|
+| Konuşma süresi | **En fazla 5 dakika** |
+| Video | Kaydedilir, sen izlersin; **analiz sesten** yapılır |
+| Konu kaynağı | Hibrit: yerel Türkçe konu bankası + istenirse AI üretimi |
+| Hazırlık notları | Kaydedilir ve analize girdi olur |
+| Öz değerlendirme | AI puanını görmeden önce kendine puan verirsin |
+| İşaretlenmiş metin | Var — ses analizinin bulgularını metin üzerinde gösterir |
+| Doğaçlama modu | Var — 60 saniye hazırlık |
+| Aynı konuyu tekrar anlatma | Var — önce/sonra karşılaştırması |
+| Türkçe kullanımı | **Sadece bu modülde.** İngilizce modül hiç değişmiyor |
+| Arayüz dili | Hitabet modülünde **Türkçe** |
+| İlerleme ve grafikler | **Tamamen ayrı.** İngilizce puanlarıyla karışmaz |
+| Uygulama girişi | Açılışta **iki mod arasında seçim** ekranı |
+
+### Uygulama artık iki modlu
+
+Açılışta bir seçim ekranı gelir:
+
+```
+        Daily Speaking Coach
+   ┌──────────────┐  ┌──────────────┐
+   │   English    │  │   Türkçe     │
+   │   Speaking   │  │   Hitabet    │
+   └──────────────┘  └──────────────┘
+```
+
+Seçilen mod **her şeyi** belirler: hangi ekranlar açılır, arayüz hangi dilde
+olur, kayıtlar nereye yazılır, hangi grafikler gösterilir.
+
+> **Neden ayrı bir dil altyapısı (i18n) kurmuyoruz?** İki modun ekranları
+> zaten ayrı dosyalar. İngilizce ekranlar İngilizce metin, Türkçe ekranlar
+> Türkçe metin içerecek. Bir çeviri kütüphanesi eklemek, aynı ekranın iki dilde
+> görünmesi gerekiyorsa mantıklıdır — burada öyle bir ihtiyaç yok. Gereksiz
+> katman eklemek yerine her ekran kendi dilinde yazılır.
+
+Mod seçimi hatırlanır ve istediğin an değiştirebilirsin; ayrıca ayarlardan
+"her açılışta sor" davranışı kapatılabilir.
+
+---
+
+## 3. Mimari: neyi yeniden kullanıyoruz?
+
+Bu modülün büyük kısmı **zaten yazılmış durumda**. Yeni yazılacak olan,
+işin görünen ama küçük olan kısmı.
+
+| Katman | Durum |
+|---|---|
+| Kayıt alma (mikrofon/kamera) | ✅ Var — `RecordingScreen` |
+| Ses → WAV dönüşümü ve yükleme | ✅ Var — `uploadFile.web.ts` |
+| Backend'e güvenli istek (CORS köprüsü) | ✅ Var — `apiClient` |
+| Ses dosyasını modele gönderme | ✅ Var — `openaiClient.js`, `gpt-audio` |
+| Yerel kayıt saklama ve oynatma | ✅ Var — `mediaStorage` + `app://media/` |
+| Geçmiş, ilerleme grafikleri, PDF | ✅ Var |
+| Puan kalibrasyonu | ✅ Var — `scoringCalibrator.js` |
+| **Türkçe transkripsiyon** | ❌ `language: "en"` sabit kodlu |
+| **Hitabet puanlama kriterleri** | ❌ Yeni |
+| **Türkçe konu bankası** | ❌ Yeni |
+| **Hazırlık ekranı ve zamanlayıcı** | ❌ Yeni |
+| **Video + ses eşzamanlı kayıt** | ❌ Yeni |
+
+### Bulunan somut engeller
+
+**1. Transkripsiyon dili sabit kodlu.**
+`backend/src/openaiClient.js` içinde:
+```js
+formData.append("language", "en");
+```
+Türkçe kayıt bu haliyle gönderilirse model Türkçeyi İngilizce sanıp anlamsız
+bir metin üretir. Dil parametresi çağrıya göre değişebilmeli.
+
+**2. Süre limiti 120 saniye.**
+`MAX_AUDIO_DURATION_SECONDS=120`. 3–4 dakikalık konuşma buna sığmaz.
+**330 saniyeye** çıkarıldı (5 dakika + pay).
+
+> Dosya boyutu sorun değil: 16 kHz mono WAV saniyede 32 KB.
+> 5 dakika = ~9.2 MB. Sunucu limiti güvenlik payı için 12 MB'tan **16 MB'a**
+> çıkarıldı; sıfır maliyetli ve kırılgan bir sınırı ortadan kaldırıyor.
+
+**3. Günlük limit 10 analiz.**
+`MAX_DAILY_ANALYSES_PER_USER=10`, İngilizce pratikle paylaşılıyordu. Hitabet
+seansları çok daha uzun ve pahalı; tek sayaç olsaydı birkaç uzun konuşma
+günün tüm İngilizce pratiğini yiyebilirdi. Ayrı sayaç eklendi:
+`MAX_DAILY_RHETORIC_ANALYSES_PER_USER=6`.
+
+**4. Masaüstünde video kapalı.**
+Chromium video'yu WebM olarak kaydediyor, backend sadece `video/mp4` kabul
+ediyor. **Ama bu artık sorun değil:** videoyu hiç yüklemiyoruz.
+
+### Video + ses: nasıl çözülüyor
+
+Tek bir kamera+mikrofon akışından **iki ayrı kayıt** alınır:
+
+```
+getUserMedia({ video: true, audio: true })
+        |
+        ├──> MediaRecorder #1  (video + ses)  →  yerel diske  →  kendini izle
+        |
+        └──> MediaRecorder #2  (sadece ses)   →  WAV'a çevir  →  backend'e yolla
+```
+
+İkinci kayıt yalnızca ses parçasını alır (`stream.getAudioTracks()`). Böylece:
+
+- Video hiç yüklenmiyor → boyut, maliyet ve `video/mp4` sorunu ortadan kalkıyor
+- Ses zaten yazdığımız WAV dönüştürücüden geçiyor → yeni kod gerekmiyor
+- Videoyu `app://media/` üzerinden oynatabiliyoruz → zaman damgasına tıklayınca
+  o ana atlama mümkün
+
+> **Telefon tarafı:** Android'de kamera ve mikrofonu aynı anda iki ayrı
+> kaydediciye vermek Expo ile kolay değil. Hitabet modülü telefonda
+> **sadece ses** ile çalışır. Bu modülün doğal yeri zaten masaüstü.
+
+---
+
+## 4. Puanlama sistemi
+
+İngilizce modülünün kriterleri buraya uymuyor (orada dil doğruluğu ölçülüyor).
+Hitabet için ayrı bir kriter seti gerekiyor.
+
+### 4.1 Puanlanan boyutlar (model değerlendirir, 0–100)
+
+| Boyut | Ne ölçüyor |
+|---|---|
+| **İçerik ve argüman** | Konu kavranmış mı, iddia net mi, gerekçe ve örnek var mı |
+| **Yapı ve akış** | Giriş kancası, gövdenin sıralanışı, geçişler, kapanış |
+| **Akıcılık ve tempo** | Dolgu sesleri, takılmalar, duraklamaların yerinde olması |
+| **Dil ve üslup** | Kelime çeşitliliği, cümle kurulumu, klişeden kaçınma |
+| **Etki ve anlatıcılık** | Hikâye, imge, ritim, dinleyiciyle kurulan bağ |
+| **Ses kullanımı** | Tonlama, monotonluk, vurgu, hız değişimi |
+
+Son ikisi **yalnızca sesten** anlaşılır — metinden asla çıkmaz. Bu yüzden ses
+tabanlı analiz bu modülün olmazsa olmazı.
+
+### 4.2 Ölçülen sayılar (yorum değil, hesap)
+
+Bunlar modelin kanaati değil, doğrudan ölçüm. Zaman içinde karşılaştırılabilir
+oldukları için asıl gelişim göstergesi bunlar:
+
+| Ölçüm | Neden önemli |
+|---|---|
+| Konuşma hızı (kelime/dakika) | Türkçe sunumda rahat aralık ~130–160 |
+| Dolgu sözcük sayısı ve oranı | "yani, şey, hani, işte, falan, aslında" |
+| Dolgu sesi sayısı | "ııı, eee, mmm" — sadece sesten tespit edilir |
+| Duraklama sayısı ve en uzun duraklama | Etkili duraklama ile takılma farkı |
+| Sessizlik oranı | Toplam sürenin yüzde kaçı sessiz |
+| Kelime çeşitliliği | Benzersiz kelime / toplam kelime |
+| Ortalama cümle uzunluğu | Çok uzun cümle = takip edilmesi zor |
+
+> **Neden bu ayrım önemli?** Model bugün "iyi" deyip yarın aynı konuşmaya
+> "orta" diyebilir. Ama "dakikada 6 kez 'yani' dedin" tartışmaya kapalıdır.
+> Gelişimi bu sayılardan takip edeceğiz, puanlardan değil.
+
+### 4.3 Ek kıyaslamalar
+
+- **Zaman yönetimi:** hedeflenen süreye ne kadar yaklaştın
+- **Hazırlık uyumu:** notlarında planladığın başlıkların kaçını anlattın
+- **Öz değerlendirme farkı:** kendine verdiğin puan ile AI puanı arasındaki fark
+
+Sonuncusu sandığından daha değerli. Kendini sürekli olduğundan iyi görüyorsan
+farkındalık sorunu var; sürekli kötü görüyorsan özgüven sorunu var. İkisi de
+takip edilmeye değer.
+
+---
+
+## 5. Fazlar
+
+Her faz kendi başına çalışan bir şey bırakır. Yarıda kalırsa elimizde
+yarım bir şey olmaz.
+
+### Faz 0 — Motor  ✅ TAMAMLANDI
+
+Backend artık Türkçe bir ses kaydını alıp hitabet analizi döndürebiliyor.
+Arayüzde hiçbir şey değişmedi.
+
+| Dosya | Ne yapıldı |
+|---|---|
+| `src/rhetoricSchema.js` | **Yeni.** Cevap şeması: 6 puan boyutu, 9 ölçüm, işaretli segmentler |
+| `src/rhetoricPrompt.js` | **Yeni.** Türkçe koç talimatı, puan bantları, dolgu tanımları |
+| `src/openaiClient.js` | Transkripsiyon dili parametre oldu; `analyzeRhetoric()` eklendi; token kullanımı loglanıyor |
+| `src/server.js` | `/api/analyze-rhetoric` uç noktası |
+| `src/validation.js` | Süre tavanı çağrıya göre değişebiliyor; `validateRhetoricMode` |
+| `src/config.js` | 330 sn süre, 16 MB dosya, ayrı günlük kota, daha büyük token bütçesi |
+| `src/logger.js` | Token sayıları loglanabiliyor (kullanıcı içeriği hâlâ engelli) |
+| `scripts/rhetoricSelfTest.js` | **Yeni.** 19 çevrimdışı kontrol (`npm run test:rhetoric`) |
+| `scripts/rhetoricLiveTest.js` | **Yeni.** Gerçek kayıtla ölçüm betiği |
+
+**Test sırasında yakalanan gerçek hata:** `validateOptionalDurationSeconds`
+kendi içindeki çağrıya süre tavanını geçirmiyordu. Sonuç: 300 saniyelik geçerli
+bir kayıt, süresi kabul edildikten sonra *hedef süre* kontrolünde İngilizce
+modülün 120 saniyelik sınırına takılıp sebepsiz görünen bir 400 hatası
+veriyordu. Düzeltildi ve teste bağlandı.
+
+**Neden ayrı uç nokta, tek bir "dil" bayrağı değil?** İki akış arasında
+neredeyse hiçbir şey ortak değil: farklı transkripsiyon dili, farklı süre
+tavanı, farklı günlük kota, farklı rubrik, farklı cevap şeması. Bunları tek
+route içinde bayrakla ayırmak, çalışan İngilizce yolu her değişiklikte riske
+atmak demekti.
+
+> **Önemli iş akışı notu:** Uygulama yalnızca Render'daki üretim adresine
+> istek atabiliyor (`validateBackendBaseUrl` başka bir adresi reddediyor).
+> Yani Faz 0 yerelde `rhetoricLiveTest.js` ile test edilir; arayüzden
+> kullanılabilmesi için backend'in Render'a deploy edilmesi gerekir.
+
+### Faz 1 — Uçtan uca en kısa tur
+
+- **Mod seçimi altyapısı:** açılış ekranı, `AppMode` kavramı, `App.tsx`'in iki
+  ayrı ekran ağacını yönetecek şekilde bölünmesi, seçimin hatırlanması
+- Türkçe konu bankası (ilk sürüm: ~40 konu, kategorili, zorluk seviyeli)
+- Yeni akış ekranları (arayüz dili Türkçe):
+  `Konu` → `Hazırlık (15 dk + not alanı)` → `Kayıt` → `Analiz` → `Sonuç`
+- Video + ses eşzamanlı kayıt (bölüm 3'teki iki-kaydedici yöntemi)
+- Hitabet kayıtları için ayrı depo (İngilizce kayıtlarla karışmasın)
+- Backend'in Render'a deploy edilmesi
+
+> `App.tsx` şu an tek bir yönlendirme ağacı tutuyor. Mod seçimi bunu ikiye
+> ayıracağı için Faz 1'in en dikkat isteyen kısmı burası; İngilizce tarafın
+> davranışının birebir korunması gerekiyor.
+
+**Sonuç:** Özellik baştan sona çalışıyor. Bir konu alıp konuşup puan
+alabiliyorsun. Buradan sonrası derinleştirme.
+
+### Faz 2 — Geri bildirimin derinleşmesi
+
+- İşaretlenmiş konuşma metni (dolgu sesleri, uzun duraklamalar, tekrarlar)
+- Zaman damgaları → işaretli yere tıklayınca video o ana atlıyor
+- Ölçüm kartları (hız, dolgu oranı, duraklama dağılımı)
+- Hazırlık notları ile konuşmanın karşılaştırılması
+
+**Sonuç:** Geri bildirim soyut olmaktan çıkıp "şurada, şu anda, şu kelime"
+seviyesine iniyor.
+
+### Faz 3 — Öğrenme döngüsü
+
+- Öz değerlendirme (AI puanını görmeden önce kendine puan ver)
+- Aynı konuyu tekrar anlatma ve önce/sonra karşılaştırması
+- Hitabete özel, tamamen ayrı ilerleme grafikleri (ölçüm sayıları zaman içinde)
+- Tekrar eden zayıflıkların tespiti ("son 5 konuşmanın 4'ünde kapanış zayıf")
+
+**Sonuç:** Uygulama artık tek seferlik puan vermiyor, gelişimini takip ediyor.
+
+### Faz 4 — Cila
+
+- Doğaçlama modu (60 saniye hazırlık)
+- AI ile taze konu üretimi
+- Hitabet raporu PDF çıktısı
+- Konu bankasının genişletilmesi (150+ konu)
+
+---
+
+## 6. Riskler ve bilinmeyenler
+
+**Dolgu sesi tespiti ne kadar iyi çalışacak? — ÖLÇÜM HAZIR, SONUÇ BEKLENİYOR**
+`gpt-audio` sesi duyuyor ama "ııı" seslerini ne kadar tutarlı sayacağı hâlâ
+bilinmiyor. Ölçmek için betik yazıldı:
+
+```
+node scripts/rhetoricLiveTest.js --ses kayit.wav --konu "..." --beklenen-iii 12
+```
+
+Bilerek "ııı" içeren bir kayıt yapıp kaç tane söylediğini `--beklenen-iii` ile
+ver; betik modelin kaçını yakaladığını yüzdeyle raporlar.
+%80+ ise ölçüm modele bırakılabilir. %50'nin altındaysa yedek plana geçilir:
+backend'de ffmpeg zaten kurulu, sessizlik aralarındaki ses enerjisi ölçülür —
+sessiz boşluk = gerçek duraklama, sesli boşluk = dolgu sesi.
+
+**Puanlar tutarlı olacak mı?**
+Aynı konuşmayı iki kez gönderip farklı puan gelmesi olası. İngilizce
+modülündeki `scoringCalibrator.js` bu iş için yazılmış; benzerini kuracağız.
+Ayrıca bölüm 4.2'deki ölçümler zaten deterministik.
+
+**Maliyet ne olacak? — ÖLÇÜM HAZIR**
+Backend artık her model çağrısında token sayılarını logluyor. Canlı testi
+çalıştırdıktan sonra backend konsolunda `openai_usage` satırına bak:
+`input`, `output` ve ayrıca `audioInput` (ses girişi ayrı fiyatlanıyor).
+
+**Uygulama şişiyor mu?**
+Şu an 17 ekran var, bu modül 5 tane daha ekliyor. Ana ekranın kalabalıklaşmaması
+için hitabet kendi bölümü altında toplanmalı, ana ekrana tek giriş konmalı.
+
+---
+
+## 7. Sıradaki adım
+
+Faz 0 bitti. İki iş var, sırayla:
+
+**Önce sen — ölçüm (5 dakika):**
+
+1. `backend/.env` içinde `OPENAI_API_KEY` olsun
+2. Backend'i başlat: `start-backend.bat`
+3. Türkçe bir kayıt yap (bilerek birkaç "ııı" koy, kaç tane olduğunu say)
+4. Çalıştır:
+   ```
+   cd backend
+   node scripts/rhetoricLiveTest.js --ses kayit.wav --konu "Konu" --beklenen-iii 8
+   ```
+
+Bu bize üç şeyi söyleyecek: analiz gerçekten sesten mi yapıldı, dolgu sesi
+tespiti ne kadar isabetli, ve bir seans ne kadara mal oluyor.
+
+**Sonra Faz 1 —** mod seçim ekranı, Türkçe konu bankası ve hitabet akışı.
+
+Ölçüm sonucuna göre Faz 1'e girmeden önce dolgu tespitini modele bırakıp
+bırakmayacağımıza karar veririz.

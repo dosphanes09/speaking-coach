@@ -1,5 +1,6 @@
-import * as SecureStore from "expo-secure-store";
 import { validateBackendBaseUrl } from "@/config/backendConfig";
+import { apiFetch } from "@/services/platform/apiClient";
+import { deleteSecret, getSecret, setSecret } from "@/services/platform/secureStorage";
 import { getClientId } from "@/services/storage/clientIdentity";
 
 const ACCESS_TOKEN_KEY = "daily-speaking-coach.access-token.v1";
@@ -18,7 +19,7 @@ export interface DeviceActivationResult {
 }
 
 export async function getDeviceAccessToken(): Promise<string> {
-  return (await SecureStore.getItemAsync(ACCESS_TOKEN_KEY))?.trim() ?? "";
+  return getSecret(ACCESS_TOKEN_KEY);
 }
 
 export async function isDeviceActivated(): Promise<boolean> {
@@ -35,7 +36,7 @@ export async function activateDevice(backendBaseUrl: string, inviteCode: string)
   const clientId = await getClientId();
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/auth/register`, {
+    response = await apiFetch(`${baseUrl}/api/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -60,7 +61,7 @@ export async function activateDevice(backendBaseUrl: string, inviteCode: string)
     throw new Error("Activation service returned an invalid response.");
   }
 
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+  await setSecret(ACCESS_TOKEN_KEY, token);
   return { expiresAt };
 }
 
@@ -73,7 +74,7 @@ export async function deactivateDevice(backendBaseUrl: string): Promise<void> {
   const baseUrl = validateBackendBaseUrl(backendBaseUrl);
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/auth/revoke`, {
+    response = await apiFetch(`${baseUrl}/api/auth/revoke`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`
@@ -87,9 +88,9 @@ export async function deactivateDevice(backendBaseUrl: string): Promise<void> {
     throw new Error("Device authorization could not be removed.");
   }
 
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+  await deleteSecret(ACCESS_TOKEN_KEY);
 }
 
 export async function clearDeviceActivation(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+  await deleteSecret(ACCESS_TOKEN_KEY);
 }

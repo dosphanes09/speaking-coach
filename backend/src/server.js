@@ -16,6 +16,7 @@ const {
   validateLevel,
   validateOptionalDurationSeconds,
   validateOptionalTextField,
+  validateRhetoricMode,
   validateTextField,
   validateUploadMetadata,
   validateUploadedFile,
@@ -31,6 +32,7 @@ const {
   analyzeTranscript,
   chatWithCoach,
   transcribeFile,
+  analyzeRhetoric,
   generateLessonAngles,
   generateLessonCore,
   generateLessonPractice,
@@ -276,6 +278,74 @@ app.post("/api/analyze-speech", analysisAuthentication, upload.single("file"), a
 
     const analysis = await analyzeTranscript(topic, transcript, level, durationSeconds, analysisContext, {
       expectedDurationSeconds,
+      audioFilePath: req.file.path,
+      audioMimeType: fileInfo.mimeType
+    });
+
+    res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+    res.json({
+      transcript,
+      analysis
+    });
+  } catch (error) {
+    next(error);
+  } finally {
+    if (filePath) {
+      fs.unlink(filePath).catch(() => undefined);
+    }
+  }
+});
+
+/**
+ * Turkish rhetoric practice.
+ *
+ * Deliberately a separate endpoint rather than a flag on /api/analyze-speech.
+ * Almost nothing is shared: a different language for transcription, a different
+ * duration ceiling, a different daily quota, a different rubric and a different
+ * response schema. Folding all of that into the English route would have meant
+ * branching on a mode flag in a dozen places and risking the working English
+ * path every time this one changes.
+ */
+app.post("/api/analyze-rhetoric", analysisAuthentication, upload.single("file"), async (req, res, next) => {
+  const filePath = req.file?.path;
+
+  try {
+    const topic = validateTextField(req.body.topic, "topic", 300);
+    const mode = validateRhetoricMode(req.body.mode);
+    const durationSeconds = validateDurationSeconds(req.body.durationSeconds, config.maxRhetoricDurationSeconds);
+    const targetDurationSeconds = validateOptionalDurationSeconds(
+      req.body.targetDurationSeconds,
+      durationSeconds,
+      config.maxRhetoricDurationSeconds
+    );
+    // The notes written during the preparation window. Optional: impromptu
+    // practice has none, and a prepared session may simply not have used them.
+    const preparationNotes = validateOptionalTextField(req.body.preparationNotes, "preparationNotes", 4000);
+
+    const fileInfo = await validateUploadedFile(req.file, config.maxRhetoricDurationSeconds);
+    const dailyLimit = await assertDailyLimit(req, config.maxDailyRhetoricAnalysesPerUser, "rhetoric");
+
+    const transcript = await transcribeFile(
+      req.file.path,
+      fileInfo.mimeType,
+      `hitabet-pratigi${fileInfo.extension}`,
+      "tr",
+      // Five minutes of audio does not transcribe inside the 30 second budget
+      // the one-minute English drills were sized for.
+      { timeoutMs: config.openAiRhetoricTimeoutMs, maxAttempts: 1, serviceLabel: "Hitabet analizi" }
+    );
+
+    // Unlike the English route an empty transcript is not fatal here: the audio
+    // model listens to the recording itself and can still analyse delivery.
+    // Only a completely unusable recording should fail, and the duration and
+    // size checks above already caught that.
+    const analysis = await analyzeRhetoric({
+      topic,
+      transcript,
+      durationSeconds,
+      targetDurationSeconds,
+      preparationNotes,
+      mode,
       audioFilePath: req.file.path,
       audioMimeType: fileInfo.mimeType
     });

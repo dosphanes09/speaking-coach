@@ -50,8 +50,129 @@ import { AppBottomBar } from "@/components/AppBottomBar";
 import { syncStreakReminder } from "@/services/notifications/streakReminderService";
 import { calculateStreak } from "@/services/streak/streakService";
 import { getRecommendedRecordingSeconds } from "@/utils/practiceTiming";
+import { ModeSelectScreen } from "@/screens/ModeSelectScreen";
+import { RhetoricApp } from "@/RhetoricApp";
+import {
+  AppMode,
+  loadAppModePreference,
+  saveAskEveryTime,
+  saveLastAppMode
+} from "@/services/storage/appModeRepository";
+import { listRhetoricRecords } from "@/services/storage/rhetoricRepository";
 
+/**
+ * The app entry point: a picker in front of two independent modules.
+ *
+ * English Speaking and Türkçe Hitabet share a codebase and nothing else — a
+ * different language, rubric, record type and set of charts each. Choosing at
+ * the door keeps that separation honest instead of hiding one module inside the
+ * other's menus, and the choice is remembered so it stays a single tap.
+ *
+ * Theme is resolved here as well as inside each module: the picker itself has
+ * to be drawn before either module has loaded anything.
+ */
 export default function App(): React.JSX.Element {
+  const [mode, setMode] = useState<AppMode | null>(null);
+  const [lastMode, setLastMode] = useState<AppMode | null>(null);
+  const [askEveryTime, setAskEveryTime] = useState(true);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(defaultSettings.themeMode);
+  const [englishCount, setEnglishCount] = useState(0);
+  const [rhetoricCount, setRhetoricCount] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      // Failures here are cosmetic: a missing preference just means the picker
+      // shows with default styling, which is a fine place to start.
+      const [preference, settings, englishRecords, rhetoricRecords] = await Promise.all([
+        loadAppModePreference().catch(() => ({ lastMode: null, askEveryTime: true })),
+        loadSettings().catch(() => defaultSettings),
+        listRecords().catch(() => []),
+        listRhetoricRecords().catch(() => [])
+      ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      setThemeMode(settings.themeMode);
+      setAskEveryTime(preference.askEveryTime);
+      setLastMode(preference.lastMode);
+      setEnglishCount(englishRecords.length);
+      setRhetoricCount(rhetoricRecords.length);
+      if (!preference.askEveryTime && preference.lastMode) {
+        setMode(preference.lastMode);
+      }
+      setIsReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function chooseMode(nextMode: AppMode): void {
+    setMode(nextMode);
+    setLastMode(nextMode);
+    void saveLastAppMode(nextMode);
+  }
+
+  function switchModule(): void {
+    setMode(null);
+    // Counts are refreshed on the way back so the picker does not show numbers
+    // from before this session's practice.
+    void listRecords()
+      .then((records) => setEnglishCount(records.length))
+      .catch(() => undefined);
+    void listRhetoricRecords()
+      .then((records) => setRhetoricCount(records.length))
+      .catch(() => undefined);
+  }
+
+  if (mode === "english") {
+    return <EnglishApp onSwitchModule={switchModule} />;
+  }
+
+  const themeColors = getThemeColors(themeMode);
+  const statusBarStyle = themeMode === "light" ? "dark" : "light";
+
+  return (
+    <ThemeProvider mode={themeMode}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
+        <StatusBar style={statusBarStyle} hidden={Platform.OS === "android"} />
+        <View style={styles.content}>
+          {!isReady ? (
+            <View style={styles.loadingScreen}>
+              <Text style={[styles.loadingText, { color: themeColors.ink }]}>Yükleniyor…</Text>
+            </View>
+          ) : mode === "rhetoric" ? (
+            <RhetoricApp onSwitchModule={switchModule} />
+          ) : (
+            <ModeSelectScreen
+              lastMode={lastMode}
+              askEveryTime={askEveryTime}
+              englishSessionCount={englishCount}
+              rhetoricSessionCount={rhetoricCount}
+              onSelect={chooseMode}
+              onToggleAskEveryTime={(next) => {
+                setAskEveryTime(next);
+                void saveAskEveryTime(next);
+              }}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    </ThemeProvider>
+  );
+}
+
+interface EnglishAppProps {
+  onSwitchModule: () => void;
+}
+
+function EnglishApp({ onSwitchModule }: EnglishAppProps): React.JSX.Element {
   const [route, setRoute] = useState<AppRoute>({ name: "home" });
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [records, setRecords] = useState<SpeakingRecord[]>([]);
@@ -442,6 +563,7 @@ export default function App(): React.JSX.Element {
           onBack={goBack}
           onHome={() => setRoute({ name: "home" })}
           onSettings={() => setRoute({ name: "settings" })}
+          onSwitchModule={onSwitchModule}
         />
       </SafeAreaView>
     </ThemeProvider>

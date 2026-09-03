@@ -11,6 +11,8 @@ interface AppBottomBarProps {
   onBack: () => void;
   onHome: () => void;
   onSettings: () => void;
+  /** Returns to the launch picker. Omitted when there is nothing to switch to. */
+  onSwitchModule?: () => void;
 }
 
 /**
@@ -20,7 +22,14 @@ interface AppBottomBarProps {
  * always visible and always in the same place regardless of what the OS UI
  * does.
  */
-export function AppBottomBar({ canGoBack, isHome, onBack, onHome, onSettings }: AppBottomBarProps): React.JSX.Element {
+export function AppBottomBar({
+  canGoBack,
+  isHome,
+  onBack,
+  onHome,
+  onSettings,
+  onSwitchModule
+}: AppBottomBarProps): React.JSX.Element {
   const colors = useThemeColors();
 
   return (
@@ -42,6 +51,7 @@ export function AppBottomBar({ canGoBack, isHome, onBack, onHome, onSettings }: 
         label="Settings"
         onPress={onSettings}
       />
+      {onSwitchModule ? <BarButton icon="repeat" label="Module" onPress={onSwitchModule} /> : null}
     </View>
   );
 }

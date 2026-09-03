@@ -157,3 +157,52 @@ If the Render URL changes, update both EAS variables and create a new APK becaus
 - To revoke a lost phone manually, remove its `auth:subject:*` key in Upstash.
 - Rotating `AUTH_TOKEN_SECRET` invalidates every existing token.
 - Updating `APP_INVITE_CODES` changes which new devices can enroll.
+
+## 8. Turkish rhetoric module (`/api/analyze-rhetoric`)
+
+The rhetoric module reuses the same Render service. Deploying it is an ordinary
+push — Render rebuilds from the connected GitHub repository — but it needs
+settings the English module never did.
+
+### Settings this module depends on
+
+All of these are declared in `render.yaml`, so a Blueprint deploy applies them
+automatically. If the service was created as a plain Web Service rather than
+from the Blueprint, set them by hand in **Environment**:
+
+| Variable | Value | Why |
+|---|---|---|
+| `MAX_FILE_SIZE_BYTES` | `16777216` | A five minute recording uploads as a ~9.2 MB WAV. The old 12 MB cap left too little room. |
+| `MAX_RHETORIC_DURATION_SECONDS` | `330` | Five minutes plus headroom. English drills keep their own 120 second limit. |
+| `MAX_DAILY_RHETORIC_ANALYSES_PER_USER` | `6` | A separate counter, so long speeches cannot eat the day's English practice. |
+| `OPENAI_RHETORIC_TIMEOUT_MS` | `150000` | **Required.** Five minutes of audio does not analyse inside the 30 second budget the English clips use. |
+| `OPENAI_RHETORIC_MAX_OUTPUT_TOKENS` | `12000` | The reply carries a fully segmented transcript. |
+| `ENABLE_AUDIO_ANALYSIS` | `true` | Hesitation sounds, pauses and monotony are inaudible in a transcript. |
+| `OPENAI_AUDIO_ANALYSIS_MODEL` | `gpt-audio` | The model that actually listens to the recording. |
+
+### Verifying after deploy
+
+```bat
+curl.exe https://daily-speaking-coach.onrender.com/health
+```
+
+Then send a real recording through the endpoint and read the numbers:
+
+```bat
+cd /d "C:\Projects with Claude\English-Speaking\backend"
+node scripts\rhetoricLiveTest.js --ses kayit.wav --konu "Konu" --url https://daily-speaking-coach.onrender.com --beklenen-iii 8
+```
+
+The script reports whether the analysis came from the audio or fell back to the
+transcript, how many hesitation sounds the model caught against how many you
+actually made, and the timing. Token counts for cost appear in the Render logs
+as `openai_usage` lines.
+
+### If a five minute analysis fails with a gateway timeout
+
+The request can legitimately run for over a minute, and hosting platforms cut
+long requests at their own limits regardless of the app's timeout. If short
+recordings analyse fine but long ones fail with a 502/504 from Render rather
+than from the app, the fix is to make the endpoint asynchronous — accept the
+upload, return a job id, and let the app poll — rather than to raise the
+timeout further.

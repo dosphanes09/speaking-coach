@@ -71,8 +71,14 @@ const config = {
   // lower makes every day's lesson read the same, higher breaks level calibration.
   openAiLessonTemperature: readOptionalNumber("OPENAI_LESSON_TEMPERATURE"),
   openAiTimeoutMs: readNumber("OPENAI_TIMEOUT_MS", 30000),
+  // A one-minute English clip is analysed well inside 30 seconds. A five-minute
+  // Turkish speech is a different job: the audio alone is ~5x longer, and the
+  // reply carries a fully segmented transcript. Sharing the 30 second budget
+  // would have made every rhetoric analysis time out.
+  openAiRhetoricTimeoutMs: readNumber("OPENAI_RHETORIC_TIMEOUT_MS", 150000),
   openAiMaxRetries: Math.min(readNumber("OPENAI_MAX_RETRIES", 1), 2),
   openAiMaxOutputTokens: readNumber("OPENAI_MAX_OUTPUT_TOKENS", 8000),
+  openAiRhetoricMaxOutputTokens: readNumber("OPENAI_RHETORIC_MAX_OUTPUT_TOKENS", 12000),
   openAiChatMaxOutputTokens: readNumber("OPENAI_CHAT_MAX_OUTPUT_TOKENS", 700),
   allowedOrigins: readOrigins(),
   requireHttps: readBoolean("REQUIRE_HTTPS", false),
@@ -84,9 +90,19 @@ const config = {
   appInviteCodes: readList("APP_INVITE_CODES"),
   upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL || "",
   upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-  maxFileSizeBytes: readNumber("MAX_FILE_SIZE_BYTES", 12 * 1024 * 1024),
+  maxFileSizeBytes: readNumber("MAX_FILE_SIZE_BYTES", 16 * 1024 * 1024),
   maxAudioDurationSeconds: readNumber("MAX_AUDIO_DURATION_SECONDS", 120),
+  // Turkish rhetoric practice is a 3-5 minute speech, not a one-minute drill,
+  // so it gets its own ceiling instead of loosening the English one. 330s
+  // leaves a little headroom above the 5 minute cap the app enforces.
+  // Size check: mono 16kHz 16-bit WAV is 32 KB/s, so 330s is about 10.1 MB,
+  // which still fits under maxFileSizeBytes.
+  maxRhetoricDurationSeconds: readNumber("MAX_RHETORIC_DURATION_SECONDS", 330),
   maxDailyAnalysesPerUser: readNumber("MAX_DAILY_ANALYSES_PER_USER", 10),
+  // Counted separately from English analyses: a rhetoric session sends several
+  // times more audio, so one shared counter would let a few long speeches eat
+  // the whole day's English practice.
+  maxDailyRhetoricAnalysesPerUser: readNumber("MAX_DAILY_RHETORIC_ANALYSES_PER_USER", 6),
   maxDailyChatMessagesPerUser: readNumber("MAX_DAILY_CHAT_MESSAGES_PER_USER", 60),
   // One lesson a day is the product; the extra headroom covers a learner who regenerates
   // because the topic missed, plus the odd failed attempt.

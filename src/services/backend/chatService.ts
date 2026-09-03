@@ -1,5 +1,6 @@
 import { ChatMessage, TopicLevel } from "@/types/models";
 import { validateBackendBaseUrl } from "@/config/backendConfig";
+import { apiFetch } from "@/services/platform/apiClient";
 import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
 
 interface ChatWithCoachParams {
@@ -39,7 +40,7 @@ export async function chatWithBackendCoach({
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/chat`, {
+    response = await apiFetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,6 +1,3 @@
-import * as FileSystem from "expo-file-system/legacy";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 import {
   AnalysisResult,
   DailyStudyPlan,
@@ -8,6 +5,12 @@ import {
   Topic
 } from "@/types/models";
 import { NormalizedSpeakingScores, normalizeScores } from "@/services/progress/scoreUtils";
+import {
+  deleteDocument,
+  documentExists,
+  savePdfFromHtml,
+  sharePdf
+} from "@/services/platform/documentStore";
 
 interface SpeakingReportPdfInput {
   topic: Topic;
@@ -21,9 +24,11 @@ const REPORT_OWNER_NAME = "Daily Speaking Coach";
 
 export async function createSpeakingReportPdf(input: SpeakingReportPdfInput): Promise<string> {
   const html = buildSpeakingReportHtml(input);
-  const { uri } = await Print.printToFileAsync({ html });
+  const fileName = buildReportFileName(input.topic.title);
+  const subfolder = `speaking-reports/${input.recordId ? `${input.recordId}/` : ""}`;
+  const saved = await savePdfFromHtml(html, fileName, subfolder);
 
-  return copyPdfToNamedFile(uri, input.topic.title, input.recordId);
+  return saved.uri;
 }
 
 export async function createAndShareSpeakingReportPdf(input: SpeakingReportPdfInput): Promise<string> {
@@ -34,17 +39,7 @@ export async function createAndShareSpeakingReportPdf(input: SpeakingReportPdfIn
 }
 
 export async function shareSpeakingReportPdf(reportUri: string): Promise<void> {
-  const canShare = await Sharing.isAvailableAsync();
-
-  if (!canShare) {
-    throw new Error("PDF sharing is not available on this device.");
-  }
-
-  await Sharing.shareAsync(reportUri, {
-    dialogTitle: "Speaking Feedback Report",
-    mimeType: "application/pdf",
-    UTI: "com.adobe.pdf"
-  });
+  await sharePdf(reportUri, "Speaking Feedback Report");
 }
 
 export async function isSpeakingReportPdfAvailable(reportUri?: string): Promise<boolean> {
@@ -52,8 +47,7 @@ export async function isSpeakingReportPdfAvailable(reportUri?: string): Promise<
     return false;
   }
 
-  const info = await FileSystem.getInfoAsync(reportUri);
-  return info.exists;
+  return documentExists(reportUri);
 }
 
 export async function deleteSpeakingReportPdf(reportUri?: string): Promise<void> {
@@ -61,34 +55,7 @@ export async function deleteSpeakingReportPdf(reportUri?: string): Promise<void>
     return;
   }
 
-  await FileSystem.deleteAsync(reportUri, { idempotent: true });
-}
-
-async function copyPdfToNamedFile(sourceUri: string, topicTitle: string, recordId?: string): Promise<string> {
-  const baseDirectory = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
-
-  if (!baseDirectory) {
-    return sourceUri;
-  }
-
-  const reportsDirectory = `${baseDirectory}speaking-reports/${recordId ? `${recordId}/` : ""}`;
-  const directoryInfo = await FileSystem.getInfoAsync(reportsDirectory);
-
-  if (!directoryInfo.exists) {
-    await FileSystem.makeDirectoryAsync(reportsDirectory, { intermediates: true });
-  }
-
-  const fileName = buildReportFileName(topicTitle);
-  const targetUri = `${reportsDirectory}${fileName}`;
-  const existingFile = await FileSystem.getInfoAsync(targetUri);
-
-  if (existingFile.exists) {
-    await FileSystem.deleteAsync(targetUri, { idempotent: true });
-  }
-
-  await FileSystem.copyAsync({ from: sourceUri, to: targetUri });
-
-  return targetUri;
+  await deleteDocument(reportUri);
 }
 
 function buildReportFileName(topicTitle: string): string {

@@ -9,6 +9,8 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   onBack?: () => void;
+  /** Text on the back button. The rhetoric module's UI is Turkish. */
+  backLabel?: string;
   rightLabel?: string;
   rightIcon?: IconName;
   onRightPress?: () => void;
@@ -18,6 +20,7 @@ export function Header({
   title,
   subtitle,
   onBack,
+  backLabel = "Back",
   rightLabel,
   rightIcon,
   onRightPress
@@ -33,13 +36,13 @@ export function Header({
         {onBack ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={backLabel}
             onPress={onBack}
             hitSlop={4}
             style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
           >
             <Icon name="chevron-left" size={18} color={colors.primaryDark} />
-            <Text style={styles.navText}>Back</Text>
+            <Text style={styles.navText}>{backLabel}</Text>
           </Pressable>
         ) : (
           <View style={styles.navPlaceholder} />

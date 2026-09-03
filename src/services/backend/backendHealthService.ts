@@ -1,4 +1,5 @@
 import { validateBackendBaseUrl } from "@/config/backendConfig";
+import { apiFetch } from "@/services/platform/apiClient";
 
 interface HealthResponse {
   ok?: boolean;
@@ -21,7 +22,7 @@ export async function testBackendConnection(backendBaseUrl: string): Promise<Bac
   const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
-    const response = await fetch(`${baseUrl}/health`, {
+    const response = await apiFetch(`${baseUrl}/health`, {
       method: "GET",
       signal: controller.signal
     });

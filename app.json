@@ -32,7 +32,7 @@
     },
     "android": {
       "package": "com.yagiz.dailyspeakingcoach.render",
-      "versionCode": 20,
+      "versionCode": 21,
       "allowBackup": false,
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
@@ -49,6 +49,10 @@
         "projectId": "46dada26-4a1e-4c13-8dd9-c49b68bd9ceb"
       }
     },
-    "owner": "dosphanes"
+    "owner": "dosphanes",
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
   }
 }
