@@ -57,6 +57,9 @@ services:
       # budget the one-minute English clips were sized for.
       - key: OPENAI_RHETORIC_TIMEOUT_MS
         value: "150000"
+      # The listening step writes a full transcript plus timestamped notes.
+      - key: OPENAI_AUDIO_OBSERVATION_MAX_TOKENS
+        value: "8000"
       # Hesitation sounds, pauses and monotony are inaudible in a transcript;
       # without audio analysis the rhetoric module loses its main measurements.
       - key: ENABLE_AUDIO_ANALYSIS

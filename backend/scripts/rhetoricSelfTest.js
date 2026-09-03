@@ -16,6 +16,8 @@
  */
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 
 /** HttpError carries its machine-readable reason on `.code`, not in the text. */
 function throwsCode(fn, expectedCode) {
@@ -26,7 +28,12 @@ function throwsCode(fn, expectedCode) {
 }
 
 const { rhetoricJsonSchema, segmentKinds } = require("../src/rhetoricSchema");
-const { RHETORIC_SYSTEM_INSTRUCTION, buildRhetoricAnalysisPrompt } = require("../src/rhetoricPrompt");
+const {
+  RHETORIC_SYSTEM_INSTRUCTION,
+  AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+  buildAudioObservationPrompt,
+  buildRhetoricAnalysisPrompt
+} = require("../src/rhetoricPrompt");
 const { validateRhetoricMode, validateDurationSeconds } = require("../src/validation");
 const { config } = require("../src/config");
 
@@ -163,7 +170,7 @@ function buildSample(overrides = {}) {
     targetDurationSeconds: 240,
     preparationNotes: "1) Tanım 2) Örnek 3) Karşı görüş 4) Kapanış",
     mode: "prepared",
-    audioAttached: true,
+    audioObservation: "DÖKÜM:\nörnek\n\nDOLGU SESLERİ:\n- 0:12 ııı",
     ...overrides
   });
 }
@@ -182,15 +189,27 @@ check("prompt carries the topic, duration and preparation notes", () => {
   assert.match(prompt, /Karşı görüş/);
 });
 
-check("audio and transcript-only prompts give different instructions", () => {
-  const withAudio = buildSample({ audioAttached: true });
-  const withoutAudio = buildSample({ audioAttached: false });
+check("listening report and transcript-only prompts differ", () => {
+  const withAudio = buildSample();
+  const withoutAudio = buildSample({ audioObservation: "" });
 
   assert.notEqual(withAudio, withoutAudio);
-  // With audio the model is told the recording overrides the transcript.
-  assert.match(withAudio, /ASIL KAYNAK ODUR/);
-  // Without it, the model must not invent measurements it cannot hear.
+  // With a report the model is told it, not the transcript, is authoritative.
+  assert.match(withAudio, /ASIL KAYNAKTIR/);
+  assert.match(withAudio, /DİNLEME TUTANAĞI/);
+  // Without one, the model must not invent measurements nobody heard.
   assert.match(withoutAudio, /Olmayan bir şeyi ölçmüş gibi yapma/);
+});
+
+check("the listening report is carried into the analysis prompt", () => {
+  const prompt = buildSample({ audioObservation: "DOLGU SESLERİ:\n- 1:23 ııı\n- 2:05 eee" });
+  assert.match(prompt, /1:23 ııı/);
+  assert.match(prompt, /2:05 eee/);
+});
+
+check("timestamps are explained so segments can be built from them", () => {
+  // The whole click-to-play feature depends on d:ss becoming seconds.
+  assert.match(buildSample(), /2:14 -> 134/);
 });
 
 check("missing preparation notes are stated, not invented", () => {
@@ -218,6 +237,96 @@ check("scoring bands are anchored so scores mean the same thing twice", () => {
   const prompt = buildSample();
   assert.match(prompt, /90-100/);
   assert.match(prompt, /Şişirilmiş puan/);
+});
+
+/* ------------------------------------------------------------------ *
+ * The API-shape bug this module was built around
+ * ------------------------------------------------------------------ */
+
+console.log("Audio call shape");
+
+check("audio is only ever sent to Chat Completions, never to Responses", () => {
+  // The original code sent `input_audio` to /v1/responses and asked for JSON
+  // back. Verified against the live API, that is impossible with this model:
+  // Responses answers "Audio input is not available", and Chat Completions
+  // rejects `response_format` outright. The result was that audio analysis
+  // failed on EVERY request and silently degraded to transcript-only for
+  // months, in both modules.
+  //
+  // Reading the source is the only way to guard this without a network call,
+  // and it is worth guarding: the failure mode is silent by design.
+  const source = fs.readFileSync(path.join(__dirname, "..", "src", "openaiClient.js"), "utf8");
+
+  const endpointPattern = /https:\/\/api\.openai\.com\/v1\/[a-z/]+/g;
+  const endpoints = [...source.matchAll(endpointPattern)].map((match) => ({
+    index: match.index ?? 0,
+    url: match[0]
+  }));
+
+  const audioUses = [...source.matchAll(/input_audio/g)].map((match) => match.index ?? 0);
+  assert.ok(audioUses.length > 0, "no audio call found at all — did the feature get removed?");
+
+  for (const position of audioUses) {
+    const nearest = endpoints.filter((endpoint) => endpoint.index < position).pop();
+    assert.ok(nearest, "audio used outside any API call");
+    assert.equal(
+      nearest.url,
+      "https://api.openai.com/v1/chat/completions",
+      `audio sent to ${nearest.url} — this model only accepts audio on Chat Completions`
+    );
+  }
+});
+
+check("the listening step never asks the audio model for JSON", () => {
+  // response_format is rejected by this model in both strict and loose form.
+  const source = fs.readFileSync(path.join(__dirname, "..", "src", "openaiClient.js"), "utf8");
+  const chatCallStart = source.indexOf("https://api.openai.com/v1/chat/completions");
+  const chatCallEnd = source.indexOf("https://api.openai.com", chatCallStart + 10);
+  const chatCallBody = source.slice(chatCallStart, chatCallEnd === -1 ? undefined : chatCallEnd);
+
+  assert.ok(
+    !chatCallBody.includes("response_format"),
+    "the audio call sets response_format, which this model rejects"
+  );
+});
+
+/* ------------------------------------------------------------------ *
+ * Listening step
+ * ------------------------------------------------------------------ */
+
+console.log("Listening step");
+
+check("listening instruction asks for observation, not judgement", () => {
+  // If this step starts scoring, the two-step split collapses: the text model
+  // would then be grading a grade instead of reading evidence.
+  assert.match(AUDIO_OBSERVATION_SYSTEM_INSTRUCTION, /Yorum yapmaz, puan vermez/);
+});
+
+check("listening prompt requests every audible-only measurement", () => {
+  const prompt = buildAudioObservationPrompt({ durationSeconds: 240 });
+  for (const heading of [
+    "DÖKÜM:",
+    "DOLGU SESLERİ:",
+    "DOLGU KELİMELERİ:",
+    "DURAKLAMALAR:",
+    "TEKRARLAR:",
+    "GÜÇLÜ ANLAR:",
+    "SES KULLANIMI:",
+    "SAYILAR:"
+  ]) {
+    assert.ok(prompt.includes(heading), `listening prompt is missing "${heading}"`);
+  }
+  assert.match(prompt, /240 saniye/);
+});
+
+check("listening prompt forbids cleaning up hesitations", () => {
+  // A transcriber's instinct is to tidy these away, which would delete the
+  // single measurement this whole feature exists for.
+  assert.match(buildAudioObservationPrompt({ durationSeconds: 60 }), /tereddütleri temizleme/);
+});
+
+check("listening prompt keeps the filler/connective distinction", () => {
+  assert.match(buildAudioObservationPrompt({ durationSeconds: 60 }), /dolgu DEĞİLDİR/);
 });
 
 /* ------------------------------------------------------------------ *
@@ -280,6 +389,10 @@ check("rhetoric gets a far longer request timeout than English drills", () => {
 check("rhetoric responses get a larger token budget than English ones", () => {
   // The response carries a fully segmented transcript, so it is much longer.
   assert.ok(config.openAiRhetoricMaxOutputTokens > config.openAiMaxOutputTokens);
+});
+
+check("the listening step has room for a full transcript", () => {
+  assert.ok(config.openAiAudioObservationMaxTokens >= 4000);
 });
 
 console.log(`\n${checks} checks passed.`);

@@ -13,7 +13,8 @@
     "test:security": "node scripts/securitySelfTest.js",
     "test:scoring": "node scripts/scoringSelfTest.js",
     "test:lesson": "node scripts/lessonSelfTest.js",
-    "test:rhetoric": "node scripts/rhetoricSelfTest.js"
+    "test:rhetoric": "node scripts/rhetoricSelfTest.js",
+    "diagnose:audio": "node scripts/audioAnalysisDiagnostic.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

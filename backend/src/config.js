@@ -79,6 +79,9 @@ const config = {
   openAiMaxRetries: Math.min(readNumber("OPENAI_MAX_RETRIES", 1), 2),
   openAiMaxOutputTokens: readNumber("OPENAI_MAX_OUTPUT_TOKENS", 8000),
   openAiRhetoricMaxOutputTokens: readNumber("OPENAI_RHETORIC_MAX_OUTPUT_TOKENS", 12000),
+  // The listening step writes a full transcript plus timestamped observations,
+  // so it needs room comparable to the analysis itself.
+  openAiAudioObservationMaxTokens: readNumber("OPENAI_AUDIO_OBSERVATION_MAX_TOKENS", 8000),
   openAiChatMaxOutputTokens: readNumber("OPENAI_CHAT_MAX_OUTPUT_TOKENS", 700),
   allowedOrigins: readOrigins(),
   requireHttps: readBoolean("REQUIRE_HTTPS", false),

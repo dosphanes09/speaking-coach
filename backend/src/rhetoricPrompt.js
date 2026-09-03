@@ -86,6 +86,74 @@ const HONESTY_RULES = `GERİ BİLDİRİM KURALLARI:
 - nextSessionFocus en fazla 3 madde olsun ve improvements ile tutarlı olsun.
 - summary 2-3 cümle: bu konuşmanın karakteri ve tek cümlelik ana mesaj.`;
 
+/* ------------------------------------------------------------------ *
+ * Step 1: listening
+ * ------------------------------------------------------------------ */
+
+/**
+ * The audio model cannot return JSON — it rejects `response_format` entirely —
+ * so it is asked for a fixed plain-text report instead. This is not a
+ * workaround with a cost: it splits the job along the line each model is
+ * actually good at. The audio model does perception (what was heard, and
+ * when), and a text model does the judging and structuring afterwards.
+ *
+ * The layout below is deliberately rigid. The second step reads it, so
+ * headings that drift would quietly lose whole categories of measurement.
+ */
+const AUDIO_OBSERVATION_SYSTEM_INSTRUCTION =
+  "Sen bir konuşma kaydını dikkatle dinleyip duyduklarını eksiksiz not eden bir asistansın. " +
+  "Yorum yapmaz, puan vermez, sadece duyduğunu kaydedersin. Türkçe yazarsın.";
+
+function buildAudioObservationPrompt({ durationSeconds }) {
+  return `Ekteki Türkçe konuşma kaydını dinle ve duyduklarını aşağıdaki BAŞLIKLARIN
+AYNISINI kullanarak yaz. Kayıt ${durationSeconds} saniye sürüyor.
+
+Bu bir değerlendirme değil, bir tutanak. Puan verme, yorum yapma, tavsiye verme.
+Sadece duyduğunu kaydet. Bir sonraki adımda başka bir model bu tutanağı
+kullanacak, o yüzden eksiksiz ve dürüst ol.
+
+Zaman damgalarını d:ss biçiminde ver (örn. 2:14).
+
+DÖKÜM:
+Konuşmanın tam metni. ÖNEMLİ: tereddütleri temizleme. "ııı", "eee" gibi
+sesleri duyduğun yere olduğu gibi yaz. Duraklamaları [1.8 sn] gibi belirt.
+
+DOLGU SESLERİ:
+Anlamı olmayan her tereddüt sesi için bir satır: "- 0:12 ııı"
+Hiç yoksa "- yok" yaz. Tahmin etme, saydığın kadarını yaz.
+
+DOLGU KELİMELERİ:
+Cümleye anlam katmayan, boşluk dolduran kelimeler: yani, şey, hani, işte,
+falan, aslında, böyle, ya. Her biri için: "- 1:03 yani"
+DİKKAT: Bu kelimeler her zaman dolgu değildir. "Yani şunu demek istiyorum:"
+bir bağlaçtır, dolgu DEĞİLDİR — onu yazma. Sadece boşluk doldurduğu yerleri yaz.
+Hiç yoksa "- yok" yaz.
+
+DURAKLAMALAR:
+0.8 saniyeden uzun her sessizlik: "- 2:14 4.2 sn (cümle ortasında)"
+Parantez içinde nerede olduğunu belirt: cümle arasında mı, cümle ortasında mı.
+Hiç yoksa "- yok" yaz.
+
+TEKRARLAR:
+Fazla yaslanılan kelime veya kalıplar: "- 'şunu görüyoruz ki' x4 (0:30, 1:10, 2:00, 3:12)"
+Hiç yoksa "- yok" yaz.
+
+GÜÇLÜ ANLAR:
+Anlatımın gerçekten etkili olduğu yerler: "- 1:40 sesini alçaltıp vurgu yaptı"
+Hiç yoksa "- yok" yaz.
+
+SES KULLANIMI:
+tempo: (hızlı/yavaş/dengeli, değişiyor mu)
+tonlama: (monoton mu, iniş çıkış var mı)
+diksiyon: (heceler net mi, yutulan sesler var mı)
+enerji: (canlı mı, düşük mü, ikna edici mi)
+
+SAYILAR:
+toplam kelime: (yaklaşık)
+konuşulan süre: (saniye)
+tahmini sessizlik oranı: (yüzde)`;
+}
+
 function describeMode(mode) {
   if (mode === "impromptu") {
     return `MOD: Doğaçlama. Konuşmacı konuyu ancak 60 saniye önce gördü.
@@ -123,10 +191,13 @@ genelde sorun hazırlıkta değil, hazırlananı aktarmakta olur.`;
 }
 
 /**
- * Builds the user-side prompt. `audioAttached` changes the instruction
- * meaningfully: with audio the model must trust its own ears over the
- * transcript, because a transcriber silently deletes exactly the hesitations
- * this feature exists to measure.
+ * Builds the user-side prompt for step 2.
+ *
+ * `audioObservation` is the plain-text report produced by the listening step.
+ * When it is present it becomes the source of truth, because a transcriber
+ * silently deletes exactly the hesitations this feature exists to measure.
+ * When it is absent the model is told plainly not to invent what it cannot
+ * hear.
  */
 function buildRhetoricAnalysisPrompt({
   topic,
@@ -135,16 +206,26 @@ function buildRhetoricAnalysisPrompt({
   targetDurationSeconds,
   preparationNotes,
   mode,
-  audioAttached
+  audioObservation
 }) {
-  const sourceOfTruth = audioAttached
-    ? `KAYNAK: Ses kaydı ekte ve ASIL KAYNAK ODUR.
-Aşağıdaki yazı dökümü yalnızca yardımcıdır ve eksiktir: döküm çıkaran model
-"ııı" gibi sesleri ve duraklamaları temizler. Sen sesi dinle, dolgu seslerini,
-duraklamaları, tonlamayı ve tempoyu doğrudan oradan çıkar.
-transcript alanına, duyduğun konuşmanın duraklama ve tereddütleri de
-yansıtan kendi dökümünü yaz.`
-    : `KAYNAK: Yalnızca yazı dökümü var, ses kaydı yok.
+  const sourceOfTruth = audioObservation
+    ? `KAYNAK: Kaydı dinleyen bir model, duyduklarını aşağıdaki DİNLEME TUTANAĞI
+olarak yazdı. Bu tutanak ASIL KAYNAKTIR.
+
+Dolgu sesleri, duraklamalar, tonlama ve tempo yalnızca sesle duyulabilir; sen
+kaydı duymuyorsun ama tutanak duyanın notudur. Sayıları tutanaktan al, kendin
+tahmin etme. transcript alanına tutanaktaki DÖKÜM bölümünü yaz (tereddütler
+dahil, temizlemeden).
+
+segments dizisini tutanaktaki zaman damgalarından kur: her dolgu sesi, dolgu
+kelimesi, uzun duraklama, tekrar ve güçlü an bir segment olmalı ve startSeconds
+tutanaktaki zamana karşılık gelmeli (2:14 -> 134).
+
+DİNLEME TUTANAĞI:
+"""
+${audioObservation}
+"""`
+    : `KAYNAK: Yalnızca yazı dökümü var, kayıt dinlenemedi.
 Bu yüzden fillerSoundCount, pauseCount, longestPauseSeconds, silenceRatio ve
 voice puanını metinden çıkarabildiğin kadarıyla ver; emin olamadığın sayılar
 için 0 yaz ve deliveryFeedback alanlarında sesin dinlenemediğini belirt.
@@ -176,5 +257,7 @@ Olmayan bir şeyi ölçmüş gibi yapma.`;
 
 module.exports = {
   RHETORIC_SYSTEM_INSTRUCTION,
+  AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+  buildAudioObservationPrompt,
   buildRhetoricAnalysisPrompt
 };

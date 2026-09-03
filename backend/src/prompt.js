@@ -50,14 +50,78 @@ Expected grammar structures: ${pictureDescription.expectedGrammarStructures || "
 Speaking prompt: ${pictureDescription.speakingPrompt || "not provided"}`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Step 1: listening
+ * ------------------------------------------------------------------ */
+
+/**
+ * The audio model cannot return JSON at all — it rejects `response_format` in
+ * both strict and loose form — so it is asked for a plain-text report and a
+ * text model turns that into the schema afterwards. See
+ * `scripts/audioAnalysisDiagnostic.js` for the checks that established this.
+ *
+ * For English the report is about a learner, so it must capture the things a
+ * transcript destroys: which words were mispronounced and how, where stress
+ * landed, where the speaker hesitated or restarted. Those are exactly what the
+ * pronunciation score is meant to be grounded in.
+ */
+const ENGLISH_AUDIO_OBSERVATION_SYSTEM_INSTRUCTION =
+  "You transcribe and describe what you hear in a recording. You do not grade, score or advise. " +
+  "You report only what is audible.";
+
+function buildEnglishAudioObservationPrompt({ durationSeconds }) {
+  return `Listen to the attached recording of an English learner speaking. The recording is
+${durationSeconds} seconds long. Write down what you hear using EXACTLY the headings below.
+
+This is a record, not an assessment. Do not score, judge or give advice. Another
+model will read your notes and do that. Be complete and honest.
+
+Use m:ss timestamps (for example 1:24).
+
+TRANSCRIPT:
+The full text of what was said. Do NOT clean it up: keep hesitations ("uh", "um",
+"er"), false starts and repeated words exactly where they occur. Mark silences
+longer than 0.8 seconds as [1.4s].
+
+PRONUNCIATION:
+Words that were mispronounced or hard to understand, one per line:
+"- 0:34 \"comfortable\" -> said as com-for-TABLE, stress on wrong syllable"
+Include sounds that were substituted or dropped (word endings, th, r/l, vowels).
+Write "- none" if there were none worth noting.
+
+HESITATIONS:
+Every filler sound and pause: "- 0:12 uh" or "- 1:05 pause 2.1s"
+Write "- none" if there were none.
+
+SELF-CORRECTIONS:
+Places where the speaker restarted or repaired a sentence:
+"- 1:40 started 'I was go...' then corrected to 'I went'"
+Write "- none" if there were none.
+
+DELIVERY:
+pace: (fast/slow/steady, does it change)
+intonation: (flat or varied, does it match the meaning)
+rhythm: (natural stress and linking, or word-by-word)
+confidence: (assured, hesitant, trailing off at sentence ends)
+
+NUMBERS:
+total words: (approximate)
+speaking time: (seconds, excluding long silences)
+estimated silence share: (percent)`;
+}
+
 function buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, options = {}) {
   const { grammarFocus, pictureDescription } = normalizeAnalysisContext(analysisContext);
   const expectedDurationSeconds = Number(options.expectedDurationSeconds || durationSeconds);
-  const audioAttached = Boolean(options.audioAttached);
+  // The report from the listening step. Its presence is what "audio-grounded"
+  // means from here on: the model never receives the recording itself, but the
+  // report was written by a model that did hear it.
+  const audioObservation = String(options.audioObservation || "").trim();
+  const audioAttached = audioObservation.length > 0;
 
   return `You are an English speaking coach. ${
     audioAttached
-      ? "An audio recording of the learner's spoken answer is attached to this message. Listen to it directly and analyze it like a professional language teacher."
+      ? "A detailed report from listening to the learner's recording is included below. Use it to analyze the answer like a professional language teacher."
       : "Analyze the following speaking transcript like a professional language teacher."
   }
 
@@ -76,15 +140,25 @@ ${topic}
 ${
   audioAttached
     ? `
-Listen to the attached audio yourself and produce "originalTranscript" from what you hear (do not rely on any other source for it).
-Base pronunciation, intonation, rhythm, hesitation, self-correction, and confidence judgments on what you actually hear in the audio
-recording itself, not on generic assumptions about the words alone. This is the whole reason you were given audio instead of only
-text, so use it for these judgments specifically.
+A model that listened to the recording wrote the report below. It is the SOURCE OF TRUTH.
 
-A transcript produced by a separate, earlier speech-to-text pass is included below only as a fallback in case a short stretch of the
-audio is unclear or cut off. Prefer your own listening whenever it disagrees with this fallback reference.
+You cannot hear the recording, but the report was written by something that could. Take
+pronunciation, intonation, rhythm, hesitation, self-correction and confidence from it rather
+than guessing them from the words. Those judgments are the entire reason the recording was
+listened to at all.
 
-Fallback reference transcript (may be imperfect, audio is the source of truth):
+Produce "originalTranscript" from the TRANSCRIPT section of the report, keeping its hesitations
+and false starts rather than tidying them away.
+
+LISTENING REPORT:
+"""
+${audioObservation}
+"""
+
+A separate speech-to-text pass also produced the transcript below. Use it only to resolve a word
+the report left unclear; prefer the report wherever the two disagree.
+
+Secondary reference transcript (may be imperfect):
 ${transcript || "(not available)"}
 `
     : `
@@ -134,7 +208,7 @@ Return detailed but mobile-readable feedback:
    Use feedback like: "Your grammar was accurate, but the response was too short and did not use the available speaking time effectively."
    ${
      audioAttached
-       ? "You have the actual audio, so ground pronunciation feedback in what you hear (stress, intonation, sound accuracy, rhythm, hesitation), not just in the words themselves."
+       ? "You have a listening report, so ground pronunciation feedback in what it records (stress, intonation, sound accuracy, rhythm, hesitation), not just in the words themselves."
        : "If transcription confidence is unavailable, do not pretend to know exact pronunciation quality; make pronunciation feedback transcript-based."
    }
 9. speakingAnalytics:
@@ -183,7 +257,7 @@ Place this feedback inside the existing JSON fields: speakingFeedback, vocabular
 
 ${
   audioAttached
-    ? "For pronunciation, base your notes on what you actually hear in the attached audio (stress, intonation, sound accuracy, rhythm, hesitation, self-correction). Be explicit that it is based on listening to the recording."
+    ? "For pronunciation, base your notes on the PRONUNCIATION, HESITATIONS and SELF-CORRECTIONS sections of the listening report. Be explicit that it is based on listening to the recording."
     : "For pronunciation, only infer from transcript evidence such as missing endings, repeated wording, unclear phrasing, or likely stress/rhythm issues. Be explicit that it is transcript-based."
 }
 Write explanationTR and clarityNotesTR in clear, simple English (these field names are legacy and do not indicate the content language). Keep English examples clear and short.
@@ -202,4 +276,6 @@ Do not use Markdown formatting, bullet points, or numbered lists. Write as if yo
 Keep replies concise: usually 2-4 sentences plus the follow-up question.`;
 }
 
-module.exports = { buildSpeakingAnalysisPrompt, buildChatSystemPrompt };
+module.exports = {
+  ENGLISH_AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+  buildEnglishAudioObservationPrompt, buildSpeakingAnalysisPrompt, buildChatSystemPrompt };

@@ -12,7 +12,11 @@ function sanitizeMeta(meta = {}) {
     code: meta.code,
     method: meta.method,
     path: meta.path,
-    tokens: meta.tokens
+    tokens: meta.tokens,
+    // A short, machine-generated reason (an upstream error code or message).
+    // Never user content: callers must not put a transcript or recording detail
+    // here, and the value is truncated as a second line of defence.
+    detail: typeof meta.detail === "string" ? meta.detail.slice(0, 400) : undefined
   };
 }
 

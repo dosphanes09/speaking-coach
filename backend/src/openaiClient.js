@@ -3,7 +3,12 @@ const { config } = require("./config");
 const { HttpError } = require("./errors");
 const { logInfo, logWarn } = require("./logger");
 const { analysisJsonSchema } = require("./analysisSchema");
-const { buildSpeakingAnalysisPrompt, buildChatSystemPrompt } = require("./prompt");
+const {
+  ENGLISH_AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+  buildEnglishAudioObservationPrompt,
+  buildSpeakingAnalysisPrompt,
+  buildChatSystemPrompt
+} = require("./prompt");
 const {
   lessonCoreJsonSchema,
   lessonPracticeJsonSchema,
@@ -29,7 +34,12 @@ const { toLessonLevel } = require("./validation");
 const { calibrateAnalysisScores } = require("./scoringCalibrator");
 const { convertToWav, readAsBase64, deleteQuietly } = require("./audioConversion");
 const { rhetoricJsonSchema } = require("./rhetoricSchema");
-const { RHETORIC_SYSTEM_INSTRUCTION, buildRhetoricAnalysisPrompt } = require("./rhetoricPrompt");
+const {
+  RHETORIC_SYSTEM_INSTRUCTION,
+  AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+  buildAudioObservationPrompt,
+  buildRhetoricAnalysisPrompt
+} = require("./rhetoricPrompt");
 
 function retryableStatus(status) {
   return status === 408 || status === 409 || status === 429 || status >= 500;
@@ -66,7 +76,23 @@ async function fetchWithTimeoutAndRetry(url, optionsFactory, overrides = {}) {
         continue;
       }
 
-      throw new HttpError(502, "openai_request_failed", `${serviceLabel} is unavailable.`);
+      // The body is where the real reason lives ("model not found", "unsupported
+      // parameter", quota problems). Throwing it away turned every upstream
+      // failure into an unexplainable one, which is exactly what happened when
+      // audio analysis silently started falling back to transcript-only.
+      const upstream = await readUpstreamError(response);
+      logWarn("openai_request_rejected", {
+        status: response.status,
+        code: upstream.code || "openai_request_failed",
+        path: url,
+        detail: upstream.message
+      });
+
+      const failure = new HttpError(502, "openai_request_failed", `${serviceLabel} is unavailable.`);
+      failure.upstreamStatus = response.status;
+      failure.upstreamCode = upstream.code;
+      failure.upstreamMessage = upstream.message;
+      throw failure;
     } catch (error) {
       clearTimeout(timeout);
       if (error instanceof HttpError) {
@@ -82,6 +108,32 @@ async function fetchWithTimeoutAndRetry(url, optionsFactory, overrides = {}) {
   }
 
   throw new HttpError(502, "openai_request_failed", `${serviceLabel} is unavailable.`);
+}
+
+/**
+ * Pulls a short, log-safe reason out of an OpenAI error response. Only the
+ * error object is read — never anything that could echo the user's recording.
+ */
+async function readUpstreamError(response) {
+  try {
+    const text = await response.text();
+    if (!text) {
+      return { code: "", message: "" };
+    }
+
+    try {
+      const json = JSON.parse(text);
+      const error = json?.error || {};
+      return {
+        code: String(error.code || error.type || ""),
+        message: String(error.message || "").slice(0, 400)
+      };
+    } catch {
+      return { code: "", message: text.slice(0, 400) };
+    }
+  } catch {
+    return { code: "", message: "" };
+  }
 }
 
 function authHeaders(extra = {}) {
@@ -243,6 +295,19 @@ async function analyzeTranscriptFromText(topic, transcript, level, durationSecon
   return requestAnalysisFromModel(config.openAiAnalysisModel, [{ type: "input_text", text: prompt }]);
 }
 
+/**
+ * English analysis, grounded in the recording.
+ *
+ * This used to send the audio straight to the analysis model and ask for JSON
+ * back. That combination is impossible with the audio model — it refuses audio
+ * on the Responses API and refuses `response_format` on Chat Completions — so
+ * the call failed on every single analysis and silently fell back to
+ * transcript-only. The pronunciation scoring in `scoringCalibrator.js` was
+ * written for audio-grounded input and had therefore never once been used.
+ *
+ * Now the recording is listened to first, and the report from that listening is
+ * what the analysis model reasons over.
+ */
 async function analyzeTranscriptFromAudio(
   topic,
   transcript,
@@ -253,30 +318,25 @@ async function analyzeTranscriptFromAudio(
   audioFilePath,
   audioMimeType
 ) {
-  const prompt = buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
-    expectedDurationSeconds,
-    audioAttached: true
+  const audioObservation = await describeRecordingFromAudio({
+    audioFilePath,
+    audioMimeType,
+    durationSeconds,
+    systemInstruction: ENGLISH_AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+    prompt: buildEnglishAudioObservationPrompt({ durationSeconds }),
+    label: "english_audio_observation"
   });
 
-  // Most audio-input models document reliable support for wav; the app can record
-  // m4a/webm/mp4 depending on device, so we normalize everything to a mono 16kHz WAV
-  // before sending it, rather than trusting every recorded container to be accepted as-is.
-  // If the file is already wav, skip the conversion step entirely.
-  const alreadyWav = audioMimeType === "audio/wav" || audioMimeType === "audio/x-wav";
-  let convertedPath;
-
-  try {
-    const wavPath = alreadyWav ? audioFilePath : await convertToWav(audioFilePath);
-    convertedPath = alreadyWav ? undefined : wavPath;
-    const base64Audio = await readAsBase64(wavPath);
-
-    return await requestAnalysisFromModel(config.openAiAudioAnalysisModel, [
-      { type: "input_text", text: prompt },
-      { type: "input_audio", input_audio: { data: base64Audio, format: "wav" } }
-    ]);
-  } finally {
-    await deleteQuietly(convertedPath);
+  if (!audioObservation) {
+    throw new HttpError(502, "empty_audio_observation", "Listening step returned nothing.");
   }
+
+  const prompt = buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
+    expectedDurationSeconds,
+    audioObservation
+  });
+
+  return requestAnalysisFromModel(config.openAiAnalysisModel, [{ type: "input_text", text: prompt }]);
 }
 
 /**
@@ -288,26 +348,31 @@ async function analyzeTranscriptFromAudio(
  * (hesitation sounds, pause length, monotony) is inaudible in a transcript, so
  * the result records which source it came from and the app tells the user.
  */
-async function analyzeRhetoricFromAudio({
-  topic,
-  transcript,
-  durationSeconds,
-  targetDurationSeconds,
-  preparationNotes,
-  mode,
+/**
+ * Step 1 of audio analysis: the model listens and writes down what it heard.
+ *
+ * Two constraints forced this shape, both confirmed against the live API by
+ * `scripts/audioAnalysisDiagnostic.js`:
+ *
+ *   - the audio model rejects audio input on /v1/responses
+ *     ("Audio input is not available"), so the call goes to Chat Completions;
+ *   - the audio model rejects `response_format` entirely, in both strict and
+ *     loose form, so it cannot produce JSON at all.
+ *
+ * Hence a plain-text report here, and a separate text model turning it into
+ * the schema afterwards. That split is not a compromise: perception and
+ * judgement are different jobs, and only the first one needs ears.
+ *
+ * Returns the report, or "" when the audio could not be used at all.
+ */
+async function describeRecordingFromAudio({
   audioFilePath,
-  audioMimeType
+  audioMimeType,
+  durationSeconds,
+  systemInstruction,
+  prompt,
+  label = "audio_observation"
 }) {
-  const prompt = buildRhetoricAnalysisPrompt({
-    topic,
-    transcript,
-    durationSeconds,
-    targetDurationSeconds,
-    preparationNotes,
-    mode,
-    audioAttached: true
-  });
-
   // The app already uploads mono 16kHz WAV, so this conversion is normally a
   // no-op; it stays for recordings that arrive in another container.
   const alreadyWav = audioMimeType === "audio/wav" || audioMimeType === "audio/x-wav";
@@ -318,10 +383,47 @@ async function analyzeRhetoricFromAudio({
     convertedPath = alreadyWav ? undefined : wavPath;
     const base64Audio = await readAsBase64(wavPath);
 
-    return await requestRhetoricFromModel(config.openAiAudioAnalysisModel, [
-      { type: "input_text", text: prompt },
-      { type: "input_audio", input_audio: { data: base64Audio, format: "wav" } }
-    ]);
+    const response = await fetchWithTimeoutAndRetry(
+      "https://api.openai.com/v1/chat/completions",
+      () => ({
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          model: config.openAiAudioAnalysisModel,
+          modalities: ["text"],
+          messages: [
+            { role: "system", content: systemInstruction },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "input_audio", input_audio: { data: base64Audio, format: "wav" } }
+              ]
+            }
+          ],
+          max_completion_tokens: config.openAiAudioObservationMaxTokens
+        })
+      }),
+      {
+        timeoutMs: config.openAiRhetoricTimeoutMs,
+        maxAttempts: 1,
+        serviceLabel: "Ses dinleme"
+      }
+    );
+
+    const json = await response.json();
+    logInfo("openai_usage", {
+      status: 200,
+      code: label,
+      path: config.openAiAudioAnalysisModel,
+      tokens: {
+        input: json?.usage?.prompt_tokens ?? 0,
+        output: json?.usage?.completion_tokens ?? 0,
+        audioInput: json?.usage?.prompt_tokens_details?.audio_tokens ?? 0
+      }
+    });
+
+    return String(json?.choices?.[0]?.message?.content || "").trim();
   } finally {
     await deleteQuietly(convertedPath);
   }
@@ -344,28 +446,46 @@ async function analyzeRhetoric({
 
   if (canUseAudio) {
     try {
-      parsed = await analyzeRhetoricFromAudio({
-        topic,
-        transcript,
-        durationSeconds,
-        targetDurationSeconds,
-        preparationNotes,
-        mode,
+      const audioObservation = await describeRecordingFromAudio({
         audioFilePath,
-        audioMimeType
+        audioMimeType,
+        durationSeconds,
+        systemInstruction: AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
+        prompt: buildAudioObservationPrompt({ durationSeconds }),
+        label: "rhetoric_audio_observation"
       });
+
+      if (!audioObservation) {
+        throw new HttpError(502, "empty_audio_observation", "Ses dinleme boş sonuç döndürdü.");
+      }
+
+      parsed = await requestRhetoricFromModel(
+        config.openAiAnalysisModel,
+        buildRhetoricAnalysisPrompt({
+          topic,
+          transcript,
+          durationSeconds,
+          targetDurationSeconds,
+          preparationNotes,
+          mode,
+          audioObservation
+        })
+      );
       generatedFromAudio = true;
     } catch (error) {
       audioAttemptFailed = true;
       logWarn("rhetoric_audio_analysis_failed_falling_back_to_text", {
-        code: error?.code || "audio_analysis_error"
+        status: error?.upstreamStatus,
+        code: error?.upstreamCode || error?.code || "audio_analysis_error",
+        path: config.openAiAudioAnalysisModel,
+        detail: error?.upstreamMessage || String(error?.message || "")
       });
     }
   }
 
   if (!parsed) {
     parsed = await requestRhetoricFromModel(
-      config.openAiChatModel,
+      config.openAiAnalysisModel,
       buildRhetoricAnalysisPrompt({
         topic,
         transcript,
@@ -373,7 +493,7 @@ async function analyzeRhetoric({
         targetDurationSeconds,
         preparationNotes,
         mode,
-        audioAttached: false
+        audioObservation: ""
       })
     );
   }
@@ -420,7 +540,10 @@ async function analyzeTranscript(topic, transcript, level, durationSeconds, anal
       // proven transcript-only path instead of failing the whole request.
       audioAttemptFailed = true;
       logWarn("audio_analysis_failed_falling_back_to_text", {
-        code: error?.code || "audio_analysis_error"
+        status: error?.upstreamStatus,
+        code: error?.upstreamCode || error?.code || "audio_analysis_error",
+        path: config.openAiAudioAnalysisModel,
+        detail: error?.upstreamMessage || String(error?.message || "")
       });
     }
   }
