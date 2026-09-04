@@ -54,6 +54,21 @@ export async function analyzeRhetoricWithBackend({
     formData.append("preparationNotes", preparationNotes.trim());
   }
 
+  // The reference the content check is graded against. Sent from here rather
+  // than held on the server because the topic bank lives in the app: the
+  // backend has no idea what "Cantillon etkisi" is supposed to contain, and
+  // asking the model to remember would let it invent a reference and then mark
+  // the speaker wrong against it. Omitting these simply turns the check off,
+  // which is the right behaviour for a topic that has no vetted definition.
+  if (topic.definition?.trim()) {
+    formData.append("topicDefinition", topic.definition.trim());
+  }
+  if (topic.angles.length > 0) {
+    // Newline-separated, not JSON: this is a multipart request, where a
+    // repeated field arrives as an array only sometimes.
+    formData.append("topicKeyPoints", topic.angles.join("\n"));
+  }
+
   // Only the audio is uploaded. On desktop the recording may be a video the
   // user watches locally; sending it would multiply the upload size and cost
   // for measurements that all come from the sound anyway.

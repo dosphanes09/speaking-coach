@@ -179,6 +179,32 @@ function validateStringList(value, fieldName, { maxItems, maxLength }) {
     });
 }
 
+/**
+ * The expected-points list that travels with a rhetoric topic.
+ *
+ * Sent as one newline-separated string rather than a JSON array because the
+ * rhetoric request is multipart/form-data, where a repeated field arrives as an
+ * array only sometimes — a single-item list would silently become a string and
+ * the reference would collapse to its first character. One text field has one
+ * meaning.
+ *
+ * Both caps matter: the value goes straight into a model prompt, so an
+ * unbounded list would be an unbounded prompt paid for by the account.
+ */
+function validateTopicKeyPoints(value) {
+  const raw = validateOptionalTextField(value, "topicKeyPoints", 3000);
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 12)
+    .map((line) => line.slice(0, 300));
+}
+
 function validateLearnerProfile(value) {
   const profile = value && typeof value === "object" ? value : {};
 
@@ -297,6 +323,7 @@ module.exports = {
   validateChosenAngle,
   validateLearnerProfile,
   validateRecentTopics,
+  validateTopicKeyPoints,
   validateLessonCoreInput,
   validateSessionSummary
 };

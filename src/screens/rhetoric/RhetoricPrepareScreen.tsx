@@ -73,8 +73,8 @@ export function RhetoricPrepareScreen({
   return (
     <View style={styles.screen}>
       <Header
-        title="Hazırlık"
-        subtitle={mode === "impromptu" ? "60 saniyen var" : "15 dakikan var"}
+        title={mode === "impromptu" ? "Hazırlık" : "Araştırma"}
+        subtitle={mode === "impromptu" ? "60 saniyen var" : "15 dakika araştırma"}
         onBack={onBack}
         backLabel="Geri"
       />
@@ -88,7 +88,7 @@ export function RhetoricPrepareScreen({
         <Card style={[styles.timerCard, isUrgent && styles.timerCardUrgent]}>
           <Text style={[styles.timer, isUrgent && styles.timerUrgent]}>{formatClock(remainingSeconds)}</Text>
           <Text style={styles.timerLabel}>
-            {isLocked ? "Süre doldu" : "hazırlık süresi"}
+            {isLocked ? "Süre doldu" : mode === "impromptu" ? "hazırlık süresi" : "araştırma süresi"}
           </Text>
           <View style={styles.track}>
             <View
@@ -100,8 +100,8 @@ export function RhetoricPrepareScreen({
             />
           </View>
           <Text style={styles.rule}>
-            Bu süre boyunca yapay zekâ kullanmıyorsun. Uygulama bunu denetleyemez — bu, kendine verdiğin
-            bir söz.
+            Kaynak okuyabilirsin, ansiklopedi ve makale serbest. Yapay zekâ yok — özeti sana başkası
+            çıkarırsa çalışan sen olmazsın. Uygulama bunu denetleyemez; bu, kendine verdiğin bir söz.
           </Text>
         </Card>
 
@@ -110,8 +110,9 @@ export function RhetoricPrepareScreen({
           <Text style={styles.notesCount}>{notes.trim().length} karakter</Text>
         </View>
         <Text style={styles.notesHint}>
-          Anlatacağın başlıkları maddeler halinde yaz. Bunlar analize gönderilir ve planladığının ne
-          kadarını anlatabildiğin ölçülür.
+          Öğrendiklerini ve anlatacağın başlıkları maddeler halinde yaz. Bunlar analize gönderilir;
+          planladığının ne kadarını anlatabildiğin ölçülür. Kopyaladığın cümleleri değil, kendi
+          cümlelerinle kurduğun başlıkları yazmaya çalış.
         </Text>
 
         <TextInput

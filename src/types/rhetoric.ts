@@ -12,21 +12,42 @@ export type RhetoricMode = "prepared" | "impromptu";
 
 export type RhetoricLevel = "kolay" | "orta" | "zor";
 
+/**
+ * The field a topic is drawn from.
+ *
+ * These are subject areas, not speech types, because the exercise changed:
+ * the speaker is handed a concept to research for fifteen minutes and then
+ * explain. "Which field do I want to learn something from today" is a question
+ * a person can actually answer; "do I want to practise persuasion today" is not.
+ */
 export type RhetoricCategory =
-  | "gundelik"
-  | "fikir"
-  | "teknik"
-  | "hikaye"
-  | "ikna"
-  | "kariyer";
+  | "psikoloji"
+  | "ekonomi"
+  | "bilim"
+  | "tarih"
+  | "teknoloji"
+  | "toplum";
 
 export interface RhetoricTopic {
   id: string;
-  /** The prompt as the speaker sees it. */
+  /** The concept as the speaker sees it. This is all they get before speaking. */
   title: string;
   category: RhetoricCategory;
   level: RhetoricLevel;
-  /** Angles worth considering, shown only after the recording — never before. */
+  /**
+   * What the concept actually is, in two or three sentences.
+   *
+   * Never shown before the recording — that would replace the fifteen minutes
+   * of research this whole exercise is built around. It has two jobs
+   * afterwards: the speaker reads it to find out what they got wrong, and the
+   * backend uses it as the reference for the accuracy check.
+   */
+  definition: string;
+  /**
+   * The points a correct explanation is expected to touch. Shown only AFTER the
+   * recording, and sent to the analysis as a reference list — not as an
+   * exhaustive one, so covering something else instead is not an error.
+   */
   angles: string[];
   /** Where the topic came from, so AI-generated ones can be told apart. */
   source: "bank" | "ai";
@@ -77,6 +98,24 @@ export interface RhetoricFeedbackPoint {
   action: string;
 }
 
+/**
+ * `verdict` is deliberately three-valued rather than a score. "Kısmen" is the
+ * common and interesting case — the concept was roughly right but a load-bearing
+ * piece was missing — and a number would blur it into the noise.
+ */
+export interface RhetoricConceptAccuracy {
+  verdict: "dogru" | "kismen" | "yanlis";
+  /** Points from the reference list the speaker actually explained. */
+  correctPoints: string[];
+  /** Reference points never mentioned. Missing is not the same as wrong. */
+  missedPoints: string[];
+  /** Things stated that are factually wrong. Only real errors belong here. */
+  errors: string[];
+  /** Correct material the speaker added beyond the reference list. */
+  extraPoints: string[];
+  comment: string;
+}
+
 export interface RhetoricAnalysis {
   transcript: string;
   segments: RhetoricSegment[];
@@ -107,6 +146,17 @@ export interface RhetoricAnalysis {
     actualSeconds: number;
     comment: string;
   };
+  /**
+   * Whether the speaker understood the concept they researched.
+   *
+   * This is the only part of the analysis that judges *what* was said rather
+   * than *how*. Fifteen minutes of research either lands or it does not, and
+   * nothing else in the report can tell the difference between a confident
+   * speaker who understood the idea and a confident speaker who did not.
+   *
+   * Optional because records saved before this feature existed do not have it.
+   */
+  conceptAccuracy?: RhetoricConceptAccuracy;
   nextSessionFocus: string[];
   summary: string;
   /**

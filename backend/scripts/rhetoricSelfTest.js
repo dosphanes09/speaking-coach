@@ -34,7 +34,7 @@ const {
   buildAudioObservationPrompt,
   buildRhetoricAnalysisPrompt
 } = require("../src/rhetoricPrompt");
-const { validateRhetoricMode, validateDurationSeconds } = require("../src/validation");
+const { validateRhetoricMode, validateDurationSeconds, validateTopicKeyPoints } = require("../src/validation");
 const { config } = require("../src/config");
 
 let checks = 0;
@@ -222,8 +222,14 @@ check("impromptu mode changes the expectations", () => {
   const prepared = buildSample({ mode: "prepared" });
   const impromptu = buildSample({ mode: "impromptu" });
 
-  assert.match(prepared, /15 dakikası vardı/);
+  assert.match(prepared, /15 dakikası oldu/);
   assert.match(impromptu, /60 saniye önce/);
+
+  // The two modes must also disagree about content accuracy. Impromptu means
+  // the speaker never researched the concept, so a gap in what they knew is
+  // the expected outcome, not a failure to report against them.
+  assert.match(impromptu, /eksik bilgi beklenen bir/i);
+  assert.match(prepared, /içerik doğruluğu/i);
 });
 
 check("filler rules distinguish real fillers from ordinary use", () => {
@@ -393,6 +399,101 @@ check("rhetoric responses get a larger token budget than English ones", () => {
 
 check("the listening step has room for a full transcript", () => {
   assert.ok(config.openAiAudioObservationMaxTokens >= 4000);
+});
+
+/* ------------------------------------------------------------------ *
+ * Concept accuracy: the content check
+ * ------------------------------------------------------------------ */
+
+check("the schema requires conceptAccuracy with a closed verdict set", () => {
+  assert.ok(rhetoricJsonSchema.required.includes("conceptAccuracy"));
+  const accuracy = rhetoricJsonSchema.properties.conceptAccuracy;
+  assert.equal(accuracy.additionalProperties, false);
+  assert.deepEqual(accuracy.properties.verdict.enum, ["dogru", "kismen", "yanlis"]);
+  // Strict mode fails the whole request if any property is missing from required.
+  assert.deepEqual(new Set(accuracy.required), new Set(Object.keys(accuracy.properties)));
+});
+
+check("a reference definition turns the content check on", () => {
+  const prompt = buildRhetoricAnalysisPrompt({
+    topic: "Jevons paradoksu",
+    transcript: "deneme",
+    durationSeconds: 200,
+    targetDurationSeconds: 240,
+    preparationNotes: "",
+    mode: "prepared",
+    audioObservation: "",
+    topicDefinition: "Bir kaynagin kullanimi verimli hale geldiginde toplam tuketiminin artabilmesi.",
+    topicKeyPoints: ["Geri tepme etkisi", "Jevons'un komur ornegi"]
+  });
+
+  assert.ok(prompt.includes("İÇERİK DOĞRULUĞU DENETİMİ"));
+  assert.ok(prompt.includes("Geri tepme etkisi"));
+  assert.ok(prompt.includes("Jevons'un komur ornegi"));
+});
+
+check("no reference definition tells the model NOT to invent one", () => {
+  // Without this branch the model would grade the speaker against a definition
+  // it made up from memory, which is worse than not checking at all.
+  const prompt = buildRhetoricAnalysisPrompt({
+    topic: "Kullanicinin kendi yazdigi konu",
+    transcript: "deneme",
+    durationSeconds: 200,
+    targetDurationSeconds: 240,
+    preparationNotes: "",
+    mode: "prepared",
+    audioObservation: ""
+  });
+
+  assert.ok(prompt.includes("KAVRAM REFERANSI: Yok."));
+  assert.ok(prompt.includes("Kendi hafızandan bir tanım üretip"));
+  assert.ok(!prompt.includes("İÇERİK DOĞRULUĞU DENETİMİ"));
+});
+
+check("the content check separates a missing point from a wrong statement", () => {
+  // The single most damaging way this feature can fail is by reporting things
+  // the speaker never said as errors: one invented mistake costs the user's
+  // trust in the entire report, including the parts that are right.
+  const prompt = buildRhetoricAnalysisPrompt({
+    topic: "Goodhart yasasi",
+    transcript: "deneme",
+    durationSeconds: 200,
+    targetDurationSeconds: 240,
+    preparationNotes: "",
+    mode: "prepared",
+    audioObservation: "",
+    topicDefinition: "Bir olcut hedef haline geldiginde iyi bir olcut olmaktan cikar.",
+    topicKeyPoints: ["Vekil gostergenin amacla baginin kopmasi"]
+  });
+
+  assert.ok(prompt.includes("Eksik olan yanlış değildir"));
+  assert.ok(prompt.includes("Emin olmadığın yerde hata yazma"));
+  // Accuracy must move the content score without touching delivery scores,
+  // otherwise a factual slip would quietly deflate the fluency trend line the
+  // progress chart is built on.
+  assert.ok(prompt.includes("scores.content"));
+  assert.ok(prompt.includes("Diğer puan"));
+});
+
+check("key points survive the multipart round trip", () => {
+  // They travel as one newline-separated field, not JSON, because in
+  // multipart/form-data a repeated field arrives as an array only sometimes —
+  // a single-item list would silently decay into a bare string.
+  const points = ["Birinci nokta", "İkinci nokta", "Üçüncü nokta"];
+  assert.deepEqual(validateTopicKeyPoints(points.join("\n")), points);
+  assert.deepEqual(validateTopicKeyPoints("Tek nokta"), ["Tek nokta"]);
+  assert.deepEqual(validateTopicKeyPoints(""), []);
+  assert.deepEqual(validateTopicKeyPoints(undefined), []);
+});
+
+check("key points are bounded, because they go straight into a paid prompt", () => {
+  const many = Array.from({ length: 40 }, (_, index) => `nokta ${index}`).join("\n");
+  assert.equal(validateTopicKeyPoints(many).length, 12);
+
+  const long = validateTopicKeyPoints("x".repeat(500));
+  assert.equal(long[0].length, 300);
+
+  throwsCode(() => validateTopicKeyPoints("y".repeat(3001)), "invalid_input");
 });
 
 console.log(`\n${checks} checks passed.`);

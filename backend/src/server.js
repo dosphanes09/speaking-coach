@@ -25,6 +25,7 @@ const {
   validateChosenAngle,
   validateLearnerProfile,
   validateRecentTopics,
+  validateTopicKeyPoints,
   validateLessonCoreInput,
   validateSessionSummary
 } = require("./validation");
@@ -321,6 +322,11 @@ app.post("/api/analyze-rhetoric", analysisAuthentication, upload.single("file"),
     // The notes written during the preparation window. Optional: impromptu
     // practice has none, and a prepared session may simply not have used them.
     const preparationNotes = validateOptionalTextField(req.body.preparationNotes, "preparationNotes", 4000);
+    // The reference the content check grades against. It comes from the client
+    // because the topic bank lives there; sending nothing simply turns the
+    // check off, which is what a custom or AI-generated topic does.
+    const topicDefinition = validateOptionalTextField(req.body.topicDefinition, "topicDefinition", 2000);
+    const topicKeyPoints = validateTopicKeyPoints(req.body.topicKeyPoints);
 
     const fileInfo = await validateUploadedFile(req.file, config.maxRhetoricDurationSeconds);
     const dailyLimit = await assertDailyLimit(req, config.maxDailyRhetoricAnalysesPerUser, "rhetoric");
@@ -346,6 +352,8 @@ app.post("/api/analyze-rhetoric", analysisAuthentication, upload.single("file"),
       targetDurationSeconds,
       preparationNotes,
       mode,
+      topicDefinition,
+      topicKeyPoints,
       audioFilePath: req.file.path,
       audioMimeType: fileInfo.mimeType
     });

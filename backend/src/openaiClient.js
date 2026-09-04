@@ -436,6 +436,8 @@ async function analyzeRhetoric({
   targetDurationSeconds,
   preparationNotes = "",
   mode = "prepared",
+  topicDefinition = "",
+  topicKeyPoints = [],
   audioFilePath,
   audioMimeType
 }) {
@@ -468,6 +470,8 @@ async function analyzeRhetoric({
           targetDurationSeconds,
           preparationNotes,
           mode,
+          topicDefinition,
+          topicKeyPoints,
           audioObservation
         })
       );
@@ -493,6 +497,8 @@ async function analyzeRhetoric({
         targetDurationSeconds,
         preparationNotes,
         mode,
+        topicDefinition,
+        topicKeyPoints,
         audioObservation: ""
       })
     );

@@ -6,7 +6,7 @@ import { Icon } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
-import { rhetoricCategoryLabels } from "@/data/rhetoricTopics";
+import { rhetoricCategoryLabel } from "@/data/rhetoricTopics";
 import { RhetoricRecord } from "@/types/rhetoric";
 
 interface RhetoricHistoryScreenProps {
@@ -60,7 +60,7 @@ export function RhetoricHistoryScreen({
                   {record.topic.title}
                 </Text>
                 <Text style={styles.rowMeta}>
-                  {formatDate(record.createdAt)} · {rhetoricCategoryLabels[record.topic.category]} ·{" "}
+                  {formatDate(record.createdAt)} · {rhetoricCategoryLabel(record.topic.category)} ·{" "}
                   {record.mode === "impromptu" ? "doğaçlama" : "hazırlıklı"} ·{" "}
                   {formatDuration(record.recording.durationSeconds)}
                 </Text>

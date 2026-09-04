@@ -158,6 +158,25 @@ ${
     : ""
 }
 
+${
+  analysis.conceptAccuracy
+    ? `<h2>Kavramı anlaman — ${escapeHtml(
+        VERDICT_LABELS[analysis.conceptAccuracy.verdict] ?? analysis.conceptAccuracy.verdict
+      )}</h2>
+       <p>${escapeHtml(analysis.conceptAccuracy.comment)}</p>
+       ${list("Doğru anlattıkların", analysis.conceptAccuracy.correctPoints)}
+       ${list("Değinmediklerin", analysis.conceptAccuracy.missedPoints)}
+       ${list("Listede olmayan doğru eklemelerin", analysis.conceptAccuracy.extraPoints)}
+       ${list("Yanlış anlattıkların", analysis.conceptAccuracy.errors)}
+       ${
+         record.topic.definition
+           ? `<h3>Kavramın doğru tanımı</h3>
+              <p class="muted">${escapeHtml(record.topic.definition)}</p>`
+           : ""
+       }`
+    : ""
+}
+
 <h2>Yapı</h2>
 <table>
   ${row("Giriş", analysis.structureFeedback.opening)}
@@ -253,6 +272,12 @@ function row(label: string, value: string): string {
   return `<tr><td style="width:22%" class="muted">${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`;
 }
 
+const VERDICT_LABELS: Record<string, string> = {
+  dogru: "doğru",
+  kismen: "kısmen doğru",
+  yanlis: "yanlış"
+};
+
 function list(label: string, items: string[]): string {
   if (items.length === 0) {
     return "";
@@ -297,7 +322,10 @@ function escapeHtml(value: string): string {
 
 function sanitize(value: string): string {
   return value
-    .replace(/[<>:"/\\|?* -]/g, " ")
+    // These used to be raw 0x00-0x1F bytes written straight into the
+    // character class, which made this whole file read as binary to every
+    // tool that opened it. Same class, written so the file stays text.
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

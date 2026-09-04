@@ -10,6 +10,7 @@ import {
   pickRhetoricTopic,
   rhetoricCategoryDescriptions,
   rhetoricCategoryLabels,
+  rhetoricLevelDescriptions,
   rhetoricLevelLabels
 } from "@/data/rhetoricTopics";
 import { RhetoricCategory, RhetoricLevel, RhetoricMode, RhetoricRecord, RhetoricTopic } from "@/types/rhetoric";
@@ -74,7 +75,7 @@ export function RhetoricTopicScreen({
             ? "Geri bildirimi aldıktan sonraki ikinci deneme"
             : isImpromptu
               ? "60 saniye düşünme, sonra konuşma"
-              : "15 dakika hazırlık, sonra konuşma"
+              : "15 dakika araştırma, sonra konuşma"
         }
         onBack={onBack}
         backLabel="Geri"
@@ -104,8 +105,9 @@ export function RhetoricTopicScreen({
                 />
               ))}
             </View>
+            {level ? <Text style={styles.categoryHint}>{rhetoricLevelDescriptions[level]}</Text> : null}
 
-            <Text style={styles.groupLabel}>TÜR</Text>
+            <Text style={styles.groupLabel}>ALAN</Text>
             <View style={styles.chipRow}>
               <Chip
                 label="Farketmez"
@@ -147,14 +149,16 @@ export function RhetoricTopicScreen({
             </Text>
             <Text style={styles.topicTitle}>{topic.title}</Text>
             <Text style={styles.topicNote}>
-              Konuya dair bakış açılarını konuşmadan sonra göreceksin. Şimdi düşünme sırası sende.
+              {isImpromptu
+                ? "Bildiğin kadarıyla anlat. Kavramın doğru tanımını konuşmadan sonra göreceksin."
+                : "Bu kavramı araştır, anla, sonra anlat. Doğru tanımı ve olması beklenen noktaları konuşmadan sonra göreceksin."}
             </Text>
           </Card>
         ) : (
           <Card style={styles.placeholderCard}>
             <Text style={styles.placeholderText}>
-              Filtreleri seçtikten sonra konuyu çek. Konu geldiği anda süre işlemeye başlamaz — hazır
-              olduğunda başlatırsın.
+              Filtreleri seçtikten sonra konuyu çek. Gelen konu araştırılacak bir kavram olacak — bir
+              görüş sorusu değil. Konu geldiği anda süre işlemeye başlamaz; hazır olduğunda başlatırsın.
             </Text>
           </Card>
         )}

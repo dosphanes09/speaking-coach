@@ -59,6 +59,7 @@ const rhetoricJsonSchema = {
     "deliveryFeedback",
     "preparationFeedback",
     "timeManagement",
+    "conceptAccuracy",
     "nextSessionFocus",
     "summary"
   ],
@@ -207,6 +208,39 @@ const rhetoricJsonSchema = {
       properties: {
         targetSeconds: { type: "integer" },
         actualSeconds: { type: "integer" },
+        comment: { type: "string" }
+      }
+    },
+
+    /**
+     * Did the speaker actually understand what they researched?
+     *
+     * Every other field in this schema judges delivery. This one judges the
+     * substance, and it is the only part of the report that can tell a
+     * confident speaker who understood the concept apart from a confident
+     * speaker who did not — which is precisely what fifteen minutes of
+     * research is supposed to produce.
+     *
+     * Filled only when a reference definition was sent with the request. With
+     * no reference the model has nothing to check against, so the verdict is
+     * "dogru", the lists are empty and `comment` says so; inventing a
+     * correction from memory would be exactly the failure mode this field
+     * exists to catch.
+     */
+    conceptAccuracy: {
+      type: "object",
+      additionalProperties: false,
+      required: ["verdict", "correctPoints", "missedPoints", "errors", "extraPoints", "comment"],
+      properties: {
+        verdict: { type: "string", enum: ["dogru", "kismen", "yanlis"] },
+        /** Reference points the speaker genuinely explained. */
+        correctPoints: { type: "array", items: { type: "string" } },
+        /** Reference points never mentioned. Missing is not the same as wrong. */
+        missedPoints: { type: "array", items: { type: "string" } },
+        /** Statements that are factually wrong. Only real errors, never omissions. */
+        errors: { type: "array", items: { type: "string" } },
+        /** Correct material beyond the reference list — the reference is not exhaustive. */
+        extraPoints: { type: "array", items: { type: "string" } },
         comment: { type: "string" }
       }
     },

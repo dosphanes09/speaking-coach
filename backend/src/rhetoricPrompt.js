@@ -156,16 +156,27 @@ tahmini sessizlik oranı: (yüzde)`;
 
 function describeMode(mode) {
   if (mode === "impromptu") {
-    return `MOD: Doğaçlama. Konuşmacı konuyu ancak 60 saniye önce gördü.
+    return `MOD: Doğaçlama. Konuşmacı konuyu ancak 60 saniye önce gördü ve
+araştırma yapmadı; kavram hakkında ne biliyorsa onu anlattı.
 Bu modda yapı kusurlarına ve kelime arayışlarına daha toleranslı ol; asıl
 baktığın şey panik anında akıcılığını koruyabilmesi ve bir fikri sıfırdan
 ayakta kurabilmesi. Yine de dolgu sayımlarını olduğu gibi ver — bu modda
-dolgu artışı normaldir ama ölçülmesi tam da bu yüzden değerlidir.`;
+dolgu artışı normaldir ama ölçülmesi tam da bu yüzden değerlidir.
+İÇERİK DOĞRULUĞU bu modda ayrı değerlendirilir: eksik bilgi beklenen bir
+şeydir ve missedPoints'i cezaya çevirme. Kavramı hiç bilmediğini dürüstçe
+söyleyip elindekiyle mantıklı bir çerçeve kurmuş olmak burada başarıdır.
+Sadece kendinden emin biçimde söylediği yanlışları errors'a yaz.`;
   }
 
-  return `MOD: Hazırlıklı. Konuşmacının konuyu araştırmak için 15 dakikası vardı
-ve bu sırada yapay zekâ kullanmadı. Bu modda yapı, argüman derinliği ve zaman
-yönetimi tam olarak değerlendirilmeli — hazırlık için süresi vardı.`;
+  return `MOD: Hazırlıklı. Konuşmacıya araştırılacak bir kavram verildi ve bunu
+öğrenmek için 15 dakikası oldu; bu sırada yapay zekâ kullanmadı, kaynakları
+kendi okudu. Egzersizin amacı yeni öğrenilen bir şeyi anlaşılır biçimde
+aktarabilmek. Bu modda yapı, açıklama netliği, içerik doğruluğu ve zaman
+yönetimi tam olarak değerlendirilmeli — hazırlanmak için süresi vardı.
+Özellikle dikkat et: kaynaktan ezberlenmiş cümleleri tekrarlamakla kavramı
+sindirip kendi cümleleriyle kurmak farklı şeylerdir. İkincisi hedef,
+birincisi de duyulabilir bir kusurdur — ezber tadındaki bölümleri fark
+edersen improvements içinde açıkça söyle.`;
 }
 
 function describePreparationNotes(preparationNotes) {
@@ -191,6 +202,85 @@ genelde sorun hazırlıkta değil, hazırlananı aktarmakta olur.`;
 }
 
 /**
+ * The concept-accuracy block.
+ *
+ * The topic bank ships a written definition and a list of expected points, and
+ * they are sent with the request rather than left to the model's memory. That
+ * matters: asked to grade "Cantillon etkisi" from memory alone the model will
+ * happily invent a reference and then mark the speaker wrong against it, which
+ * is worse than no check at all.
+ *
+ * The instructions lean deliberately toward the speaker. A reference list is
+ * short and a good four-minute explanation will go past it, so covering
+ * something else is not an error and only a genuinely false statement counts.
+ * The opposite bias — a model that finds fault to look thorough — would make
+ * the speaker distrust the whole report, including the parts that are right.
+ */
+function describeConceptReference({ topicDefinition, topicKeyPoints }) {
+  if (!topicDefinition) {
+    return `KAVRAM REFERANSI: Yok.
+Bu konu için doğrulanmış bir tanım gönderilmedi. conceptAccuracy alanında
+verdict = "dogru", listeleri boş bırak ve comment alanına "Bu konu için
+referans tanım gönderilmedi, içerik doğruluğu denetlenmedi." yaz.
+Kendi hafızandan bir tanım üretip konuşmacıyı ona göre yargılama.`;
+  }
+
+  const expected = topicKeyPoints.length
+    ? topicKeyPoints.map((point, index) => `  ${index + 1}. ${point}`).join("\n")
+    : "  (beklenen nokta listesi gönderilmedi)";
+
+  return `KAVRAM REFERANSI — İÇERİK DOĞRULUĞU DENETİMİ
+
+Konuşmacı bu kavramı 15 dakika araştırdı ve şimdi anlatıyor. Görevinin bu
+kısmı, anlattığının doğru olup olmadığını denetlemek. Bu, raporun tek
+"ne söyledi" bölümü; geri kalan her şey "nasıl söyledi" ile ilgili.
+
+DOĞRU TANIM:
+"""
+${topicDefinition}
+"""
+
+ANLATIMDA OLMASI BEKLENEN NOKTALAR:
+${expected}
+
+conceptAccuracy alanını şöyle doldur:
+
+  correctPoints   Beklenen noktalardan gerçekten açıkladıkları. Adını anmak
+                  yetmez; anladığını gösterecek kadar açıklamış olmalı.
+  missedPoints    Beklenen noktalardan hiç değinmedikleri.
+  errors          Söylediği ve GERÇEKTEN yanlış olan şeyler.
+  extraPoints     Listede olmayan ama doğru olan, kendi kattığı şeyler.
+  verdict         "dogru"   → errors boş ve ana mekanizmayı doğru kurmuş.
+                  "kismen"  → mekanizma kabaca doğru ama taşıyıcı bir parça
+                              eksik ya da bulanık.
+                  "yanlis"  → kavramı temelinden yanlış anlamış.
+  comment         2-3 cümle: neyi anlamış, nerede yarım kalmış.
+
+ÇOK ÖNEMLİ AYRIMLAR:
+
+1. Eksik olan yanlış değildir. Değinilmeyen bir nokta missedPoints'e gider,
+   errors'a ASLA girmez. errors sadece söylenmiş ve olgusal olarak yanlış
+   olan ifadeler içindir.
+
+2. Yukarıdaki liste eksiksiz değil, bir referans. Konuşmacı listede olmayan
+   doğru bir açı bulduysa bu bir kusur değil, artıdır — extraPoints'e yaz.
+
+3. Farklı ifade etmek yanlış değildir. Kendi benzetmesiyle, kendi
+   örnekleriyle anlatmak istenen şeydir; ezberlenmiş tanımı tekrarlamak
+   değil. Sadece anlamı bozulduğunda hata say.
+
+4. Emin olmadığın yerde hata yazma. Uydurulmuş bir hata, konuşmacının
+   raporun tamamına olan güvenini yok eder.
+
+5. Kayıt dökümü kusurlu olabilir. Bir özel ismin veya tarihin yanlış
+   yazılması konuşmacının hatası olmayabilir; anlaşılabiliyorsa hata sayma.
+
+Bu denetim içerik puanına (scores.content) yansımalı: kavramı yanlış
+anlatan akıcı bir konuşma yüksek içerik puanı almamalı. Diğer puan
+boyutlarını (fluency, voice, structure) etkilememeli.`;
+}
+
+/**
  * Builds the user-side prompt for step 2.
  *
  * `audioObservation` is the plain-text report produced by the listening step.
@@ -206,7 +296,9 @@ function buildRhetoricAnalysisPrompt({
   targetDurationSeconds,
   preparationNotes,
   mode,
-  audioObservation
+  audioObservation,
+  topicDefinition = "",
+  topicKeyPoints = []
 }) {
   const sourceOfTruth = audioObservation
     ? `KAYNAK: Kaydı dinleyen bir model, duyduklarını aşağıdaki DİNLEME TUTANAĞI
@@ -237,6 +329,8 @@ Olmayan bir şeyi ölçmüş gibi yapma.`;
     `SÜRE: Konuşma ${durationSeconds} saniye sürdü. Hedeflenen süre ${targetDurationSeconds} saniyeydi.`,
     "",
     sourceOfTruth,
+    "",
+    describeConceptReference({ topicDefinition, topicKeyPoints }),
     "",
     describePreparationNotes(preparationNotes),
     "",

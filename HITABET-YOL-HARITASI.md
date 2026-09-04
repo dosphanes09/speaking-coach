@@ -10,10 +10,10 @@ Mevcut İngilizce konuşma pratiği altyapısının üzerine kuruluyor.
 **Akış:**
 
 ```
-Konu verilir  →  15 dk hazırlık (AI yok, not al)  →  Kayıt (video)
-                                                          ↓
-    Puan + geri bildirim  ←  Ses analizi  ←  Ses parçası yüklenir
-                                                          ↓
+Kavram verilir  →  15 dk araştırma (AI yok, not al)  →  Kayıt (video)
+                                                              ↓
+      Puan + geri bildirim  ←  Ses analizi  ←  Ses parçası yüklenir
+                                                              ↓
                                          Video yerelde kalır (kendini izle)
 ```
 
@@ -23,6 +23,29 @@ hikâye anlatıcılığı, sunum yeteneği.
 **Odak değil:** dil öğretimi. Türkçen zaten iyi; burada ölçtüğümüz şey dil
 bilgisi değil, **etki**.
 
+### Konu tipi değişikliği (sonradan alınan karar)
+
+İlk sürümde konular görüş sorusuydu ("Fikrini değiştirdiğin bir konu").
+Bu yanlış egzersizi ölçüyordu: zaten bildiğin şeyi anlatıyordun ve 15 dakika
+sadece planlama süresine dönüşüyordu.
+
+Konular artık **araştırılacak kavramlar**: bir etki, bir yasa, bir olgu, bir
+tarihsel olay. *Dunning-Kruger etkisi*, *Jevons paradoksu*, *Vasa gemisinin
+batışı* gibi. Bu, sosyal medyadaki "15 dakika araştır, sonra anlat" akımının
+mantığı ve ölçtüğü beceri farklı:
+
+| | Görüş konusu (eski) | Araştırma konusu (yeni) |
+|---|---|---|
+| 15 dakika ne işe yarıyor | Düşünceyi düzenleme | **Öğrenme ve sindirme** |
+| Zorluk nerede | Akıcılık | Yeni bilgiyi kendi cümlelerinle kurmak |
+| Başarısızlık nasıl görünür | Tutukluk, "ııı" | **Ezber tadında konuşma**, yarım anlaşılmış kavram |
+
+Bunun getirdiği yeni özellik: **içerik doğruluğu denetimi**. Her konunun
+bankada doğrulanmış bir tanımı ve beklenen noktaları var; bunlar kayıtla
+birlikte analize gönderilir ve model anlattığının doğru olup olmadığını
+denetler. Raporun tek "ne söyledin" bölümü budur; geri kalan her şey "nasıl
+söyledin" ile ilgili.
+
 ---
 
 ## 2. Alınan kararlar
@@ -31,7 +54,10 @@ bilgisi değil, **etki**.
 |---|---|
 | Konuşma süresi | **En fazla 5 dakika** |
 | Video | Kaydedilir, sen izlersin; **analiz sesten** yapılır |
+| Konu tipi | **Araştırılacak kavram** (etki, yasa, olgu, olay) — görüş sorusu değil |
 | Konu kaynağı | Hibrit: yerel Türkçe konu bankası + istenirse AI üretimi |
+| Konu bankası | 48 kavram, 6 alan × 8 (psikoloji, ekonomi, bilim, tarih, teknoloji, toplum) |
+| İçerik doğruluğu | Denetlenir — bankadaki tanım referans alınır, hafızadan değil |
 | Hazırlık notları | Kaydedilir ve analize girdi olur |
 | Öz değerlendirme | AI puanını görmeden önce kendine puan verirsin |
 | İşaretlenmiş metin | Var — ses analizinin bulgularını metin üzerinde gösterir |

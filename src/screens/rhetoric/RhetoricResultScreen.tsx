@@ -12,7 +12,7 @@ import { RhetoricScoreCard } from "@/components/rhetoric/RhetoricScoreCard";
 import { AppColors, radius, spacing } from "@/theme/colors";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
-import { RhetoricFeedbackPoint, RhetoricRecord } from "@/types/rhetoric";
+import { RhetoricConceptAccuracy, RhetoricFeedbackPoint, RhetoricRecord } from "@/types/rhetoric";
 import { createAndShareRhetoricPdf } from "@/services/pdf/rhetoricReportPdf";
 
 interface RhetoricResultScreenProps {
@@ -87,6 +87,21 @@ export function RhetoricResultScreen({
             measuredFromAudio={measuredFromAudio}
           />
         </Card>
+
+        {/*
+          Placed directly under the score, above delivery and metrics, because
+          it answers the question the exercise is actually about: did the
+          fifteen minutes of research land? A speech can score well on every
+          delivery dimension and still be an explanation of something the
+          speaker misunderstood, and that ordering is what makes it visible.
+        */}
+        {analysis.conceptAccuracy ? (
+          <ConceptAccuracyCard
+            accuracy={analysis.conceptAccuracy}
+            definition={record.topic.definition}
+            colors={colors}
+          />
+        ) : null}
 
         {previousAttempt ? (
           <Card style={styles.compareCard}>
@@ -201,7 +216,10 @@ export function RhetoricResultScreen({
         </CollapsibleCard>
 
         {record.topic.angles.length > 0 ? (
-          <CollapsibleCard title="Bu konunun diğer açıları" subtitle="Konuşmadan sonra bakılır">
+          <CollapsibleCard
+            title="Anlatımda olması beklenen noktalar"
+            subtitle="Referans liste — eksiksiz değil"
+          >
             {record.topic.angles.map((angle) => (
               <Text key={angle} style={styles.angle}>
                 • {angle}
@@ -289,6 +307,75 @@ function Detail({ label, value, colors }: { label: string; value: string; colors
   );
 }
 
+/**
+ * The content check.
+ *
+ * The verdict is shown as a word, not a number, and deliberately so: "kısmen"
+ * is the common and most useful outcome — the mechanism was roughly right but a
+ * load-bearing piece was missing — and folding that into a score would hide it
+ * among the six delivery scores right above.
+ *
+ * `errors` is rendered last and in the danger colour on purpose. It is the one
+ * list here that says the speaker stated something untrue, and it should not be
+ * possible to skim past it.
+ */
+function ConceptAccuracyCard({
+  accuracy,
+  definition,
+  colors
+}: {
+  accuracy: RhetoricConceptAccuracy;
+  definition?: string;
+  colors: AppColors;
+}) {
+  const styles = createStyles(colors);
+  const verdict = VERDICT_PRESENTATION[accuracy.verdict] ?? VERDICT_PRESENTATION.kismen;
+
+  return (
+    <Card style={[styles.accuracyCard, { borderColor: verdict.color(colors) }]}>
+      <View style={styles.accuracyHeader}>
+        <Text style={styles.accuracyLabel}>KAVRAMI ANLAMAN</Text>
+        <View style={[styles.verdictBadge, { backgroundColor: verdict.color(colors) }]}>
+          <Text style={styles.verdictText}>{verdict.label}</Text>
+        </View>
+      </View>
+
+      {accuracy.comment ? <Text style={styles.accuracyComment}>{accuracy.comment}</Text> : null}
+
+      <PointList label="Doğru anlattıkların" items={accuracy.correctPoints} tone="good" colors={colors} />
+      <PointList label="Değinmediklerin" items={accuracy.missedPoints} tone="warn" colors={colors} />
+      <PointList label="Listede olmayan doğru eklemelerin" items={accuracy.extraPoints} tone="info" colors={colors} />
+      <PointList label="Yanlış anlattıkların" items={accuracy.errors} tone="bad" colors={colors} />
+
+      {definition ? (
+        <View style={styles.definitionBox}>
+          <Text style={styles.definitionLabel}>KAVRAMIN DOĞRU TANIMI</Text>
+          <Text style={styles.definitionText}>{definition}</Text>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+const VERDICT_PRESENTATION: Record<
+  RhetoricConceptAccuracy["verdict"],
+  { label: string; color: (colors: AppColors) => string }
+> = {
+  dogru: { label: "DOĞRU", color: (colors) => colors.success },
+  kismen: { label: "KISMEN", color: (colors) => colors.warning },
+  yanlis: { label: "YANLIŞ", color: (colors) => colors.danger }
+};
+
+type PointTone = "good" | "warn" | "bad" | "info" | "neutral";
+
+const POINT_TONE_COLORS: Record<PointTone, (colors: AppColors) => string> = {
+  good: (colors) => colors.success,
+  warn: (colors) => colors.warning,
+  bad: (colors) => colors.danger,
+  info: (colors) => colors.accent,
+  neutral: (colors) => colors.muted
+};
+
 function PointList({
   label,
   items,
@@ -297,14 +384,14 @@ function PointList({
 }: {
   label: string;
   items: string[];
-  tone: "good" | "warn" | "neutral";
+  tone: PointTone;
   colors: AppColors;
 }) {
   const styles = createStyles(colors);
   if (items.length === 0) {
     return null;
   }
-  const color = tone === "good" ? colors.success : tone === "warn" ? colors.warning : colors.muted;
+  const color = POINT_TONE_COLORS[tone](colors);
   return (
     <View style={styles.detail}>
       <Text style={[styles.detailLabel, { color }]}>{label}</Text>
@@ -370,6 +457,48 @@ function createStyles(colors: AppColors) {
       borderColor: colors.warning
     },
     fallbackText: {
+      ...typography.body,
+      color: colors.ink
+    },
+    accuracyCard: {
+      gap: spacing.xs,
+      borderWidth: 2
+    },
+    accuracyHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm
+    },
+    accuracyLabel: {
+      ...typography.label,
+      color: colors.muted
+    },
+    verdictBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.lg
+    },
+    verdictText: {
+      ...typography.label,
+      color: "#FFFFFF"
+    },
+    accuracyComment: {
+      ...typography.body,
+      color: colors.ink
+    },
+    definitionBox: {
+      marginTop: spacing.xs,
+      padding: spacing.sm,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceMuted,
+      gap: 2
+    },
+    definitionLabel: {
+      ...typography.label,
+      color: colors.muted
+    },
+    definitionText: {
       ...typography.body,
       color: colors.ink
     },
