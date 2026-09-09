@@ -37,3 +37,4 @@ GoogleService-Info.plist
 desktop/node_modules/
 desktop/web/
 desktop/release/
+Claude outputs/

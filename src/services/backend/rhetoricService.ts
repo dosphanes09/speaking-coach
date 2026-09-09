@@ -9,6 +9,7 @@ import { validateBackendBaseUrl } from "@/config/backendConfig";
 import { getDeviceAccessToken } from "@/services/auth/deviceAuthService";
 import { apiFetch } from "@/services/platform/apiClient";
 import { createUploadFile } from "@/services/platform/uploadFile";
+import { markQuotaExhausted, recordQuotaFromResponse } from "@/services/storage/quotaStore";
 import { RhetoricAnalysis, RhetoricMode, RhetoricRecording, RhetoricTopic } from "@/types/rhetoric";
 
 interface AnalyzeRhetoricParams {
@@ -101,6 +102,14 @@ export async function analyzeRhetoricWithBackend({
     throw new Error(
       "Sunucuya ulaşılamadı. İnternet bağlantını kontrol et ve tekrar dene. Kaydın cihazında duruyor."
     );
+  }
+
+  // The backend meters every analysis endpoint and says how many are left; the
+  // app used to throw that header away and let the speaker find out by being
+  // rejected after a full recording.
+  recordQuotaFromResponse("rhetoric", response);
+  if (response.status === 429) {
+    markQuotaExhausted("rhetoric");
   }
 
   const text = await response.text();

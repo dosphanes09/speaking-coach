@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Icon, IconName } from "./Icon";
@@ -64,7 +65,7 @@ export function NavListCard({ children }: { children: React.ReactNode }): React.
   return <View style={styles.card}>{children}</View>;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     card: {
       backgroundColor: colors.surface,
@@ -104,3 +105,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

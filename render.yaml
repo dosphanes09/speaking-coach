@@ -60,6 +60,22 @@ services:
       # The listening step writes a full transcript plus timestamped notes.
       - key: OPENAI_AUDIO_OBSERVATION_MAX_TOKENS
         value: "8000"
+      # --- Micro-drills -------------------------------------------------
+      # 45-90 second reps. The ceiling only has to stop something that is no
+      # longer a drill.
+      - key: MAX_DRILL_DURATION_SECONDS
+        value: "120"
+      # Deliberately generous: frequency is the entire premise of the drills,
+      # and a quota that stopped the fourth rep of the day would defeat them.
+      # Each rep costs a fraction of a rhetoric session.
+      - key: MAX_DAILY_DRILLS_PER_USER
+        value: "30"
+      # A verdict plus two sentences, not a segmented transcript.
+      - key: OPENAI_DRILL_MAX_OUTPUT_TOKENS
+        value: "2000"
+      # A minute of audio does not need the rhetoric module's window.
+      - key: OPENAI_DRILL_TIMEOUT_MS
+        value: "60000"
       # Hesitation sounds, pauses and monotony are inaudible in a transcript;
       # without audio analysis the rhetoric module loses its main measurements.
       - key: ENABLE_AUDIO_ANALYSIS

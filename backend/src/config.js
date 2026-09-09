@@ -82,6 +82,12 @@ const config = {
   // The listening step writes a full transcript plus timestamped observations,
   // so it needs room comparable to the analysis itself.
   openAiAudioObservationMaxTokens: readNumber("OPENAI_AUDIO_OBSERVATION_MAX_TOKENS", 8000),
+  // Drills are 45-90 seconds and are meant to be done several times a day, so
+  // they get their own smaller budgets: a minute of audio does not need the
+  // rhetoric module's two and a half minute window, and the answer is a verdict
+  // plus two sentences rather than a segmented transcript.
+  openAiDrillTimeoutMs: readNumber("OPENAI_DRILL_TIMEOUT_MS", 60000),
+  openAiDrillMaxOutputTokens: readNumber("OPENAI_DRILL_MAX_OUTPUT_TOKENS", 2000),
   openAiChatMaxOutputTokens: readNumber("OPENAI_CHAT_MAX_OUTPUT_TOKENS", 700),
   allowedOrigins: readOrigins(),
   requireHttps: readBoolean("REQUIRE_HTTPS", false),
@@ -101,11 +107,18 @@ const config = {
   // Size check: mono 16kHz 16-bit WAV is 32 KB/s, so 330s is about 10.1 MB,
   // which still fits under maxFileSizeBytes.
   maxRhetoricDurationSeconds: readNumber("MAX_RHETORIC_DURATION_SECONDS", 330),
+  // 90 seconds covers the longest drill (a slow reading of the longer passage)
+  // with margin. A drill that ran longer than this would not be a drill.
+  maxDrillDurationSeconds: readNumber("MAX_DRILL_DURATION_SECONDS", 120),
   maxDailyAnalysesPerUser: readNumber("MAX_DAILY_ANALYSES_PER_USER", 10),
   // Counted separately from English analyses: a rhetoric session sends several
   // times more audio, so one shared counter would let a few long speeches eat
   // the whole day's English practice.
   maxDailyRhetoricAnalysesPerUser: readNumber("MAX_DAILY_RHETORIC_ANALYSES_PER_USER", 6),
+  // Deliberately generous. The entire premise of the drills is frequency, so a
+  // quota that stops the fourth rep of the day would defeat the feature; each
+  // one costs a fraction of a rhetoric session.
+  maxDailyDrillsPerUser: readNumber("MAX_DAILY_DRILLS_PER_USER", 30),
   maxDailyChatMessagesPerUser: readNumber("MAX_DAILY_CHAT_MESSAGES_PER_USER", 60),
   // One lesson a day is the product; the extra headroom covers a learner who regenerates
   // because the topic missed, plus the odd failed attempt.

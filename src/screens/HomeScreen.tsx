@@ -5,6 +5,7 @@ import { NavListCard, NavListItem } from "@/components/NavListItem";
 import { RingProgress } from "@/components/RingProgress";
 import { SpeakingRecord } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
@@ -68,7 +69,7 @@ export function HomeScreen({
             hitSlop={4}
             style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
           >
-            <Icon name="settings" size={18} color="#FFFFFF" />
+            <Icon name="settings" size={18} color={colors.onAccent} />
           </Pressable>
         </View>
 
@@ -280,7 +281,7 @@ function countRecordsSince(records: SpeakingRecord[], windowMs: number): number 
   return records.filter((record) => Date.parse(record.createdAt) >= cutoff).length;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -376,7 +377,7 @@ function createStyles(colors: AppColors) {
     },
     heroTitle: {
       ...typography.h1,
-      color: "#FFFFFF",
+      color: colors.onAccent,
       maxWidth: 230,
       marginTop: spacing.xs,
       marginBottom: spacing.md
@@ -540,3 +541,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

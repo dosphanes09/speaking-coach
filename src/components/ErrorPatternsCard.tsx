@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { ErrorPattern } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
@@ -42,7 +43,7 @@ export function ErrorPatternsCard({ patterns }: ErrorPatternsCardProps): React.J
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.md
@@ -66,7 +67,7 @@ function createStyles(colors: AppColors) {
   },
   badge: {
     ...typography.label,
-    color: "#FFFFFF",
+    color: colors.onAccent,
     fontSize: 11,
     overflow: "hidden",
     borderRadius: radius.sm,
@@ -93,3 +94,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

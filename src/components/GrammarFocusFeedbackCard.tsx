@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { GrammarFocusFeedback } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
@@ -73,7 +74,7 @@ function ListBlock({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.sm
@@ -95,3 +96,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

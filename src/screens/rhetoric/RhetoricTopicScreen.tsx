@@ -4,6 +4,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import {
@@ -210,7 +211,7 @@ function Chip({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -231,12 +232,15 @@ function createStyles(colors: AppColors) {
       gap: spacing.xs
     },
     chip: {
-      minHeight: 40,
+      // 44 is the floor both Apple and Google publish for a touch target;
+      // 40 is the size at which a thumb starts missing.
+      minHeight: 44,
       justifyContent: "center",
       paddingHorizontal: spacing.md,
       borderRadius: radius.lg,
       borderWidth: 1,
-      borderColor: colors.line,
+      // Unselected chips are outline-only controls.
+      borderColor: colors.lineStrong,
       backgroundColor: colors.surface
     },
     chipActive: {
@@ -306,3 +310,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

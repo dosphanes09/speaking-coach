@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { MonthlyScoreCharts } from "@/components/MonthlyScoreCharts";
 import { SpeakingRecord } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { calculateProgress, ProgressScoreBreakdown } from "@/services/progress/progressService";
@@ -58,6 +59,7 @@ export function ProgressScreen({ records, onBack }: ProgressScreenProps): React.
       <Card style={styles.chartCard}>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Charts"
           accessibilityState={{ expanded: showCharts }}
           onPress={() => setShowCharts((current) => !current)}
           style={styles.expandHeader}
@@ -240,7 +242,7 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}m`;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.md,
@@ -387,7 +389,7 @@ function createStyles(colors: AppColors) {
       minWidth: 40,
       borderRadius: radius.sm,
       backgroundColor: colors.warning,
-      color: "#FFFFFF",
+      color: colors.onAccent,
       fontSize: 13,
       overflow: "hidden",
       paddingHorizontal: spacing.xs,
@@ -417,3 +419,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

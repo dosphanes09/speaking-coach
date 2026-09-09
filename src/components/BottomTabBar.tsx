@@ -81,6 +81,10 @@ export function BottomTabBar({ activeTab, onSelectTab }: BottomTabBarProps): Rea
   );
 }
 
+// Deliberately not wrapped in memoizeStyles: that cache is keyed on the theme
+// object alone, so two different `isLoveMode` values would collide and hand back
+// the wrong sheet. Both of these render once per screen, so there is nothing to
+// win here anyway.
 function createStyles(colors: AppColors, isLoveMode: boolean) {
   return StyleSheet.create({
     wrapper: {

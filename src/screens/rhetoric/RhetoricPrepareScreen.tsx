@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricMode, RhetoricTopic } from "@/types/rhetoric";
@@ -50,6 +52,7 @@ export function RhetoricPrepareScreen({
   const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
   const [notes, setNotes] = useState("");
   const [isLocked, setIsLocked] = useState(false);
+  const [isLeaveOpen, setIsLeaveOpen] = useState(false);
   const startedAtRef = useRef(Date.now());
 
   useEffect(() => {
@@ -71,11 +74,18 @@ export function RhetoricPrepareScreen({
   const isUrgent = remainingSeconds <= Math.min(60, totalSeconds * 0.2);
 
   return (
+    // Without this the on-screen keyboard sits on top of the very field the
+    // screen exists for — on the preparation screen that is fifteen minutes of
+    // notes typed blind.
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
     <View style={styles.screen}>
       <Header
         title={mode === "impromptu" ? "Hazırlık" : "Araştırma"}
         subtitle={mode === "impromptu" ? "60 saniyen var" : "15 dakika araştırma"}
-        onBack={onBack}
+        onBack={() => (notes.trim() ? setIsLeaveOpen(true) : onBack())}
         backLabel="Geri"
       />
 
@@ -146,6 +156,23 @@ export function RhetoricPrepareScreen({
         </View>
       </ScrollView>
     </View>
+
+      {/* Fifteen minutes of research live in this text box and nowhere else —
+          they are not saved until the recording starts. */}
+      <ConfirmDialog
+        visible={isLeaveOpen}
+        title="Notlarından çıkılsın mı?"
+        message="Yazdığın hazırlık notları kaydedilmedi ve geri dönersen silinecek. Notlar ancak kayda geçtiğinde saklanır."
+        confirmLabel="Çık, notları sil"
+        cancelLabel="Hazırlığa dön"
+        destructive
+        onCancel={() => setIsLeaveOpen(false)}
+        onConfirm={() => {
+          setIsLeaveOpen(false);
+          onBack();
+        }}
+      />
+    </KeyboardAvoidingView>
   );
 }
 
@@ -154,7 +181,7 @@ function formatClock(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -266,3 +293,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

@@ -1,10 +1,12 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
+import { QuotaNotice } from "@/components/QuotaNotice";
 import { Card } from "@/components/Card";
 import { Icon, IconName } from "@/components/Icon";
 import { SectionTitle } from "@/components/SectionTitle";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricRecord } from "@/types/rhetoric";
@@ -14,6 +16,9 @@ interface RhetoricHomeScreenProps {
   records: RhetoricRecord[];
   onStartPrepared: () => void;
   onStartImpromptu: () => void;
+  onDrills: () => void;
+  /** Reps done today, so the entry point can say whether one is still owed. */
+  drillRepsToday: number;
   onHistory: () => void;
   onProgress: () => void;
   onSwitchModule: () => void;
@@ -23,6 +28,8 @@ export function RhetoricHomeScreen({
   records,
   onStartPrepared,
   onStartImpromptu,
+  onDrills,
+  drillRepsToday,
   onHistory,
   onProgress,
   onSwitchModule
@@ -51,6 +58,8 @@ export function RhetoricHomeScreen({
         </Pressable>
       </View>
 
+      <QuotaNotice feature="rhetoric" exhaustedHint="Yarın tekrar dene." />
+
       <Card style={styles.heroCard}>
         <Text style={styles.heroLabel}>HAZIRLIKLI KONUŞMA</Text>
         <Text style={styles.heroTitle}>Konu al, 15 dakika hazırlan, anlat</Text>
@@ -67,6 +76,24 @@ export function RhetoricHomeScreen({
           Hazırlıksız akıcı kalabilme becerisi. Dolgu sesleri burada artar — çalışılacak yer tam da orası.
         </Text>
         <AppButton label="Doğaçlama başlat" onPress={onStartImpromptu} variant="ghost" icon="zap" />
+      </Card>
+
+      {/* Third card rather than a menu item: this is the one meant to be opened
+          several times a day, and a speaking session is the thing done weekly.
+          Burying the frequent action behind the rare one gets it forgotten. */}
+      <Card style={styles.secondaryCard}>
+        <Text style={styles.secondaryLabel}>MİKRO EGZERSİZ</Text>
+        <Text style={styles.secondaryTitle}>60 saniye · günde birkaç kez</Text>
+        <Text style={styles.secondaryBody}>
+          Dolgu yasağı, tempo tutturma, tekerleme. Diksiyon ve "ııı" motor becerilerdir; uzun seans
+          değil sık tekrar kazandırır.
+        </Text>
+        <AppButton
+          label={drillRepsToday > 0 ? `Bugün ${drillRepsToday} tekrar · devam et` : "Bir tekrar yap"}
+          onPress={onDrills}
+          variant="ghost"
+          icon="mic"
+        />
       </Card>
 
       {records.length > 0 ? (
@@ -184,7 +211,7 @@ function formatTotalMinutes(seconds: number): string {
   return minutes >= 60 ? `${Math.floor(minutes / 60)} sa ${minutes % 60} dk` : `${minutes} dk`;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.screen,
@@ -214,7 +241,9 @@ function createStyles(colors: AppColors) {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      minHeight: 40,
+      // 44 is the floor both Apple and Google publish for a touch target;
+      // 40 is the size at which a thumb starts missing.
+      minHeight: 44,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.lg,
       borderWidth: 1,
@@ -240,7 +269,7 @@ function createStyles(colors: AppColors) {
     },
     heroTitle: {
       ...typography.h1,
-      color: "#FFFFFF"
+      color: colors.onAccent
     },
     heroBody: {
       ...typography.body,
@@ -344,3 +373,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

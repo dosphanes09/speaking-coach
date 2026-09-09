@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AnalysisResultView } from "@/components/AnalysisResultView";
 import { AppButton } from "@/components/AppButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { MediaPreview } from "@/components/MediaPreview";
@@ -15,6 +16,7 @@ import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils"
 import { isGrammarPracticeRecord } from "@/services/records/recordClassification";
 import { SpeakingRecord, Topic } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
@@ -42,6 +44,7 @@ export function RecordDetailScreen({
   const styles = createStyles(colors);
   const [currentRecord, setCurrentRecord] = useState(record);
   const [pdfError, setPdfError] = useState("");
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCreatingPdf, setIsCreatingPdf] = useState(false);
   const isGrammarRecord = isGrammarPracticeRecord(currentRecord);
   const otherAttempts = findTopicAttempts(currentRecord, allRecords);
@@ -77,7 +80,10 @@ export function RecordDetailScreen({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    // A fragment because the dialog is a sibling of the scroll view, not a
+    // child of it: rendered inside, it would scroll with the content.
+    <>
+      <ScrollView contentContainerStyle={styles.content}>
       <Header title="Practice Detail" subtitle={currentRecord.topic.title} onBack={onBack} />
 
       <Card style={styles.metaCard}>
@@ -124,6 +130,7 @@ export function RecordDetailScreen({
               <Pressable
                 key={attempt.id}
                 accessibilityRole="button"
+                accessibilityLabel={formatReadableDate(attempt.createdAt)}
                 onPress={() => onSelectRecord(attempt)}
               >
                 <Card style={styles.attemptCard}>
@@ -142,13 +149,28 @@ export function RecordDetailScreen({
           onPress={handlePdfReport}
           loading={isCreatingPdf}
         />
-        <AppButton label="Delete Record" onPress={() => onDelete(currentRecord)} variant="danger" />
+        <AppButton label="Delete Record" onPress={() => setIsDeleteOpen(true)} variant="danger" />
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <ConfirmDialog
+        visible={isDeleteOpen}
+        title="Delete this record?"
+        message="The recording, transcript, feedback and scores are permanently deleted. This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onCancel={() => setIsDeleteOpen(false)}
+        onConfirm={() => {
+          setIsDeleteOpen(false);
+          onDelete(currentRecord);
+        }}
+      />
+    </>
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.md,
@@ -218,3 +240,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

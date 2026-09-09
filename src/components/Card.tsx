@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, ViewProps } from "react-native";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 export function Card({ children, style, ...rest }: ViewProps): React.JSX.Element {
@@ -14,7 +15,7 @@ export function Card({ children, style, ...rest }: ViewProps): React.JSX.Element
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
@@ -30,3 +31,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

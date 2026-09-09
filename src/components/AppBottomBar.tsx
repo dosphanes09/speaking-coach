@@ -70,6 +70,9 @@ function BarButton({ icon, label, onPress, active = false, disabled = false }: B
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
       hitSlop={8}

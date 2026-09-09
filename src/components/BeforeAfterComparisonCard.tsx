@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { SCORE_LABELS } from "@/services/progress/scoreUtils";
 import { BeforeAfterComparison } from "@/services/progress/beforeAfterService";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
@@ -126,7 +127,7 @@ function formatDate(value: string): string {
   });
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.md
@@ -206,3 +207,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

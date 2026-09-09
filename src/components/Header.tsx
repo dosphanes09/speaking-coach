@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Icon, IconName } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors, useThemeMode } from "@/theme/ThemeProvider";
 
@@ -82,7 +83,7 @@ function resolveActionIcon(label?: string): IconName | undefined {
   return undefined;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     container: {
       paddingTop: spacing.md,
@@ -153,3 +154,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

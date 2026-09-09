@@ -4,6 +4,7 @@ import type { DimensionValue } from "react-native";
 import { AnalysisResult, ScoreMetric } from "@/types/models";
 import { formatScore100, normalizeScores, SCORE_LABELS } from "@/services/progress/scoreUtils";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Icon, IconName } from "./Icon";
@@ -188,7 +189,7 @@ function normalizeText(value: string, fallback: string): string {
   return normalized.length > 0 ? normalized : fallback;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     container: {
       gap: spacing.sm
@@ -313,3 +314,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

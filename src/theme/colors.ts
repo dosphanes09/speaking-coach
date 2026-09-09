@@ -1,23 +1,43 @@
+/**
+ * Light theme.
+ *
+ * Several accents here are darker than an eye would pick them: `warning` in
+ * particular reads as olive rather than gold. That was measured, not chosen.
+ * The original #C58A21 gave warning text on its own tint a contrast of 2.71
+ * where 4.5 is needed — the yellow warning box was the least readable thing in
+ * the app — and white on it scored 2.99, so the badges printed on it were worse.
+ * Each value below is the closest colour to the original, at the same hue and
+ * saturation, that clears every pairing it is actually used in.
+ */
 export const lightColors = {
   background: "#F7F7F2",
   surface: "#FFFFFF",
   surfaceMuted: "#ECEFE8",
   ink: "#1D2521",
-  muted: "#68736D",
-  line: "#DDE2DB",
+  muted: "#636E68",
+  line: "#B4BFB0",
   primary: "#2E7D68",
   primaryDark: "#205B4C",
   secondary: "#D9893D",
   accent: "#4464AD",
-  danger: "#B94A48",
-  success: "#3B8C5A",
-  warning: "#C58A21",
+  danger: "#B64846",
+  success: "#347C50",
+  warning: "#936719",
   primaryTint: "#EAF4F0",
   accentTint: "#EEF1FB",
   secondaryTint: "#FBF0E4",
   successTint: "#EAF6EE",
   warningTint: "#FBF3E7",
-  dangerTint: "#FBEAEA"
+  dangerTint: "#FBEAEA",
+  // The outline a control has when it has no fill of its own — a ghost button,
+  // an unselected chip. WCAG asks 3:1 of anything that identifies a control,
+  // which `line` deliberately does not meet: a 3:1 edge on every decorative
+  // card would box the whole interface in.
+  lineStrong: "#889981",
+  // Text and icons placed ON a solid accent fill. White works in this theme
+  // because the accents above were darkened until it does; the dark themes use
+  // their own background instead, since their accents are light.
+  onAccent: "#FFFFFF"
 };
 
 export const darkColors: AppColors = {
@@ -26,7 +46,7 @@ export const darkColors: AppColors = {
   surfaceMuted: "#25312C",
   ink: "#F2F5EF",
   muted: "#A7B0AA",
-  line: "#35423C",
+  line: "#42524A",
   primary: "#54B99D",
   primaryDark: "#8DDBC8",
   secondary: "#E2A258",
@@ -39,7 +59,9 @@ export const darkColors: AppColors = {
   secondaryTint: "#2E2519",
   successTint: "#1B2A22",
   warningTint: "#2E2718",
-  dangerTint: "#2E1E1D"
+  dangerTint: "#2E1E1D",
+  lineStrong: "#5B7267",
+  onAccent: "#111714"
 };
 
 export const loveColors: AppColors = {
@@ -48,7 +70,7 @@ export const loveColors: AppColors = {
   surfaceMuted: "#482335",
   ink: "#FFF3F6",
   muted: "#E9B9C6",
-  line: "#6A334A",
+  line: "#793A55",
   primary: "#E94B7A",
   primaryDark: "#FF8DAA",
   secondary: "#F2A07B",
@@ -61,7 +83,9 @@ export const loveColors: AppColors = {
   secondaryTint: "#3A2820",
   successTint: "#3A222A",
   warningTint: "#3A2A18",
-  dangerTint: "#3A1B22"
+  dangerTint: "#3A1B22",
+  lineStrong: "#A75074",
+  onAccent: "#211018"
 };
 
 export type AppColors = typeof lightColors;

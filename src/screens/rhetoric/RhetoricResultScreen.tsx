@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/Card";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { Header } from "@/components/Header";
@@ -10,7 +11,9 @@ import { MetricGrid } from "@/components/rhetoric/MetricGrid";
 import { RecordingPlayer, RecordingPlayerHandle } from "@/components/rhetoric/RecordingPlayer";
 import { RhetoricScoreCard } from "@/components/rhetoric/RhetoricScoreCard";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
+import { proseWidth } from "@/theme/layout";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricConceptAccuracy, RhetoricFeedbackPoint, RhetoricRecord } from "@/types/rhetoric";
 import { createAndShareRhetoricPdf } from "@/services/pdf/rhetoricReportPdf";
@@ -40,6 +43,7 @@ export function RhetoricResultScreen({
   const playerRef = useRef<RecordingPlayerHandle | null>(null);
   const [pdfState, setPdfState] = useState<"idle" | "working" | "done" | "error">("idle");
   const [pdfMessage, setPdfMessage] = useState("");
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const { analysis } = record;
   const measuredFromAudio = analysis.analysisSource === "audio";
@@ -71,6 +75,16 @@ export function RhetoricResultScreen({
             <Text style={styles.fallbackText}>
               Ses analizi yapılamadı, değerlendirme yalnızca yazı dökümünden yapıldı. Dolgu sesi,
               duraklama ve tonlama ölçümleri bu sonuçta güvenilir değil.
+            </Text>
+          </Card>
+        ) : null}
+
+        {analysis.measurementUnreliable ? (
+          <Card style={styles.fallbackCard}>
+            <Text style={styles.fallbackText}>
+              Kayıttaki arka plan gürültüsü konuşma seviyesine çok yakın olduğu için duraklamalar ses
+              dalgasından ölçülemedi; aşağıdaki duraklama ve tempo değerleri tahmin. Daha sessiz bir
+              odada veya mikrofona biraz daha yakın kaydedersen kesin ölçüm yapılabilir.
             </Text>
           </Card>
         ) : null}
@@ -261,10 +275,30 @@ export function RhetoricResultScreen({
           />
           {isSaved ? <AppButton label="Ana ekran" onPress={onHome} variant="ghost" icon="home" /> : null}
           {onDelete ? (
-            <AppButton label="Bu kaydı sil" onPress={onDelete} variant="danger" icon="trash-2" />
+            <AppButton
+              label="Bu kaydı sil"
+              onPress={() => setIsDeleteOpen(true)}
+              variant="danger"
+              icon="trash-2"
+            />
           ) : null}
         </View>
       </ScrollView>
+
+      {/* The recording, its video and the exported PDF all go with it, and none
+          of them can be recovered — so this asks first. */}
+      <ConfirmDialog
+        visible={isDeleteOpen}
+        title="Bu kaydı sil?"
+        message="Kayıt, ses ve video dosyaları ve varsa PDF raporu kalıcı olarak silinir. Geri alınamaz."
+        confirmLabel="Sil"
+        destructive
+        onCancel={() => setIsDeleteOpen(false)}
+        onConfirm={() => {
+          setIsDeleteOpen(false);
+          onDelete?.();
+        }}
+      />
     </View>
   );
 }
@@ -442,7 +476,7 @@ function formatTimeSummary(record: RhetoricRecord): string {
   return `Hedef ${target} dk · gerçekleşen ${Math.floor(actual / 60)}:${String(actual % 60).padStart(2, "0")}`;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -481,7 +515,7 @@ function createStyles(colors: AppColors) {
     },
     verdictText: {
       ...typography.label,
-      color: "#FFFFFF"
+      color: colors.onAccent
     },
     accuracyComment: {
       ...typography.body,
@@ -500,6 +534,9 @@ function createStyles(colors: AppColors) {
     },
     definitionText: {
       ...typography.body,
+      // Read start to finish, so capped tighter than the shell: past about
+      // 90 characters per line the eye lands on the wrong line coming back.
+      ...proseWidth,
       color: colors.ink
     },
     summaryCard: {
@@ -642,3 +679,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

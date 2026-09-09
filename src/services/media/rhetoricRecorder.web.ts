@@ -77,15 +77,26 @@ function createChunkRecorder(stream: MediaStream, mimeType: string | undefined):
   return { recorder, chunks, stopped };
 }
 
-export async function startRhetoricRecording(): Promise<RhetoricRecorderHandle> {
+/**
+ * `audioOnly` skips the camera entirely rather than asking for it and coping
+ * with a refusal. The micro-drills use it: they are meant to be started five
+ * times a day, and a camera permission prompt (or a camera light coming on) is
+ * enough friction to stop someone doing the third one.
+ */
+export async function startRhetoricRecording(
+  options: { audioOnly?: boolean } = {}
+): Promise<RhetoricRecorderHandle> {
   if (!isVideoRecordingSupported()) {
     throw new Error("Bu ortamda kayıt desteklenmiyor.");
   }
 
   let stream: MediaStream;
-  let hasVideo = true;
+  let hasVideo = !options.audioOnly;
 
   try {
+    if (options.audioOnly) {
+      throw new Error("audio-only");
+    }
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: true

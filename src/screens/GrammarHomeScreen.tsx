@@ -7,6 +7,7 @@ import { getGrammarRecordLevel } from "@/services/records/recordClassification";
 import { formatScore100, normalizeScores } from "@/services/progress/scoreUtils";
 import { GrammarLevel, SpeakingRecord } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -37,6 +38,7 @@ export function GrammarHomeScreen({
             <Pressable
               key={level.level}
               accessibilityRole="button"
+              accessibilityLabel={level.level}
               onPress={() => onSelectLevel(level.level)}
               style={styles.levelPressable}
             >
@@ -67,7 +69,7 @@ function averageOverallScore(records: SpeakingRecord[]): number {
   return records.reduce((sum, record) => sum + normalizeScores(record.scores).overall, 0) / records.length;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.md,
@@ -104,3 +106,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

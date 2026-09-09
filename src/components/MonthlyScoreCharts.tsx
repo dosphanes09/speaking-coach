@@ -4,6 +4,7 @@ import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
 import { ScoreMetric, SpeakingRecord } from "@/types/models";
 import { normalizeScores, SCORE_LABELS, SCORE_METRICS } from "@/services/progress/scoreUtils";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -234,7 +235,7 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     container: {
       gap: spacing.md
@@ -269,3 +270,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

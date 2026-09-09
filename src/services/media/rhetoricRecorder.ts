@@ -25,7 +25,15 @@ export function isVideoRecordingSupported(): boolean {
   return false;
 }
 
-export async function startRhetoricRecording(): Promise<RhetoricRecorderHandle> {
+/**
+ * `audioOnly` is accepted and ignored: this platform never records video, so
+ * the option is already satisfied. Keeping the signature identical to the web
+ * sibling is what lets callers stay free of platform checks.
+ */
+export async function startRhetoricRecording(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  options: { audioOnly?: boolean } = {}
+): Promise<RhetoricRecorderHandle> {
   const permission = await Audio.requestPermissionsAsync();
   if (!permission.granted) {
     throw new Error("Kayıt için mikrofon izni gerekiyor.");

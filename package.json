@@ -12,7 +12,7 @@
     "web": "expo start --web",
     "check:apk": "node scripts/check-apk.mjs",
     "typecheck": "tsc --noEmit",
-    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter && npm run test:dailyLesson && npm run test:rhetoricStats",
+    "test:logic": "npm run test:scoreUtils && npm run test:streak && npm run test:recordClassification && npm run test:analysisEnrichment && npm run test:practiceTiming && npm run test:beforeAfter && npm run test:dailyLesson && npm run test:rhetoricStats && npm run test:layout && npm run test:contrast",
     "test:scoreUtils": "tsx scripts/scoreUtilsSelfTest.ts",
     "test:streak": "tsx scripts/streakServiceSelfTest.ts",
     "test:recordClassification": "tsx scripts/recordClassificationSelfTest.ts",
@@ -24,7 +24,9 @@
     "desktop:install": "npm --prefix desktop install",
     "desktop:start": "npm run desktop:web && npm --prefix desktop start",
     "desktop:dist": "npm run desktop:web && npm --prefix desktop run dist",
-    "test:rhetoricStats": "tsx scripts/rhetoricStatsSelfTest.ts"
+    "test:rhetoricStats": "tsx scripts/rhetoricStatsSelfTest.ts",
+    "test:layout": "tsx scripts/layoutSelfTest.ts",
+    "test:contrast": "tsx scripts/contrastSelfTest.ts"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

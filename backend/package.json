@@ -14,7 +14,9 @@
     "test:scoring": "node scripts/scoringSelfTest.js",
     "test:lesson": "node scripts/lessonSelfTest.js",
     "test:rhetoric": "node scripts/rhetoricSelfTest.js",
-    "diagnose:audio": "node scripts/audioAnalysisDiagnostic.js"
+    "diagnose:audio": "node scripts/audioAnalysisDiagnostic.js",
+    "test:audio-metrics": "node scripts/audioMetricsSelfTest.js",
+    "test:drill": "node scripts/drillSelfTest.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

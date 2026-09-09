@@ -89,6 +89,19 @@ export interface RhetoricMetrics {
   uniqueWordRatio: number;
   averageSentenceWords: number;
   topFillers: Array<{ text: string; count: number }>;
+  /**
+   * Where the numbers above came from.
+   *
+   * "measured" means pause count, longest pause, silence ratio and speaking
+   * tempo were read off the waveform with ffmpeg — the same recording always
+   * produces the same figures, which is what makes the progress chart mean
+   * anything. "model" means they are the model's impression and can drift
+   * between runs. Filler counts are always the model's: "ııı" is sound, and
+   * silence detection cannot hear it.
+   *
+   * Optional because records saved before this existed do not carry it.
+   */
+  metricsSource?: "measured" | "model";
 }
 
 export interface RhetoricFeedbackPoint {
@@ -166,6 +179,12 @@ export interface RhetoricAnalysis {
    */
   analysisSource: "audio" | "transcript";
   audioAnalysisFallback: boolean;
+  /**
+   * Set when the recording's background noise sat too close to the speaking
+   * level for a silence threshold to be placed at all, so the waveform
+   * measurement was skipped and the model's estimates stand.
+   */
+  measurementUnreliable?: boolean;
 }
 
 /** What the speaker thought before seeing the score. */

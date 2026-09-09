@@ -11,10 +11,12 @@ import {
   View
 } from "react-native";
 import { AppButton } from "@/components/AppButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { AppSettings, ThemeMode, TopicLevel } from "@/types/models";
@@ -51,6 +53,7 @@ export function SettingsScreen({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [isChangingActivation, setIsChangingActivation] = useState(false);
   const [isResettingProgress, setIsResettingProgress] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isStatusError, setIsStatusError] = useState(false);
 
@@ -154,24 +157,11 @@ export function SettingsScreen({
     }
   }
 
+  // Used to call Alert.alert, which react-native-web implements as an empty
+  // function — so on the desktop build no dialog appeared and the reset never
+  // ran. The button was simply dead there.
   function confirmResetProgress(): void {
-    Alert.alert(
-      "Clear all progress?",
-      "This permanently deletes local speaking records, transcripts, feedback, scores, streak data, repeated mistakes, before/after progress, listening results, chat history, and device activation on this phone. The production backend URL will be kept.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Clear All Progress",
-          style: "destructive",
-          onPress: () => {
-            void resetProgress();
-          }
-        }
-      ]
-    );
+    setIsResetDialogOpen(true);
   }
 
   async function resetProgress(): Promise<void> {
@@ -240,6 +230,7 @@ export function SettingsScreen({
         <Card style={styles.card}>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Advanced settings"
             accessibilityState={{ expanded: isAdvancedOpen }}
             onPress={() => setIsAdvancedOpen((current) => !current)}
             style={({ pressed }) => [styles.advancedHeader, pressed ? styles.pressed : null]}
@@ -347,6 +338,20 @@ export function SettingsScreen({
 
         <AppButton label="Save" onPress={save} loading={isSaving} icon="check" />
       </ScrollView>
+
+      <ConfirmDialog
+        visible={isResetDialogOpen}
+        title="Clear all progress?"
+        message="This permanently deletes local speaking records, transcripts, feedback, scores, streak data, repeated mistakes, before/after progress, listening results, chat history, and device activation on this device. The production backend URL will be kept."
+        confirmLabel="Clear All Progress"
+        cancelLabel="Cancel"
+        destructive
+        onCancel={() => setIsResetDialogOpen(false)}
+        onConfirm={() => {
+          setIsResetDialogOpen(false);
+          void resetProgress();
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -375,7 +380,7 @@ function formatAuthRequirement(value: boolean | null): string {
   return "";
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1
@@ -456,3 +461,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

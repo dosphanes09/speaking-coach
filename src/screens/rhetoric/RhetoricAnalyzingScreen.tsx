@@ -4,6 +4,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { getConfiguredBackendBaseUrl } from "@/config/backendConfig";
@@ -53,6 +54,7 @@ export function RhetoricAnalyzingScreen({
   const colors = useThemeColors();
   const styles = createStyles(colors);
   const [stageIndex, setStageIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const startedRef = useRef(false);
@@ -64,6 +66,18 @@ export function RhetoricAnalyzingScreen({
     const timer = setInterval(() => {
       setStageIndex((current) => Math.min(STAGES.length - 1, current + 1));
     }, 9000);
+    return () => clearInterval(timer);
+  }, [attempt]);
+
+  useEffect(() => {
+    // The stage list stops advancing after the last stage, so on a slow run the
+    // screen would sit unchanged for a minute and read as frozen. A ticking
+    // count is not progress, but it is proof that something is still running.
+    setElapsedSeconds(0);
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
     return () => clearInterval(timer);
   }, [attempt]);
 
@@ -151,6 +165,10 @@ export function RhetoricAnalyzingScreen({
           <Card style={styles.progressCard}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.stage}>{STAGES[stageIndex]}</Text>
+            <Text style={styles.elapsed}>
+              {formatElapsed(elapsedSeconds)}
+              {elapsedSeconds > 120 ? " · beş dakikalık bir kayıt için normal" : ""}
+            </Text>
             <View style={styles.stageList}>
               {STAGES.map((stage, index) => (
                 <Text
@@ -176,7 +194,13 @@ export function RhetoricAnalyzingScreen({
   );
 }
 
-function createStyles(colors: AppColors) {
+function formatElapsed(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes} dk ${seconds} sn` : `${seconds} saniye`;
+}
+
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -190,6 +214,10 @@ function createStyles(colors: AppColors) {
       alignItems: "center",
       gap: spacing.md,
       paddingVertical: spacing.lg
+    },
+    elapsed: {
+      ...typography.caption,
+      color: colors.muted
     },
     stage: {
       ...typography.h2,
@@ -238,3 +266,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

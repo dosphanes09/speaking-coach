@@ -4,6 +4,7 @@ import { Audio, ResizeMode, Video } from "expo-av";
 import { AppButton } from "./AppButton";
 import { RecordedMedia } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -71,7 +72,7 @@ export function MediaPreview({ media }: MediaPreviewProps): React.JSX.Element {
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   video: {
     width: "100%",
@@ -97,3 +98,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { RecordingPlayer } from "@/components/rhetoric/RecordingPlayer";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricRecording, RhetoricSelfAssessment, RhetoricTopic } from "@/types/rhetoric";
@@ -40,6 +41,13 @@ export function RhetoricSelfScoreScreen({
   const [note, setNote] = useState("");
 
   return (
+    // Without this the on-screen keyboard sits on top of the very field the
+    // screen exists for — on the preparation screen that is fifteen minutes of
+    // notes typed blind.
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
     <View style={styles.screen}>
       <Header
         title="Kendini değerlendir"
@@ -112,10 +120,11 @@ export function RhetoricSelfScoreScreen({
         />
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -179,7 +188,7 @@ function createStyles(colors: AppColors) {
       color: colors.muted
     },
     scaleTextActive: {
-      color: "#FFFFFF"
+      color: colors.onAccent
     },
     scaleLegend: {
       flexDirection: "row",
@@ -213,3 +222,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

@@ -10,6 +10,7 @@ import {
 } from "@/services/records/recordClassification";
 import { GrammarLevel, ListeningGameResult, SpeakingRecord } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { formatReadableDate } from "@/utils/date";
@@ -44,7 +45,11 @@ export function HistoryScreen({
 
       {records.length === 0 && listeningResults.length === 0 ? (
         <Card>
-          <Text style={styles.emptyText}>No records yet.</Text>
+          <Text style={styles.emptyTitle}>No recordings yet</Text>
+          <Text style={styles.emptyText}>
+            Every practice you record is kept here with its transcript, feedback and scores, so you
+            can play an old attempt back and hear the difference. Start one from the home screen.
+          </Text>
         </Card>
       ) : null}
 
@@ -159,7 +164,11 @@ function HistoryRecordCard({
   const modeLabel = getRecordModeLabel(record);
 
   return (
-    <Pressable accessibilityRole="button" onPress={() => onSelectRecord(record)}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${record.topic.title}, ${formatReadableDate(record.createdAt)}`}
+      onPress={() => onSelectRecord(record)}
+    >
       <Card style={styles.recordCard}>
         <View style={styles.recordHeader}>
           <Text style={styles.recordDate}>{formatReadableDate(record.createdAt)}</Text>
@@ -237,7 +246,7 @@ function getRecordModeLabel(record: SpeakingRecord): string {
 
 type HistoryStyles = ReturnType<typeof createStyles>;
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.md,
@@ -263,6 +272,10 @@ function createStyles(colors: AppColors) {
     },
     list: {
       gap: spacing.sm
+    },
+    emptyTitle: {
+      ...typography.h2,
+      color: colors.ink
     },
     emptyText: {
       ...typography.bodyLarge,
@@ -305,3 +318,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

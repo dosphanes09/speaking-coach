@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { Icon } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { AppMode } from "@/services/storage/appModeRepository";
@@ -118,7 +119,7 @@ function ModeCard({
       style={({ pressed }) => [styles.card, { borderColor: accent }, pressed && styles.cardPressed]}
     >
       <View style={[styles.cardIcon, { backgroundColor: accent }]}>
-        <Icon name={icon} size={22} color="#FFFFFF" />
+        <Icon name={icon} size={22} color={colors.onAccent} />
       </View>
 
       <View style={styles.cardBody}>
@@ -139,7 +140,7 @@ function ModeCard({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       flexGrow: 1,
@@ -247,3 +248,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

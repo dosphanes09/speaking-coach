@@ -17,6 +17,7 @@ import {
 } from "@/services/records/recordClassification";
 import { AnalysisResult, RecordedMedia, SpeakingRecord, Topic } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createId } from "@/utils/id";
@@ -156,7 +157,7 @@ export function AnalysisScreen({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.screen,
@@ -177,3 +178,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

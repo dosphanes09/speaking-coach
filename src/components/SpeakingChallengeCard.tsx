@@ -4,6 +4,7 @@ import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
 import { GrammarSpeakingChallenge } from "@/data/grammarRoadmap";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -29,7 +30,7 @@ export function SpeakingChallengeCard({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.sm
@@ -48,3 +49,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

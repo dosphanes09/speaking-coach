@@ -7,6 +7,7 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { getRandomPicturePrompt, PICTURE_LEVELS } from "@/data/picturePrompts";
 import { PicturePrompt, TopicLevel } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -57,7 +58,7 @@ export function PictureDescriptionScreen({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.md,
@@ -76,3 +77,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

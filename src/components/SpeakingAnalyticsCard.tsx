@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SpeakingAnalytics, WordFrequency } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { Card } from "./Card";
@@ -97,7 +98,7 @@ function formatTimeUsage(analytics: SpeakingAnalytics): string {
   return usedSeconds > 0 ? `${usedSeconds}s` : "-";
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.md
@@ -149,3 +150,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

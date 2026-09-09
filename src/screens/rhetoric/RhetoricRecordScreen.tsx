@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { CameraPreview } from "@/components/rhetoric/CameraPreview";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import {
@@ -43,6 +45,7 @@ export function RhetoricRecordScreen({
   const [isBusy, setIsBusy] = useState(false);
   const [previewStream, setPreviewStream] = useState<unknown | null>(null);
   const [recording, setRecording] = useState<RhetoricRecording | null>(null);
+  const [isLeaveOpen, setIsLeaveOpen] = useState(false);
 
   const handleRef = useRef<RhetoricRecorderHandle | null>(null);
   const startedAtRef = useRef<number | null>(null);
@@ -141,7 +144,7 @@ export function RhetoricRecordScreen({
       <Header
         title="Kayıt"
         subtitle={isVideoRecordingSupported() ? "Kamera açık, ses ayrıca kaydediliyor" : "Ses kaydı"}
-        onBack={onBack}
+        onBack={() => (status === "recording" ? setIsLeaveOpen(true) : onBack())}
         backLabel="Geri"
       />
 
@@ -205,6 +208,22 @@ export function RhetoricRecordScreen({
           </Text>
         ) : null}
       </ScrollView>
+
+      {/* Backing out mid-take used to cancel the recorder without a word, which
+          is a five-minute speech gone with one tap. */}
+      <ConfirmDialog
+        visible={isLeaveOpen}
+        title="Kayıt sürüyor, çıkılsın mı?"
+        message="Şu ana kadar konuştuklarının hiçbiri kaydedilmeyecek. Konuşmanı bitirmek istersen 'Kayda dön' de ve 'Bitir'e bas."
+        confirmLabel="Çık, kaydı iptal et"
+        cancelLabel="Kayda dön"
+        destructive
+        onCancel={() => setIsLeaveOpen(false)}
+        onConfirm={() => {
+          setIsLeaveOpen(false);
+          onBack();
+        }}
+      />
     </View>
   );
 }
@@ -214,7 +233,7 @@ function formatClock(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -301,3 +320,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

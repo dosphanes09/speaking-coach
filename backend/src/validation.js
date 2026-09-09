@@ -205,6 +205,34 @@ function validateTopicKeyPoints(value) {
     .map((line) => line.slice(0, 300));
 }
 
+/** The three drill kinds. An unknown one must not reach the prompt builder. */
+function validateDrillKind(value) {
+  const normalized = String(value || "").trim();
+  if (!["dolgu_yasagi", "tempo", "tekerleme"].includes(normalized)) {
+    throw new HttpError(400, "invalid_input", "kind is invalid.");
+  }
+  return normalized;
+}
+
+/**
+ * The target pace for a tempo drill.
+ *
+ * Bounded at both ends because it is divided by when scoring: a zero would
+ * produce Infinity, and a target nobody can speak at would report every rep as
+ * a failure for a reason the speaker cannot act on.
+ */
+function validateOptionalWordsPerMinute(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const wpm = Number(value);
+  if (!Number.isFinite(wpm) || wpm < 60 || wpm > 260) {
+    throw new HttpError(400, "invalid_input", "targetWordsPerMinute is invalid.");
+  }
+  return Math.round(wpm);
+}
+
 function validateLearnerProfile(value) {
   const profile = value && typeof value === "object" ? value : {};
 
@@ -324,6 +352,8 @@ module.exports = {
   validateLearnerProfile,
   validateRecentTopics,
   validateTopicKeyPoints,
+  validateDrillKind,
+  validateOptionalWordsPerMinute,
   validateLessonCoreInput,
   validateSessionSummary
 };

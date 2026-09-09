@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface SegmentedControlProps<T extends string> {
@@ -29,6 +30,7 @@ export function SegmentedControl<T extends string>({
           <Pressable
             key={option}
             accessibilityRole="button"
+            accessibilityLabel={option}
             accessibilityState={{ selected, disabled }}
             onPress={() => onChange(option)}
             disabled={disabled}
@@ -47,7 +49,7 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     container: {
       flexDirection: "row",
@@ -88,3 +90,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

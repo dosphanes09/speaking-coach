@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PictureSceneIllustration } from "@/components/PictureSceneIllustration";
 import { PicturePrompt } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -35,6 +36,7 @@ export function PictureChoiceGrid({
           <Pressable
             key={option.id}
             accessibilityRole="button"
+            accessibilityLabel={option.title}
             accessibilityState={{ selected }}
             disabled={showResult}
             onPress={() => onSelect(option.id)}
@@ -56,7 +58,7 @@ export function PictureChoiceGrid({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     grid: {
       flexDirection: "row",
@@ -83,3 +85,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

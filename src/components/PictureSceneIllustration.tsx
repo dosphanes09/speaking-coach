@@ -2,6 +2,7 @@ import React from "react";
 import { Image, ImageSourcePropType, StyleSheet, View, ViewStyle } from "react-native";
 import { PictureImageKey } from "@/types/models";
 import { AppColors, radius } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 interface PictureSceneIllustrationProps {
@@ -59,7 +60,7 @@ export function PictureSceneIllustration({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     frame: {
       overflow: "hidden",
@@ -86,3 +87,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

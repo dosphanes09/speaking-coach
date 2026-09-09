@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/AppButton";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricHomeScreen } from "@/screens/rhetoric/RhetoricHomeScreen";
@@ -13,6 +14,11 @@ import { RhetoricAnalyzingScreen } from "@/screens/rhetoric/RhetoricAnalyzingScr
 import { RhetoricResultScreen } from "@/screens/rhetoric/RhetoricResultScreen";
 import { RhetoricHistoryScreen } from "@/screens/rhetoric/RhetoricHistoryScreen";
 import { RhetoricProgressScreen } from "@/screens/rhetoric/RhetoricProgressScreen";
+import { DrillHomeScreen } from "@/screens/drill/DrillHomeScreen";
+import { DrillRecordScreen } from "@/screens/drill/DrillRecordScreen";
+import { DrillAnalyzingScreen } from "@/screens/drill/DrillAnalyzingScreen";
+import { DrillResultScreen } from "@/screens/drill/DrillResultScreen";
+import { DrillHistoryScreen } from "@/screens/drill/DrillHistoryScreen";
 import {
   deleteRhetoricRecord,
   listRhetoricRecords,
@@ -21,6 +27,11 @@ import {
 import { deleteMedia } from "@/services/media/mediaStorage";
 import { deleteRhetoricPdf } from "@/services/pdf/rhetoricReportPdf";
 import { findRetakeSource } from "@/services/rhetoric/rhetoricStats";
+import { computeDrillStats } from "@/services/rhetoric/drillStats";
+import { listDrillRecords, saveDrillRecord } from "@/services/storage/drillRepository";
+import { pickDrillPrompt } from "@/data/drillPrompts";
+import { getRecentDrillPromptIds } from "@/services/storage/drillRepository";
+import { DrillRecord, DrillRoute } from "@/types/drill";
 import { RhetoricRecord, RhetoricRoute } from "@/types/rhetoric";
 
 interface RhetoricAppProps {
@@ -41,6 +52,11 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
 
   const [route, setRoute] = useState<RhetoricRoute>({ name: "home" });
   const [records, setRecords] = useState<RhetoricRecord[]>([]);
+  // The drills live inside this module but on their own stack: they share the
+  // Turkish interface and nothing else — not the record type, not the scale,
+  // not the history. A single route union would have merged two unrelated flows.
+  const [drillRoute, setDrillRoute] = useState<DrillRoute | null>(null);
+  const [drillRecords, setDrillRecords] = useState<DrillRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -48,7 +64,9 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
     setIsLoading(true);
     setLoadError("");
     try {
-      setRecords(await listRhetoricRecords());
+      const [rhetoric, drills] = await Promise.all([listRhetoricRecords(), listDrillRecords()]);
+      setRecords(rhetoric);
+      setDrillRecords(drills);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Kayıtlar yüklenemedi.");
     } finally {
@@ -65,8 +83,17 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
   const routeRef = useRef(route);
   routeRef.current = route;
 
+  const drillRouteRef = useRef(drillRoute);
+  drillRouteRef.current = drillRoute;
+
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      // The drill stack is on top when it is open, so it gets the button first.
+      if (drillRouteRef.current) {
+        setDrillRoute(getDrillBackRoute(drillRouteRef.current));
+        return true;
+      }
+
       const backRoute = getBackRoute(routeRef.current);
       if (!backRoute) {
         return false;
@@ -77,6 +104,19 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
 
     return () => subscription.remove();
   }, []);
+
+  async function handleDrillComplete(record: DrillRecord): Promise<void> {
+    const nextRecords = await saveDrillRecord(record);
+    setDrillRecords(nextRecords);
+    setDrillRoute({ name: "result", record });
+  }
+
+  function startDrill(kind?: DrillRecord["prompt"]["kind"]): void {
+    setDrillRoute({
+      name: "record",
+      prompt: pickDrillPrompt({ kind, recentPromptIds: getRecentDrillPromptIds(drillRecords) })
+    });
+  }
 
   function goBack(): void {
     const backRoute = getBackRoute(route);
@@ -122,6 +162,75 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
     );
   }
 
+  // Rendered before the rhetoric switch because the drill stack sits on top of
+  // whatever screen opened it, and returning from it lands back there.
+  if (drillRoute) {
+    switch (drillRoute.name) {
+      case "home":
+        return (
+          <DrillHomeScreen
+            records={drillRecords}
+            onBack={() => setDrillRoute(null)}
+            onStart={(prompt) => setDrillRoute({ name: "record", prompt })}
+            onHistory={() => setDrillRoute({ name: "history" })}
+          />
+        );
+
+      case "record":
+        return (
+          <DrillRecordScreen
+            prompt={drillRoute.prompt}
+            onBack={() => setDrillRoute({ name: "home" })}
+            onRecorded={(audioUri, mimeType, durationSeconds) =>
+              setDrillRoute({
+                name: "analyzing",
+                prompt: drillRoute.prompt,
+                audioUri,
+                mimeType,
+                durationSeconds
+              })
+            }
+          />
+        );
+
+      case "analyzing":
+        return (
+          <DrillAnalyzingScreen
+            prompt={drillRoute.prompt}
+            audioUri={drillRoute.audioUri}
+            mimeType={drillRoute.mimeType}
+            durationSeconds={drillRoute.durationSeconds}
+            onBack={() => setDrillRoute({ name: "home" })}
+            onComplete={(record) => void handleDrillComplete(record)}
+          />
+        );
+
+      case "history":
+        return <DrillHistoryScreen records={drillRecords} onBack={() => setDrillRoute({ name: "home" })} />;
+
+      case "result":
+        return (
+          <DrillResultScreen
+            record={drillRoute.record}
+            repsToday={computeDrillStats(drillRecords).repsToday}
+            onAgain={() => setDrillRoute({ name: "record", prompt: drillRoute.record.prompt })}
+            onAnother={() => startDrill(drillRoute.record.prompt.kind)}
+            onHome={() => setDrillRoute({ name: "home" })}
+          />
+        );
+
+      default:
+        return (
+          <DrillHomeScreen
+            records={drillRecords}
+            onBack={() => setDrillRoute(null)}
+            onStart={(prompt) => setDrillRoute({ name: "record", prompt })}
+            onHistory={() => setDrillRoute({ name: "history" })}
+          />
+        );
+    }
+  }
+
   switch (route.name) {
     case "home":
       return (
@@ -129,6 +238,8 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
           records={records}
           onStartPrepared={() => setRoute({ name: "topic", mode: "prepared" })}
           onStartImpromptu={() => setRoute({ name: "topic", mode: "impromptu" })}
+          onDrills={() => setDrillRoute({ name: "home" })}
+          drillRepsToday={computeDrillStats(drillRecords).repsToday}
           onHistory={() => setRoute({ name: "history" })}
           onProgress={() => setRoute({ name: "progress" })}
           onSwitchModule={onSwitchModule}
@@ -278,6 +389,8 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
           records={records}
           onStartPrepared={() => setRoute({ name: "topic", mode: "prepared" })}
           onStartImpromptu={() => setRoute({ name: "topic", mode: "impromptu" })}
+          onDrills={() => setDrillRoute({ name: "home" })}
+          drillRepsToday={computeDrillStats(drillRecords).repsToday}
           onHistory={() => setRoute({ name: "history" })}
           onProgress={() => setRoute({ name: "progress" })}
           onSwitchModule={onSwitchModule}
@@ -294,6 +407,24 @@ export function RhetoricApp({ onSwitchModule }: RhetoricAppProps): React.JSX.Ele
  * the recording is already made, and sending the speaker back to re-record it
  * after a failed upload would throw away work they cannot get back.
  */
+/**
+ * Back within the drill stack. Returning null closes it entirely and lands on
+ * whatever rhetoric screen was underneath.
+ */
+function getDrillBackRoute(route: DrillRoute): DrillRoute | null {
+  switch (route.name) {
+    case "home":
+      return null;
+    case "record":
+    case "analyzing":
+    case "result":
+    case "history":
+      return { name: "home" };
+    default:
+      return null;
+  }
+}
+
 function getBackRoute(route: RhetoricRoute): RhetoricRoute | null {
   switch (route.name) {
     case "home":
@@ -340,7 +471,7 @@ function getBackRoute(route: RhetoricRoute): RhetoricRoute | null {
   }
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     centered: {
       flex: 1,
@@ -361,3 +492,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

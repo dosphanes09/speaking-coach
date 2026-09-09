@@ -1,6 +1,7 @@
 import React, { useImperativeHandle, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppColors, radius } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricRecording } from "@/types/rhetoric";
 
@@ -70,7 +71,7 @@ export const RecordingPlayer = React.forwardRef<RecordingPlayerHandle, Recording
   }
 );
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     videoFrame: {
       width: "100%",
@@ -87,3 +88,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

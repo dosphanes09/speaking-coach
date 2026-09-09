@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BackHandler, Platform, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { BackHandler, Platform, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AppButton } from "@/components/AppButton";
 import { GrammarSpeakingChallenge, getGrammarLevelContent } from "@/data/grammarRoadmap";
@@ -13,6 +13,7 @@ import {
   Topic
 } from "@/types/models";
 import { darkColors, lightColors, loveColors, spacing, ThemeMode } from "@/theme/colors";
+import { centeredContent } from "@/theme/layout";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { getDailyTopic } from "@/data/topics";
 import { defaultSettings, loadSettings, saveSettings } from "@/services/storage/settingsRepository";
@@ -71,6 +72,33 @@ import { listRhetoricRecords } from "@/services/storage/rhetoricRepository";
  * Theme is resolved here as well as inside each module: the picker itself has
  * to be drawn before either module has loaded anything.
  */
+/**
+ * System font scaling: allowed, but capped.
+ *
+ * A person who has set a larger system font wants larger text everywhere, and
+ * turning scaling off would be an accessibility regression. Left uncapped
+ * though, the largest OS settings roughly double every size, and this app is
+ * full of fixed-height rows, side-by-side metric tiles and timer readouts that
+ * simply overflow at 2x — the text gets bigger and less readable at the same
+ * time.
+ *
+ * 1.3 keeps the intent and keeps the layout. Set once here rather than as a
+ * prop on several hundred Text elements, which is a rule nobody would keep.
+ */
+const MAX_FONT_SCALE = 1.3;
+
+interface ScalableDefaults {
+  defaultProps?: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number };
+}
+
+for (const component of [Text, TextInput] as unknown as ScalableDefaults[]) {
+  component.defaultProps = {
+    ...(component.defaultProps ?? {}),
+    allowFontScaling: true,
+    maxFontSizeMultiplier: MAX_FONT_SCALE
+  };
+}
+
 export default function App(): React.JSX.Element {
   const [mode, setMode] = useState<AppMode | null>(null);
   const [lastMode, setLastMode] = useState<AppMode | null>(null);
@@ -557,14 +585,16 @@ function EnglishApp({ onSwitchModule }: EnglishAppProps): React.JSX.Element {
       <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
         <StatusBar style={statusBarStyle} hidden={Platform.OS === "android"} />
         <View style={styles.content}>{renderRoute()}</View>
-        <AppBottomBar
-          canGoBack={getBackRoute(route) !== null}
-          isHome={route.name === "home"}
-          onBack={goBack}
-          onHome={() => setRoute({ name: "home" })}
-          onSettings={() => setRoute({ name: "settings" })}
-          onSwitchModule={onSwitchModule}
-        />
+        <View style={styles.bottomBarWrap}>
+          <AppBottomBar
+            canGoBack={getBackRoute(route) !== null}
+            isHome={route.name === "home"}
+            onBack={goBack}
+            onHome={() => setRoute({ name: "home" })}
+            onSettings={() => setRoute({ name: "settings" })}
+            onSwitchModule={onSwitchModule}
+          />
+        </View>
       </SafeAreaView>
     </ThemeProvider>
   );
@@ -579,7 +609,18 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? spacing.lg : 0
   },
   content: {
-    flex: 1
+    flex: 1,
+    // One line that fixes every screen at once. Before this, 37 of the app's 38
+    // screens ran edge to edge in an 1180px desktop window; only the mode
+    // picker had thought about it. Constraining the shell means no screen has
+    // to opt in, and none can forget.
+    ...centeredContent
+  },
+  // The bar is centred to the same width as the content above it. Left full
+  // width it would stretch across the window while the content sat in a column,
+  // and the two would read as unrelated pieces of furniture.
+  bottomBarWrap: {
+    ...centeredContent
   },
   loadingScreen: {
     flex: 1,

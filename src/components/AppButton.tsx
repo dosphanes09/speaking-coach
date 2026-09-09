@@ -2,7 +2,9 @@ import React from "react";
 import { ActivityIndicator, Pressable, StyleProp, StyleSheet, Text, ViewStyle } from "react-native";
 import { Icon, IconName } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
+import { BUTTON_MAX_WIDTH } from "@/theme/layout";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
@@ -35,7 +37,7 @@ export function AppButton({
   const styles = createStyles(colors);
   const isDisabled = disabled || loading;
   const isGhost = variant === "ghost";
-  const iconColor = isGhost ? colors.primaryDark : "#FFFFFF";
+  const iconColor = isGhost ? colors.primaryDark : colors.onAccent;
 
   return (
     <Pressable
@@ -61,10 +63,19 @@ export function AppButton({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     base: {
       borderRadius: radius.lg,
+      // A full-bleed button is right on a phone, where it fills a 350pt row and
+      // sits under the thumb. Stretched to 630pt on desktop the same button
+      // becomes a wide bar with a small label marooned in the middle, and it
+      // stops reading as something you click. Capping the width and centring it
+      // keeps the phone behaviour intact — the cap is above any phone width —
+      // while giving the desktop a button-shaped button.
+      maxWidth: BUTTON_MAX_WIDTH,
+      width: "100%",
+      alignSelf: "center",
       paddingHorizontal: spacing.lg,
       alignItems: "center",
       justifyContent: "center",
@@ -96,7 +107,9 @@ function createStyles(colors: AppColors) {
     },
     ghost: {
       backgroundColor: colors.surface,
-      borderColor: colors.line,
+      // A ghost button has no fill, so its outline is the only thing saying it
+      // is a button — that is exactly the case WCAG asks 3:1 of.
+      borderColor: colors.lineStrong,
       shadowOpacity: 0.04,
       elevation: 1
     },
@@ -113,7 +126,7 @@ function createStyles(colors: AppColors) {
     },
     label: {
       ...typography.bodyStrong,
-      color: "#FFFFFF",
+      color: colors.onAccent,
       fontSize: 16,
       textAlign: "center"
     },
@@ -122,3 +135,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

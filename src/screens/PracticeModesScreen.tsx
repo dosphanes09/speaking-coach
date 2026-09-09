@@ -4,6 +4,7 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { Icon } from "@/components/Icon";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -65,7 +66,12 @@ function ModeCard({
   onPress: () => void;
 }): React.JSX.Element {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => pressed && styles.pressed}
+    >
       <Card style={styles.modeCard}>
         <View style={styles.modeVisual}>{visual}</View>
         <View style={styles.modeText}>
@@ -80,7 +86,7 @@ function ModeCard({
 
 type PracticeModesStyles = ReturnType<typeof createStyles>;
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     content: {
       padding: spacing.md,
@@ -121,3 +127,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

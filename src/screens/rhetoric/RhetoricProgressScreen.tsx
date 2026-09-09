@@ -4,6 +4,7 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { SectionTitle } from "@/components/SectionTitle";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { RhetoricRecord } from "@/types/rhetoric";
@@ -241,7 +242,7 @@ function describeSelfGap(gap: number): string {
   return "Kendine analizden daha düşük puan veriyorsun. Konuşmaların düşündüğünden iyi; sertliğin gelişimi engelliyor olabilir.";
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
@@ -359,3 +360,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

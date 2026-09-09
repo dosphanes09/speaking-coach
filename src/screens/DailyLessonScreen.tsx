@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Speech from "expo-speech";
 import { AppButton } from "@/components/AppButton";
 import { Card } from "@/components/Card";
@@ -37,6 +37,7 @@ import { loadLearnerProfile, saveLearnerProfile } from "@/services/storage/learn
 import { getClientId } from "@/services/storage/clientIdentity";
 import { createAndShareDailyLessonPdf } from "@/services/pdf/dailyLessonPdf";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createId } from "@/utils/id";
@@ -354,7 +355,13 @@ export function DailyLessonScreen({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    // Without this the on-screen keyboard covers the reflection field at the
+    // bottom of the lesson, which is the one place the learner types.
+    <KeyboardAvoidingView
+      style={styles.keyboardShell}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Header
         title="Daily Lesson"
         subtitle={visibleLesson ? visibleLesson.core.subtitle : "One lesson a day, written around what you actually did."}
@@ -507,7 +514,8 @@ export function DailyLessonScreen({
           onStartTask={startTask}
         />
       ) : null}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -923,8 +931,11 @@ function LessonBody({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
+    keyboardShell: {
+      flex: 1
+    },
     content: {
       padding: spacing.md,
       gap: spacing.md,
@@ -1108,3 +1119,6 @@ function createStyles(colors: AppColors) {
     }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

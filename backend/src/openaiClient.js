@@ -34,6 +34,19 @@ const { toLessonLevel } = require("./validation");
 const { calibrateAnalysisScores } = require("./scoringCalibrator");
 const { convertToWav, readAsBase64, deleteQuietly } = require("./audioConversion");
 const { rhetoricJsonSchema } = require("./rhetoricSchema");
+const { drillJsonSchema } = require("./drillSchema");
+const {
+  DRILL_SYSTEM_INSTRUCTION,
+  DRILL_LISTENING_SYSTEM_INSTRUCTION,
+  buildDrillListeningPrompt,
+  buildDrillAnalysisPrompt
+} = require("./drillPrompt");
+const { evaluateDrill, buildDrillMetrics } = require("./drillEvaluation");
+const {
+  measureSpeechMetrics,
+  describeMeasuredMetrics,
+  applyMeasuredMetrics
+} = require("./audioMetrics");
 const {
   RHETORIC_SYSTEM_INSTRUCTION,
   AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
@@ -287,6 +300,152 @@ async function requestRhetoricFromModel(model, userContent) {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * Micro-drills
+ * ------------------------------------------------------------------ */
+
+/**
+ * Analyses one 60-second drill.
+ *
+ * Costs are shaped by the drill, not by a uniform pipeline, because these are
+ * meant to be done several times a day:
+ *
+ *   tempo, tekerleme   transcription + ffmpeg + one small text call.
+ *                      Nothing needs to LISTEN — the pace comes off the
+ *                      waveform and the accuracy comes from comparing the
+ *                      transcript with the text the speaker was given.
+ *
+ *   dolgu_yasagi       adds the audio listening step, because "ııı" is a sound
+ *                      and neither a transcriber nor a silence detector can
+ *                      find it.
+ *
+ * The verdict is computed before the model writes anything and handed to it, so
+ * the coaching sentence cannot contradict the pass/fail shown beside it.
+ */
+async function analyzeDrill({
+  kind,
+  targetText = "",
+  targetWordsPerMinute = null,
+  durationSeconds,
+  audioFilePath,
+  audioMimeType,
+  fileName
+}) {
+  const transcript = await transcribeFile(audioFilePath, audioMimeType, fileName, "tr", {
+    timeoutMs: config.openAiDrillTimeoutMs,
+    maxAttempts: 1,
+    serviceLabel: "Egzersiz analizi"
+  });
+
+  let measured = null;
+  try {
+    measured = await measureSpeechMetrics(audioFilePath, {
+      totalSeconds: durationSeconds,
+      transcript
+    });
+  } catch (error) {
+    logWarn("drill_measurement_failed", {
+      code: "measurement_error",
+      path: "ffmpeg",
+      detail: String(error?.message || "")
+    });
+  }
+
+  const usableMeasurements = measured?.reliable ? measured : null;
+
+  // Only the filler drill pays for an ear.
+  let listeningReport = "";
+  if (kind === "dolgu_yasagi" && config.enableAudioAnalysis) {
+    try {
+      listeningReport = await describeRecordingFromAudio({
+        audioFilePath,
+        audioMimeType,
+        durationSeconds,
+        systemInstruction: DRILL_LISTENING_SYSTEM_INSTRUCTION,
+        prompt: buildDrillListeningPrompt({ durationSeconds }),
+        label: "drill_audio_observation"
+      });
+    } catch (error) {
+      logWarn("drill_audio_analysis_failed", {
+        status: error?.upstreamStatus,
+        code: error?.upstreamCode || "audio_analysis_error",
+        path: config.openAiAudioAnalysisModel,
+        detail: error?.upstreamMessage || String(error?.message || "")
+      });
+    }
+  }
+
+  // A filler-ban rep with no listening step cannot be scored: reporting zero
+  // hesitations because nothing listened would hand out a pass for silence.
+  if (kind === "dolgu_yasagi" && !listeningReport) {
+    throw new HttpError(
+      502,
+      "drill_listening_failed",
+      "Bu egzersiz için kaydın dinlenmesi gerekiyor ama ses analizi yapılamadı."
+    );
+  }
+
+  const preliminary = evaluateDrill({
+    kind,
+    targetText,
+    targetWordsPerMinute,
+    transcript,
+    measured: usableMeasurements
+  });
+
+  const parsed = await requestStructuredOutput({
+    model: config.openAiAnalysisModel,
+    systemInstruction: DRILL_SYSTEM_INSTRUCTION,
+    schemaName: "drill_result",
+    schema: drillJsonSchema,
+    userContent: buildDrillAnalysisPrompt({
+      kind,
+      targetText,
+      targetWordsPerMinute,
+      durationSeconds,
+      transcript,
+      listeningReport,
+      evaluation: preliminary,
+      measurementBlock: describeMeasuredMetrics(usableMeasurements)
+    }),
+    maxOutputTokens: config.openAiDrillMaxOutputTokens,
+    overrides: {
+      timeoutMs: config.openAiDrillTimeoutMs,
+      maxAttempts: 1,
+      serviceLabel: "Egzersiz analizi"
+    }
+  });
+
+  // Re-run the verdict now that the hesitation counts exist. For the reading
+  // drills nothing changes; for the filler drill this is where it is decided.
+  const evaluation = evaluateDrill({
+    kind,
+    targetText,
+    targetWordsPerMinute,
+    transcript,
+    fillerSoundCount: parsed.fillerSoundCount,
+    fillerWordCount: parsed.fillerWordCount,
+    measured: usableMeasurements
+  });
+
+  return {
+    transcript: parsed.transcript || transcript,
+    metrics: buildDrillMetrics({
+      fillerSoundCount: parsed.fillerSoundCount,
+      fillerWordCount: parsed.fillerWordCount,
+      measured: usableMeasurements,
+      textAccuracy: evaluation.textAccuracy
+    }),
+    outcome: {
+      passed: evaluation.passed,
+      headline: evaluation.headline,
+      detail: parsed.detail,
+      tip: parsed.tip
+    },
+    fillerMoments: Array.isArray(parsed.fillerMoments) ? parsed.fillerMoments : []
+  };
+}
+
 async function analyzeTranscriptFromText(topic, transcript, level, durationSeconds, analysisContext, expectedDurationSeconds) {
   const prompt = buildSpeakingAnalysisPrompt(topic, transcript, level, durationSeconds, analysisContext, {
     expectedDurationSeconds
@@ -442,6 +601,38 @@ async function analyzeRhetoric({
   audioMimeType
 }) {
   const canUseAudio = config.enableAudioAnalysis && Boolean(audioFilePath);
+
+  // Measured before any model call, so both steps can be given the real pause
+  // positions instead of estimating them. Never allowed to fail the request:
+  // a missing measurement means the model's own estimate stands, which is
+  // exactly where this feature started.
+  let measured = null;
+  try {
+    measured = await measureSpeechMetrics(audioFilePath, {
+      totalSeconds: durationSeconds,
+      transcript
+    });
+  } catch (error) {
+    logWarn("speech_measurement_failed", {
+      code: "measurement_error",
+      path: "ffmpeg",
+      detail: String(error?.message || "")
+    });
+  }
+
+  if (measured && !measured.reliable) {
+    // Worth a log line rather than a silent downgrade: if this shows up often
+    // the recording setup is the problem, not the analysis.
+    logWarn("speech_measurement_unreliable", {
+      code: "noise_floor_too_high",
+      path: "ffmpeg",
+      detail: `microSilence=${measured.microSilenceRatio} threshold=${measured.noiseFloorDb}dB`
+    });
+  }
+
+  const usableMeasurements = measured?.reliable ? measured : null;
+  const measurementBlock = describeMeasuredMetrics(usableMeasurements);
+
   let parsed;
   let generatedFromAudio = false;
   let audioAttemptFailed = false;
@@ -453,7 +644,7 @@ async function analyzeRhetoric({
         audioMimeType,
         durationSeconds,
         systemInstruction: AUDIO_OBSERVATION_SYSTEM_INSTRUCTION,
-        prompt: buildAudioObservationPrompt({ durationSeconds }),
+        prompt: buildAudioObservationPrompt({ durationSeconds, measurementBlock }),
         label: "rhetoric_audio_observation"
       });
 
@@ -472,7 +663,8 @@ async function analyzeRhetoric({
           mode,
           topicDefinition,
           topicKeyPoints,
-          audioObservation
+          audioObservation,
+          measurementBlock
         })
       );
       generatedFromAudio = true;
@@ -499,7 +691,8 @@ async function analyzeRhetoric({
         mode,
         topicDefinition,
         topicKeyPoints,
-        audioObservation: ""
+        audioObservation: "",
+        measurementBlock
       })
     );
   }
@@ -514,8 +707,15 @@ async function analyzeRhetoric({
       targetSeconds: targetDurationSeconds,
       actualSeconds: durationSeconds
     },
+    // The same principle one step further: pause count, longest pause, silence
+    // ratio and tempo are arithmetic on the waveform, not judgements, so they
+    // are taken from ffmpeg and not from the model. Filler sounds stay with the
+    // model — "ııı" is sound, and silence detection cannot hear it.
+    metrics: applyMeasuredMetrics(parsed.metrics, usableMeasurements),
     analysisSource: generatedFromAudio ? "audio" : "transcript",
-    audioAnalysisFallback: audioAttemptFailed
+    audioAnalysisFallback: audioAttemptFailed,
+    /** Set when the room was too noisy to place a silence threshold at all. */
+    measurementUnreliable: Boolean(measured && !measured.reliable)
   };
 }
 
@@ -794,6 +994,7 @@ module.exports = {
   transcribeFile,
   analyzeTranscript,
   analyzeRhetoric,
+  analyzeDrill,
   chatWithCoach,
   generateLessonAngles,
   generateLessonCore,

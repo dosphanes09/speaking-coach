@@ -104,7 +104,7 @@ const AUDIO_OBSERVATION_SYSTEM_INSTRUCTION =
   "Sen bir konuşma kaydını dikkatle dinleyip duyduklarını eksiksiz not eden bir asistansın. " +
   "Yorum yapmaz, puan vermez, sadece duyduğunu kaydedersin. Türkçe yazarsın.";
 
-function buildAudioObservationPrompt({ durationSeconds }) {
+function buildAudioObservationPrompt({ durationSeconds, measurementBlock = "" }) {
   return `Ekteki Türkçe konuşma kaydını dinle ve duyduklarını aşağıdaki BAŞLIKLARIN
 AYNISINI kullanarak yaz. Kayıt ${durationSeconds} saniye sürüyor.
 
@@ -130,9 +130,16 @@ bir bağlaçtır, dolgu DEĞİLDİR — onu yazma. Sadece boşluk doldurduğu ye
 Hiç yoksa "- yok" yaz.
 
 DURAKLAMALAR:
-0.8 saniyeden uzun her sessizlik: "- 2:14 4.2 sn (cümle ortasında)"
+${
+  measurementBlock
+    ? `Duraklamalar zaten ölçüldü, aşağıda tam listesi var. Sen SAYMA.
+Sadece her birinin konuşmanın neresine denk geldiğini yaz:
+"- 2:14 4.2 sn (cümle ortasında, kelime ararken)"
+Listede olmayan bir duraklama ekleme.`
+    : `0.8 saniyeden uzun her sessizlik: "- 2:14 4.2 sn (cümle ortasında)"
 Parantez içinde nerede olduğunu belirt: cümle arasında mı, cümle ortasında mı.
-Hiç yoksa "- yok" yaz.
+Hiç yoksa "- yok" yaz.`
+}
 
 TEKRARLAR:
 Fazla yaslanılan kelime veya kalıplar: "- 'şunu görüyoruz ki' x4 (0:30, 1:10, 2:00, 3:12)"
@@ -151,7 +158,8 @@ enerji: (canlı mı, düşük mü, ikna edici mi)
 SAYILAR:
 toplam kelime: (yaklaşık)
 konuşulan süre: (saniye)
-tahmini sessizlik oranı: (yüzde)`;
+tahmini sessizlik oranı: (yüzde)
+${measurementBlock ? `\n${measurementBlock}` : ""}`;
 }
 
 function describeMode(mode) {
@@ -298,7 +306,8 @@ function buildRhetoricAnalysisPrompt({
   mode,
   audioObservation,
   topicDefinition = "",
-  topicKeyPoints = []
+  topicKeyPoints = [],
+  measurementBlock = ""
 }) {
   const sourceOfTruth = audioObservation
     ? `KAYNAK: Kaydı dinleyen bir model, duyduklarını aşağıdaki DİNLEME TUTANAĞI
@@ -330,6 +339,10 @@ Olmayan bir şeyi ölçmüş gibi yapma.`;
     "",
     sourceOfTruth,
     "",
+    // Placed above everything the model has to judge, because these are the
+    // only numbers in the prompt that are not open to interpretation.
+    measurementBlock,
+    measurementBlock ? "" : null,
     describeConceptReference({ topicDefinition, topicKeyPoints }),
     "",
     describePreparationNotes(preparationNotes),
@@ -346,7 +359,9 @@ Olmayan bir şeyi ölçmüş gibi yapma.`;
     '"""',
     transcript || "(döküm oluşturulamadı)",
     '"""'
-  ].join("\n");
+  ]
+    .filter((part) => part !== null)
+    .join("\n");
 }
 
 module.exports = {

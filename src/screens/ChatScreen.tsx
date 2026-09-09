@@ -14,6 +14,7 @@ import { Card } from "@/components/Card";
 import { Header } from "@/components/Header";
 import { AppSettings, ChatMessage, RecordedMedia } from "@/types/models";
 import { AppColors, radius, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 import { createMockChatReply } from "@/services/chat/mockChatService";
@@ -417,7 +418,7 @@ export function ChatScreen({ settings, onBack }: ChatScreenProps): React.JSX.Ele
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   screen: {
     flex: 1,
@@ -453,7 +454,7 @@ function createStyles(colors: AppColors) {
     ...typography.label
   },
   userLabel: {
-    color: "#FFFFFF"
+    color: colors.onAccent
   },
   assistantLabel: {
     color: colors.accent
@@ -505,3 +506,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);

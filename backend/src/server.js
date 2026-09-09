@@ -26,6 +26,8 @@ const {
   validateLearnerProfile,
   validateRecentTopics,
   validateTopicKeyPoints,
+  validateDrillKind,
+  validateOptionalWordsPerMinute,
   validateLessonCoreInput,
   validateSessionSummary
 } = require("./validation");
@@ -34,6 +36,7 @@ const {
   chatWithCoach,
   transcribeFile,
   analyzeRhetoric,
+  analyzeDrill,
   generateLessonAngles,
   generateLessonCore,
   generateLessonPractice,
@@ -363,6 +366,59 @@ app.post("/api/analyze-rhetoric", analysisAuthentication, upload.single("file"),
       transcript,
       analysis
     });
+  } catch (error) {
+    next(error);
+  } finally {
+    if (filePath) {
+      fs.unlink(filePath).catch(() => undefined);
+    }
+  }
+});
+
+/**
+ * A 60-second micro-drill.
+ *
+ * Kept separate from /api/analyze-rhetoric rather than folded into it as a
+ * "short mode", because almost nothing is shared: a different duration ceiling,
+ * a far larger daily quota (frequency is the entire point), a shorter timeout,
+ * a small schema, and a verdict computed from the waveform instead of judged.
+ * The one thing they have in common — audio in, feedback out — is the least
+ * interesting part.
+ */
+app.post("/api/drill", analysisAuthentication, upload.single("file"), async (req, res, next) => {
+  const filePath = req.file?.path;
+
+  try {
+    const kind = validateDrillKind(req.body.kind);
+    const durationSeconds = validateDurationSeconds(req.body.durationSeconds, config.maxDrillDurationSeconds);
+    // The passage or twister the speaker was asked to read. The scoring compares
+    // the transcript against it, so its absence turns the reading drills into
+    // unscoreable ones rather than into passes.
+    const targetText = validateOptionalTextField(req.body.targetText, "targetText", 2000);
+    const targetWordsPerMinute = validateOptionalWordsPerMinute(req.body.targetWordsPerMinute);
+
+    if ((kind === "tempo" || kind === "tekerleme") && !targetText) {
+      throw new HttpError(400, "invalid_input", "targetText is required for this drill.");
+    }
+    if (kind === "tempo" && !targetWordsPerMinute) {
+      throw new HttpError(400, "invalid_input", "targetWordsPerMinute is required for a tempo drill.");
+    }
+
+    const fileInfo = await validateUploadedFile(req.file, config.maxDrillDurationSeconds);
+    const dailyLimit = await assertDailyLimit(req, config.maxDailyDrillsPerUser, "drill");
+
+    const result = await analyzeDrill({
+      kind,
+      targetText,
+      targetWordsPerMinute,
+      durationSeconds,
+      audioFilePath: req.file.path,
+      audioMimeType: fileInfo.mimeType,
+      fileName: `egzersiz${fileInfo.extension}`
+    });
+
+    res.setHeader("X-Daily-Remaining", String(dailyLimit.remaining));
+    res.json({ result });
   } catch (error) {
     next(error);
   } finally {

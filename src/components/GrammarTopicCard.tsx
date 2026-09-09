@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { GrammarSpeakingChallenge, GrammarTopic } from "@/data/grammarRoadmap";
 import { GrammarLevel } from "@/types/models";
 import { AppColors, spacing } from "@/theme/colors";
+import { memoizeStyles } from "@/theme/memoizeStyles";
 import { typography } from "@/theme/typography";
 import { useThemeColors } from "@/theme/ThemeProvider";
 
@@ -31,7 +32,13 @@ export function GrammarTopicCard({
 
   return (
     <Card style={styles.card}>
-      <Pressable accessibilityRole="button" onPress={() => setIsOpen((current) => !current)} style={styles.header}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={topic.title}
+        accessibilityState={{ expanded: isOpen }}
+        onPress={() => setIsOpen((current) => !current)}
+        style={styles.header}
+      >
         <View style={styles.headerCopy}>
           <Text style={styles.level}>{level}</Text>
           <Text style={styles.title}>{topic.title}</Text>
@@ -112,7 +119,7 @@ function ListBlock({
   );
 }
 
-function createStyles(colors: AppColors) {
+function buildStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
     gap: spacing.sm
@@ -179,3 +186,6 @@ function createStyles(colors: AppColors) {
   }
   });
 }
+
+/** Built once per theme rather than on every render — see memoizeStyles. */
+const createStyles = memoizeStyles(buildStyles);
