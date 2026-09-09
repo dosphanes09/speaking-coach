@@ -377,3 +377,85 @@ node scripts/rhetoricLiveTest.js --ses kayit.wav --konu "Konu" --beklenen-iii 8
 ```
 
 Bu, dolgu sesi tespitinin isabetini ve bir seansın token maliyetini gösterir.
+
+---
+
+## Faz 5 — Karar verildi, kalibrasyon testinden sonra başlanacak
+
+Uygulamanın bugünkü döngüsü şu:
+
+```
+konu → konuş → ölç → rapor → (hiçbir şey)
+```
+
+`nextSessionFocus` yazılıyor, ekranda gösteriliyor ve orada bitiyor — bir
+sonraki seansa hiç girmiyor. Yani elimizde çok iyi bir **ölçüm aleti** var ama
+bir **antrenman programı** yok. Faz 5'in tamamı bu iki boşluğu kapatıyor.
+
+### 5.1 — 60 saniyelik mikro-egzersizler
+
+**Sorun:** Hitabet seansı 20 dakikalık bir taahhüt (15 hazırlık + 4 konuşma +
+analiz). Bu, günde bir kez bile zor yapılır. Oysa diksiyon ve dolgu sesi motor
+becerilerdir: uzun seansla değil **sık seansla** düzelirler. Haftada 1 kez 20
+dakika, günde 3 kez 1 dakikadan daha az kazandırır.
+
+**Çözüm:** Hitabetten ayrı, günde birkaç kez yapılabilen kısa alıştırmalar.
+
+| Egzersiz | Ne yapılıyor | Ne ölçülüyor |
+|---|---|---|
+| Dolgu yasağı | 60 sn konuş, tek "ııı" bile yok | Dolgu sesi sayısı — hedef sıfır |
+| Tempo tutturma | Verilen metni hedef hızda oku | Gerçek hız vs hedef |
+| Tekerleme | Diksiyon tekerlemesi, giderek hızlanan | Hece netliği, hata sayısı |
+
+**Neden ucuz:** 60 saniyelik ses, 5 dakikalık kaydın yaklaşık beşte biri kadar
+maliyetli. Analiz şeması da tam rapor değil, 3-4 alanlık küçük bir yanıt.
+Sonuç saniyeler içinde gelir.
+
+**Tasarım notu:** Hitabet modülü "sınav", bu "antrenman". Bu yüzden ayrı bir
+puan ölçeği kullanmalı ve hitabet ilerleme grafiğine karışmamalı — aynı gerekçe
+İngilizce ile hitabeti ayırdığımızdaki gerekçe.
+
+### 5.2 — Duraklama ve tempoyu ffmpeg'e devretmek
+
+**Sorun:** `pauseCount`, `longestPauseSeconds`, `silenceRatio` ve
+`wordsPerMinute` şu an modelin tahmini. Model aynı kayda bugün 4, yarın 6
+duraklama diyebilir. İlerleme grafiği bu sayıların üzerine kurulu olduğu için,
+grafikte görünen "iyileşme" gerçek gelişme değil model sapması olabilir.
+
+**Çözüm:** Bu dört ölçümü ses dalgasından deterministik olarak ölçmek.
+
+```
+ffmpeg -i kayit.wav -af silencedetect=noise=-30dB:d=0.8 -f null -
+→ silence_start: 12.4 / silence_end: 16.6 | silence_duration: 4.2
+```
+
+Aynı dosya 100 kez ölçülse 100 kez aynı sayıyı verir.
+
+**Neden ucuz:** `ffmpeg-static` backend'de zaten kurulu ve her istekte WAV
+dönüşümü için çalışıyor (`audioConversion.js`). Ek token maliyeti **sıfır**.
+
+**Ayrım:** Ölçümler ffmpeg'e geçer, **yorum** modelde kalır. Model "2:14'te 4.2
+saniye durdun, cümle ortasındaydı, takılma gibi duyuldu" demeye devam eder —
+sadece "4.2" sayısını artık uydurmaz.
+
+### Sıra ve bağımlılık
+
+Kalibrasyon kaydı yapılmadan başlanmıyor. Gerekçe: doğrulanmamış bir ölçümün
+üzerine özellik eklemek, terazinin ayarını kontrol etmeden diyet programı
+yazmaktır. Test ayrıca 5.2'nin kapsamını belirliyor:
+
+| Test sonucu | 5.2'nin kapsamı |
+|---|---|
+| Dolgu sesi sayımı tutuyor | Yalnızca duraklama + tempo ffmpeg'e geçer |
+| Dolgu sesi sayımı tutmuyor | Ayrıca enerji/süre örüntüsüyle "ııı" adayı tespiti eklenir |
+
+### Bu fazda bilinçli olarak yapılmayanlar
+
+- **AI konu üretimi** — 48 konuluk banka aylarca yeter; üstelik bankadaki
+  tanımlar doğrulanmış, AI ürettiğinde içerik doğruluğu denetimi de
+  güvenilirliğini kaybeder.
+- **Rozet / streak / oyunlaştırma** — tek kullanıcılı bir uygulamada kendini
+  kandırma aracına dönüşür.
+- **Paylaşım özellikleri** — kimseye gösterilmeyecek.
+- **Günlük hak göstergesi, bekleyen analiz kuyruğu, haftalık özet** — gerçek
+  boşluklar ama bu fazın dışında; sıra gelirse eklenir.
