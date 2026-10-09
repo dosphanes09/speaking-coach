@@ -13,10 +13,15 @@ function hashClientId(clientId) {
   return crypto.createHash("sha256").update(clientId).digest("hex");
 }
 
+// Used only when REQUIRE_APP_AUTH=false. The quota is keyed by the caller's IP
+// address, never by the X-Client-Id header: that header is chosen by whoever
+// sends the request, so a caller could send a fresh value on every request
+// and never hit the daily limit. req.ip is resolved by Express from the proxy
+// chain ("trust proxy" is set to 1 in server.js), so a client cannot pick it.
+// Trade-off: phones sharing one network (same Wi-Fi) share one quota. For
+// per-device quotas, enable invite-code mode (REQUIRE_APP_AUTH=true).
 function getDevelopmentClientKey(req) {
-  const clientId = String(req.get("X-Client-Id") || "").trim();
-  const fallback = req.ip || "unknown";
-  return hashClientId(clientId || fallback);
+  return hashClientId(req.ip || "unknown");
 }
 
 function pruneOldDays(dayKey) {

@@ -55,7 +55,7 @@ The repository ignores `.env`, `backend/.env`, signing files, and local Codex/Ex
    - `APP_INVITE_CODES`
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
-6. Keep `REQUIRE_APP_AUTH=false` for easy sharing, or set it to `true` after adding the invite-code secrets.
+6. Keep `REQUIRE_APP_AUTH=false` for easy sharing, or set it to `true` after adding the invite-code secrets. With `false`, set a hard spending cap in OpenAI (prepaid credits with auto-recharge off), because the backend URL is public in this repository.
 7. Deploy the service at `https://daily-speaking-coach.onrender.com`.
 8. Open `https://daily-speaking-coach.onrender.com/health` and confirm:
 
@@ -74,7 +74,7 @@ The backend fails closed if required production secrets are missing. Also config
 
 Use invite-code mode when you want only approved phones to use your OpenAI-backed analysis endpoint.
 
-- `REQUIRE_APP_AUTH=false`: easiest sharing mode. Anyone with the APK can use analysis.
+- `REQUIRE_APP_AUTH=false`: easiest sharing mode. Anyone who knows the backend URL can use analysis (the URL is public in this repository). Daily quotas are counted per IP address and reset when the service restarts.
 - `REQUIRE_APP_AUTH=true`: invite-code mode. Each phone must activate once from **Settings > Gelişmiş > Davet Kodu / Cihaz Aktivasyonu**.
 
 For invite-code mode on Render, set:
