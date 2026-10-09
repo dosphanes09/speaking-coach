@@ -1,6 +1,6 @@
 # Daily Speaking Coach
 
-Expo / React Native mobil uygulama ve Node.js / Express backend ile guvenli speaking analizi MVP'si.
+Expo / React Native mobil uygulama ve Node.js / Express backend ile güvenli speaking analizi MVP'si.
 
 ## Mimari
 
@@ -10,53 +10,53 @@ Mobile App
   -> OpenAI API
 ```
 
-Local gelistirme icin PC'de calisan backend kullanilabilir. Ben ve sevgilim gibi farkli telefonlardan ayni backend'i kullanmak icin backend Render Free Web Service olarak deploy edilebilir.
+Local geliştirme için PC'de çalışan backend kullanılabilir. Ben ve sevgilim gibi farklı telefonlardan aynı backend'i kullanmak için backend Render Free Web Service olarak deploy edilebilir.
 
-Mobil uygulama OpenAI API key tutmaz, OpenAI endpointlerine dogrudan istek atmaz ve `EXPO_PUBLIC_OPENAI_API_KEY` gibi public secret kullanmaz. OpenAI API key yalnizca backend tarafinda `backend/.env` dosyasindaki `OPENAI_API_KEY` olarak bulunur.
+Mobil uygulama OpenAI API key tutmaz, OpenAI endpointlerine doğrudan istek atmaz ve `EXPO_PUBLIC_OPENAI_API_KEY` gibi public secret kullanmaz. OpenAI API key yalnızca backend tarafında `backend/.env` dosyasındaki `OPENAI_API_KEY` olarak bulunur.
 
-## Proje Yapisi
+## Proje Yapısı
 
-- `App.tsx`: mobil ekran akisi.
+- `App.tsx`: mobil ekran akışı.
 - `src/screens`: Home, Grammar Roadmap, Recording, Transcript/Secure Analysis, Analysis, History, Progress, Settings, Chat.
 - `src/data/grammarRoadmap.ts`: A1-C2 tense content and level speaking challenges.
-- `src/services/backend/analyzeSpeechService.ts`: mobil uygulamanin backend `/api/analyze-speech` istemcisi.
-- `src/services/storage`: yerel kayitlar, ayarlar ve anonim client id.
+- `src/services/backend/analyzeSpeechService.ts`: mobil uygulamanın backend `/api/analyze-speech` istemcisi.
+- `src/services/storage`: yerel kayıtlar, ayarlar ve anonim client id.
 - `backend/src/server.js`: Express API.
-- `backend/src/openaiClient.js`: OpenAI istekleri sadece backend tarafinda.
-- `backend/src/validation.js`: upload, MIME, extension, sure ve input validasyonu.
-- `backend/src/auth.js`: opsiyonel davet kodu kaydi, imzali token dogrulama ve cihaz yetkilendirme.
-- `backend/src/dailyLimitStore.js`: auth acikken Redis uzerinde dogrulanmis cihaz basina kalici gunluk limit; auth kapaliyken kolay paylasim modu icin in-memory fallback.
+- `backend/src/openaiClient.js`: OpenAI istekleri sadece backend tarafında.
+- `backend/src/validation.js`: upload, MIME, extension, süre ve input validasyonu.
+- `backend/src/auth.js`: opsiyonel davet kodu kaydı, imzalı token doğrulama ve cihaz yetkilendirme.
+- `backend/src/dailyLimitStore.js`: auth açıkken Redis üzerinde doğrulanmış cihaz başına kalıcı günlük limit; auth kapalıyken kolay paylaşım modu için in-memory fallback.
 
-## Backend Guvenlik Kontrolleri
+## Backend Güvenlik Kontrolleri
 
 `POST /api/analyze-speech`:
 
-- `OPENAI_API_KEY` sadece backend `.env` icinden okunur.
-- `express-rate-limit` ile endpoint ve aktivasyon denemeleri rate limit altindadir.
-- Davet kodu modu opsiyoneldir. `REQUIRE_APP_AUTH=true` iken ucretli analiz endpoint'i imzali Bearer token olmadan calismaz.
-- Auth acikken davet kodu, aktif cihaz kaydi ve gunluk analiz kotasi Upstash Redis'te tutulur.
-- Dosya boyutu `MAX_FILE_SIZE_BYTES` ile sinirlidir.
-- Kayit suresi `MAX_AUDIO_DURATION_SECONDS` ile sinirlidir.
+- `OPENAI_API_KEY` sadece backend `.env` içinden okunur.
+- `express-rate-limit` ile endpoint ve aktivasyon denemeleri rate limit altındadır.
+- Davet kodu modu opsiyoneldir. `REQUIRE_APP_AUTH=true` iken ücretli analiz endpoint'i imzalı Bearer token olmadan çalışmaz.
+- Auth açıkken davet kodu, aktif cihaz kaydı ve günlük analiz kotası Upstash Redis'te tutulur.
+- Dosya boyutu `MAX_FILE_SIZE_BYTES` ile sınırlıdır.
+- Kayıt süresi `MAX_AUDIO_DURATION_SECONDS` ile sınırlıdır.
 - Sadece izin verilen extension ve MIME type kabul edilir.
-- Dosya icerigi `file-type` ile kontrol edilir.
-- Medya suresi `music-metadata` ile kontrol edilmeye calisilir.
-- Dosya gecici olarak `backend/tmp/uploads` altina yazilir ve islem sonunda silinir.
-- OpenAI isteklerinde timeout ve sinirli retry vardir.
-- Hata cevaplari API key, stack trace veya internal server detayi dondurmez.
-- Loglar Authorization header, raw audio veya kisisel veri yazmaz.
-- CORS `FRONTEND_ORIGINS` ile sinirlandirilir.
+- Dosya içeriği `file-type` ile kontrol edilir.
+- Medya süresi `music-metadata` ile kontrol edilmeye çalışılır.
+- Dosya geçici olarak `backend/tmp/uploads` altına yazılır ve işlem sonunda silinir.
+- OpenAI isteklerinde timeout ve sınırlı retry vardır.
+- Hata cevapları API key, stack trace veya internal server detayı döndürmez.
+- Loglar Authorization header, raw audio veya kişisel veri yazmaz.
+- CORS `FRONTEND_ORIGINS` ile sınırlandırılır.
 
-Production'da `REQUIRE_APP_AUTH=true` iken gunluk analiz kotasi dogrulanmis cihaz token'ina gore Upstash Redis'te kalici tutulur. `REQUIRE_APP_AUTH=false` iken kolay paylasim modu icin in-memory fallback kullanilir.
+Production'da `REQUIRE_APP_AUTH=true` iken günlük analiz kotası doğrulanmış cihaz token'ına göre Upstash Redis'te kalıcı tutulur. `REQUIRE_APP_AUTH=false` iken kolay paylaşım modu için in-memory fallback kullanılır.
 
 ## Local Kurulum
 
-Root mobil bagimliliklari:
+Root mobil bağımlılıkları:
 
 ```bash
 npm install
 ```
 
-Backend bagimliliklari:
+Backend bağımlılıkları:
 
 ```bash
 cd backend
@@ -64,24 +64,24 @@ npm install
 cp .env.example .env
 ```
 
-`backend/.env` icine sadece backend tarafinda:
+`backend/.env` içine sadece backend tarafında:
 
 ```bash
 OPENAI_API_KEY=<your-openai-api-key>
 ```
 
-API key mobil uygulamaya, Expo public env degiskenlerine veya GitHub'a eklenmez.
+API key mobil uygulamaya, Expo public env değişkenlerine veya GitHub'a eklenmez.
 
-## Local Calistirma
+## Local Çalıştırma
 
-1. Backend'i baslat:
+1. Backend'i başlat:
 
 ```bash
 cd backend
 npm run dev
 ```
 
-2. Backend saglik kontrolu:
+2. Backend sağlık kontrolü:
 
 ```bash
 curl http://localhost:3001/health
@@ -93,7 +93,7 @@ Beklenen cevap:
 { "ok": true }
 ```
 
-3. Mobil uygulamayi baslat:
+3. Mobil uygulamayı başlat:
 
 ```bash
 cd ..
@@ -104,49 +104,49 @@ Expo Go ile QR okut. Port sorarsa yeni portu kabul edebilirsin.
 
 ## Practice Flow
 
-`Think` ekraninda 30 saniyelik hazirlik suresinde kisa notlar yazabilirsin. Bu notlar sadece cihaz ekraninda tutulur; ses/video kaydina, backend analizine, gecmis kayitlara veya PDF'e gonderilmez.
+`Think` ekranında 30 saniyelik hazırlık süresinde kısa notlar yazabilirsin. Bu notlar sadece cihaz ekranında tutulur; ses/video kaydına, backend analizine, geçmiş kayıtlara veya PDF'e gönderilmez.
 
-`Record` ekraninda hazirlik notlari okunabilir sekilde gosterilir. Konusma suresi konu uzunlugu, seviye ve hedef grammar yapilarina gore otomatik secilir:
+`Record` ekranında hazırlık notları okunabilir şekilde gösterilir. Konuşma süresi konu uzunluğu, seviye ve hedef grammar yapılarına göre otomatik seçilir:
 
-- minimum: 90 saniye (eskiden 60 saniyeydi — anlamli, degerlendirilebilir bir cevap icin cok kisa kaldigi fark edildi, tum topic'ler icin taban 90 saniyeye cikarildi)
+- minimum: 90 saniye (eskiden 60 saniyeydi — anlamlı, değerlendirilebilir bir cevap için çok kısa kaldığı fark edildi, tüm topic'ler için taban 90 saniyeye çıkarıldı)
 - orta zorluk: 105 saniye
 - maksimum: 120 saniye
 
-Backend guvenlik siniri de `MAX_AUDIO_DURATION_SECONDS=120` olacak sekilde ayarlanmistir. Eger kendi `backend/.env` dosyanda eski `75` degeri varsa 120 olarak guncelle ve backend'i yeniden baslat.
+Backend güvenlik sınırı de `MAX_AUDIO_DURATION_SECONDS=120` olacak şekilde ayarlanmıştır. Eğer kendi `backend/.env` dosyanda eski `75` değeri varsa 120 olarak güncelle ve backend'i yeniden başlat.
 
-Android'de alt sistem navigasyon tuslari uygulama acikken gizlenmeye calisilir. Bazi cihazlarda kenardan kaydirinca gecici olarak tekrar gorunebilir; uygulama aktif olunca yeniden gizlenir.
+Android'de alt sistem navigasyon tuşları uygulama açıkken gizlenmeye çalışılır. Bazı cihazlarda kenardan kaydırınca geçici olarak tekrar görünebilir; uygulama aktif olunca yeniden gizlenir.
 
-**Ayni soruyu tekrar cevaplama:** `Practice Detail` ekraninda (Gecmis'ten bir kaydi actiginda) artik bir `Retry This Question` butonu var. Bu, o kaydin `topic` nesnesini birebir aynen tekrar `thinking` akisina sokar (ayni topic id, ayni grammar/picture context varsa o da dahil), yani gunluk konu rotasyonunun 14 gunluk "yakin zamanda sorulmus konulari tekrar onerme" filtresini bilerek atlar — kullanici bilerek ayni soruyu tekrar cevaplamak istiyor. Yeni deneme, `createId("record")` ile her zaman oldugu gibi ayri, yeni bir kayit olarak kaydedilir (eski kayit degistirilmez/uzerine yazilmaz), boylece ayni soru icin birden fazla puan/feedback tutulmus olur.
+**Aynı soruyu tekrar cevaplama:** `Practice Detail` ekranında (Geçmiş'ten bir kaydı açtığında) artık bir `Retry This Question` butonu var. Bu, o kaydın `topic` nesnesini birebir aynen tekrar `thinking` akışına sokar (aynı topic id, aynı grammar/picture context varsa o da dahil), yani günlük konu rotasyonunun 14 günlük "yakın zamanda sorulmuş konuları tekrar önerme" filtresini bilerek atlar — kullanıcı bilerek aynı soruyu tekrar cevaplamak istiyor. Yeni deneme, `createId("record")` ile her zaman olduğu gibi ayrı, yeni bir kayıt olarak kaydedilir (eski kayıt değiştirilmez/üzerine yazılmaz), böylece aynı soru için birden fazla puan/feedback tutulmuş olur.
 
-Bu zaten var olan iki mekanizmayi otomatik olarak devreye sokar:
-- Yeni deneme kaydedilirken (`AnalysisScreen`), `beforeAfterService.buildLatestTopicComparison` ayni topic'e ait en son onceki denemeyi bulup skor/hata-paterni/WPM karsilastirmasini otomatik gosterir (Before/After karti) — kullanici feedback'in ise yarayip yaramadigini hemen gorur.
-- `Practice Detail` ekraninda, yeni eklenen `findTopicAttempts` fonksiyonu ayni soruya ait TUM diger denemeleri (sadece en sonuncusunu degil) tarih ve puanla listeler; herhangi birine dokunup o denemenin detayina gecebilirsin, boylece zaman icindeki gelisimi tek tek karsilastirabilirsin.
+Bu zaten var olan iki mekanizmayı otomatik olarak devreye sokar:
+- Yeni deneme kaydedilirken (`AnalysisScreen`), `beforeAfterService.buildLatestTopicComparison` aynı topic'e ait en son önceki denemeyi bulup skor/hata-paterni/WPM karşılaştırmasını otomatik gösterir (Before/After kartı) — kullanıcı feedback'in işe yarayıp yaramadığını hemen görür.
+- `Practice Detail` ekranında, yeni eklenen `findTopicAttempts` fonksiyonu aynı soruya ait TÜM diğer denemeleri (sadece en sonuncusunu değil) tarih ve puanla listeler; herhangi birine dokunup o denemenin detayına geçebilirsin, böylece zaman içindeki gelişimi tek tek karşılaştırabilirsin.
 
-Eslestirme once `topic.id` ile, o tutmazsa normalize edilmis `topic.title` ile yapilir (boylece ayni soru farkli id ile olussa bile eslesir). Hicbir schema/storage degisikligi gerekmedi — kayitlar zaten `id` (her zaman essiz) ile `topic` (tekrar edebilir) alanlarini ayri tuttugu icin bu tamamen mevcut veri modeliyle calisiyor.
+Eşleştirme önce `topic.id` ile, o tutmazsa normalize edilmiş `topic.title` ile yapılır (böylece aynı soru farklı id ile oluşsa bile eşleşir). Hiçbir schema/storage değişikliği gerekmedi — kayıtlar zaten `id` (her zaman eşsiz) ile `topic` (tekrar edebilir) alanlarını ayrı tuttuğu için bu tamamen mevcut veri modeliyle çalışıyor.
 
-## Tema ve Konu Cesitliligi
+## Tema ve Konu Çeşitliliği
 
-`Settings` ekranindan `light` veya `dark` tema secilebilir. Tema tercihi local settings icinde saklanir.
+`Settings` ekranından `light` veya `dark` tema seçilebilir. Tema tercihi local settings içinde saklanır.
 
-Gundelik speaking konulari son 14 gunde tamamlanan kayitlara gore filtrelenir. Ayni speaking konusu iki hafta icinde tekrar onerilmez; ilgili seviyedeki taze konu havuzu biterse uygulama bos kalmamak icin tekrar havuzuna geri doner. A2, B1, B2 ve C1 konu havuzlari iki haftalik cesitlilik icin genisletilmistir.
+Gündelik speaking konuları son 14 günde tamamlanan kayıtlara göre filtrelenir. Aynı speaking konusu iki hafta içinde tekrar önerilmez; ilgili seviyedeki taze konu havuzu biterse uygulama boş kalmamak için tekrar havuzuna geri döner. A2, B1, B2 ve C1 konu havuzları iki haftalık çeşitlilik için genişletilmiştir.
 
-## Windows Tek Tik Development
+## Windows Tek Tık Development
 
-Proje root klasorunde development icin uc yardimci `.bat` dosyasi vardir:
+Proje root klasöründe development için üç yardımcı `.bat` dosyası vardır:
 
-- `start-backend.bat`: yeni bir terminal acar, `backend` klasorunde `npm run dev` calistirir.
-- `start-expo.bat`: proje root klasorunde `npm run start:lan` calistirir ve QR kodu ayni pencerede gosterir.
-- `start-app.bat`: backend'i ayri pencerede baslatir, Expo'yu ise tikladigin ana pencerede acar; QR kod burada gorunur.
+- `start-backend.bat`: yeni bir terminal açar, `backend` klasöründe `npm run dev` çalıştırır.
+- `start-expo.bat`: proje root klasöründe `npm run start:lan` çalıştırır ve QR kodu aynı pencerede gösterir.
+- `start-app.bat`: backend'i ayrı pencerede başlatır, Expo'yu ise tıkladığın ana pencerede açar; QR kod burada görünür.
 
-Tek tikla local backend + Expo baslatmak icin:
+Tek tıkla local backend + Expo başlatmak için:
 
 ```text
 start-app.bat
 ```
 
-Bu scriptler sadece development kolayligi icindir. Production build, Android APK sureci ve backend guvenlik mimarisini etkilemez. Ek dependency eklenmedi; `concurrently` yerine Windows'un kendi terminal baslatma komutu kullanilir.
+Bu scriptler sadece development kolaylığı içindir. Production build, Android APK süreci ve backend güvenlik mimarisini etkilemez. Ek dependency eklenmedi; `concurrently` yerine Windows'un kendi terminal başlatma komutu kullanılır.
 
-QR kod gorunmezse `Daily Speaking Expo` penceresinin acik oldugunu kontrol et veya root klasorde su komutu calistir:
+QR kod görünmezse `Daily Speaking Expo` penceresinin açık olduğunu kontrol et veya root klasörde şu komutu çalıştır:
 
 ```bash
 npm run start:lan
@@ -154,7 +154,7 @@ npm run start:lan
 
 ## Render Free Backend Deploy
 
-Render Web Service ayarlari root `render.yaml` icindedir:
+Render Web Service ayarları root `render.yaml` içindedir:
 
 - `rootDir`: `backend`
 - `buildCommand`: `npm ci`
@@ -162,12 +162,12 @@ Render Web Service ayarlari root `render.yaml` icindedir:
 - `healthCheckPath`: `/health`
 - `plan`: `free`
 
-Render deploy adimlari:
+Render deploy adımları:
 
 1. Kodu GitHub'a push et. `.env`, `backend/.env`, API key veya token push etme.
-2. Render Dashboard'da `New` > `Blueprint` sec ve repoyu bagla.
-3. Root'taki `render.yaml` dosyasini sec.
-4. Render env var ekraninda `sync: false` olan degerleri gir:
+2. Render Dashboard'da `New` > `Blueprint` seç ve repoyu bağla.
+3. Root'taki `render.yaml` dosyasını seç.
+4. Render env var ekranında `sync: false` olan değerleri gir:
 
 ```text
 OPENAI_API_KEY=<your-openai-api-key>
@@ -177,9 +177,9 @@ UPSTASH_REDIS_REST_URL=<upstash-rest-url>
 UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 ```
 
-Native Android/iOS istekleri genelde browser `Origin` header'i gondermez. Bu yuzden `FRONTEND_ORIGINS` bos kalabilir. Expo Web veya browser tabanli bir frontend kullanirsan virgulle ayrilmis HTTPS originlerini ekle.
+Native Android/iOS istekleri genelde browser `Origin` header'ı göndermez. Bu yüzden `FRONTEND_ORIGINS` boş kalabilir. Expo Web veya browser tabanlı bir frontend kullanırsan virgülle ayrılmış HTTPS originlerini ekle.
 
-Render production icin onerilen env var listesi:
+Render production için önerilen env var listesi:
 
 ```text
 NODE_ENV=production
@@ -207,7 +207,7 @@ ENABLE_AUDIO_ANALYSIS=true
 OPENAI_AUDIO_ANALYSIS_MODEL=gpt-audio
 ```
 
-Deploy sonrasi Render URL'i su formatta olur:
+Deploy sonrası Render URL'i şu formatta olur:
 
 ```text
 https://daily-speaking-coach.onrender.com
@@ -225,23 +225,23 @@ Beklenen cevap:
 { "ok": true, "service": "daily-speaking-coach-api", "openaiConfigured": true }
 ```
 
-Production backend gerekli auth, Redis veya OpenAI secret'lari eksikse baslamaz ve Render health check basarisiz olur.
+Production backend gerekli auth, Redis veya OpenAI secret'ları eksikse başlamaz ve Render health check başarısız olur.
 
-Render ephemeral disk notu: Backend upload dosyasini sadece gecici olarak `backend/tmp/uploads` altina yazar. Analiz basarili veya basarisiz olsa da `finally` blogunda dosya silinir. Render Free disk kalici depolama olarak kullanilmaz.
+Render ephemeral disk notu: Backend upload dosyasını sadece geçici olarak `backend/tmp/uploads` altına yazar. Analiz başarılı veya başarısız olsa da `finally` bloğunda dosya silinir. Render Free disk kalıcı depolama olarak kullanılmaz.
 
-Ucretsiz Render servisleri uykuya gecebilir; ilk istek gec cevap verebilir. `REQUIRE_APP_AUTH=true` iken gunluk cihaz kotasi Upstash Redis'te kalici tutulur ve Render yeniden baslasa da kaybolmaz.
+Ücretsiz Render servisleri uykuya geçebilir; ilk istek geç cevap verebilir. `REQUIRE_APP_AUTH=true` iken günlük cihaz kotası Upstash Redis'te kalıcı tutulur ve Render yeniden başlasa da kaybolmaz.
 
-## Production APK ile Render Backend Kullanimi
+## Production APK ile Render Backend Kullanımı
 
-Mobil uygulama production build'de backend URL'ini sadece build-time public config'ten okur. Bu deger secret degildir; sadece backend adresidir.
+Mobil uygulama production build'de backend URL'ini sadece build-time public config'ten okur. Bu değer secret değildir; sadece backend adresidir.
 
-Yeni APK almadan once EAS/Expo build ortaminda su public env degerlerini ayarla:
+Yeni APK almadan önce EAS/Expo build ortamında şu public env değerlerini ayarla:
 
 ```text
 EXPO_PUBLIC_API_URL=https://daily-speaking-coach.onrender.com
 ```
 
-EAS CLI ile production ortamina eklemek icin:
+EAS CLI ile production ortamına eklemek için:
 
 ```bash
 eas env:create --name EXPO_PUBLIC_API_URL --value https://daily-speaking-coach.onrender.com --environment production --visibility plaintext
@@ -253,35 +253,35 @@ Sonra APK build al:
 eas build --platform android --profile apk
 ```
 
-`apk` profili paylasilabilir bir Android APK uretir ve production EAS environment degerlerini kullanir. Backend URL tum build'lerde `https://daily-speaking-coach.onrender.com` olarak kilitlidir; kayitli eski localhost veya LAN ayarlari otomatik olarak degistirilir.
+`apk` profili paylaşılabilir bir Android APK üretir ve production EAS environment değerlerini kullanır. Backend URL tüm build'lerde `https://daily-speaking-coach.onrender.com` olarak kilitlidir; kayıtlı eski localhost veya LAN ayarları otomatik olarak değiştirilir.
 
 ## Grammar Roadmap
 
-Ana ekrandaki `Ogrenme Alani` butonu ayri Learning ekranini acar. Bu ekrandaki `Open Grammar Roadmap` butonu A1-C2 seviyelerine gore tense odakli grammar calisma ekranini acar. Her seviyede:
+Ana ekrandaki `Ogrenme Alani` butonu ayrı Learning ekranını açar. Bu ekrandaki `Open Grammar Roadmap` butonu A1-C2 seviyelerine göre tense odaklı grammar çalışma ekranını açar. Her seviyede:
 
-- tense topic kartlari
+- tense topic kartları
 - core feeling, structure, usage, examples, common mistakes
 - speaking patterns ve mini challenge
 - level speaking challenges
 
-Level ekraninda tek bir aktif speaking sorusu gosterilir. `Yeni Soru` ile ayni seviyede farkli bir soru alabilir, `Start Speaking Practice` ile mevcut speaking akisina gecebilirsin:
+Level ekranında tek bir aktif speaking sorusu gösterilir. `Yeni Soru` ile aynı seviyede farklı bir soru alabilir, `Start Speaking Practice` ile mevcut speaking akışına geçebilirsin:
 
 ```text
 Grammar challenge -> Thinking -> Recording -> Transcript -> Backend analysis
 ```
 
-Grammar challenge context'i mobil uygulamada sadece normal form verisi olarak backend'e gonderilir:
+Grammar challenge context'i mobil uygulamada sadece normal form verisi olarak backend'e gönderilir:
 
 - `grammarCefrLevel`
 - `grammarTopic`
 - `expectedGrammarStructures`
 - `speakingPrompt`
 
-Bu bilgiler secret degildir. OpenAI API key yine yalnizca backend `.env` icindedir. Backend context varsa grammar hedefini de analiz eder; context yoksa eski genel speech analysis akisi aynen calisir.
+Bu bilgiler secret değildir. OpenAI API key yine yalnızca backend `.env` içindedir. Backend context varsa grammar hedefini de analiz eder; context yoksa eski genel speech analysis akışı aynen çalışır.
 
 ## PDF Raporu
 
-Analiz sonucu geldikten sonra `PDF Raporu Oluştur` butonu gorunur. Bu islem backend'e yeni istek atmaz; mevcut transcript ve analysis sonucundan cihaz uzerinde PDF olusturur ve Android paylasim ekranini acar.
+Analiz sonucu geldikten sonra `PDF Raporu Oluştur` butonu görünür. Bu işlem backend'e yeni istek atmaz; mevcut transcript ve analysis sonucundan cihaz üzerinde PDF oluşturur ve Android paylaşım ekranını açar.
 
 PDF raporu:
 
@@ -291,16 +291,16 @@ PDF raporu:
 - vocabulary suggestions
 - pronunciation ve fluency feedback
 - native-like improved answer
-- kisiye ozel alistirmalar
-- `Bugünün Kişisel Çalışma Planı` bolumu
+- kişiye özel alıştırmalar
+- `Bugünün Kişisel Çalışma Planı` bölümü
 
-PDF icin OpenAI key, backend secret veya ekstra kullanici verisi mobil uygulamaya tasinmaz.
+PDF için OpenAI key, backend secret veya ekstra kullanıcı verisi mobil uygulamaya taşınmaz.
 
 ## Opsiyonel Public Config
 
-Root `.env.example` dosyasindaki `EXPO_PUBLIC_API_URL` secret degildir ve `https://daily-speaking-coach.onrender.com` degerine ayarlanmistir. Uygulama eski kayitli URL'leri kullanmaz; tum mobil API istekleri bu HTTPS origin'ine gider.
+Root `.env.example` dosyasındaki `EXPO_PUBLIC_API_URL` secret değildir ve `https://daily-speaking-coach.onrender.com` değerine ayarlanmıştır. Uygulama eski kayıtlı URL'leri kullanmaz; tüm mobil API istekleri bu HTTPS origin'ine gider.
 
-Bu public env degiskenleri sadece ileride production/APK build dusunulurse backend URL sabitlemek icin vardir. OpenAI key icin kullanilmaz.
+Bu public env değişkenleri sadece ileride production/APK build düşünülürse backend URL sabitlemek için vardır. OpenAI key için kullanılmaz.
 
 ## Backend Endpoint
 
@@ -311,17 +311,17 @@ Form data:
 - `file`: `.m4a`, `.mp3`, `.mp4`, `.mpeg`, `.mpga`, `.wav`, `.webm`
 - `topic`: speaking konusu
 - `level`: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`
-- `durationSeconds`: mobil uygulamadaki kayit suresi
+- `durationSeconds`: mobil uygulamadaki kayıt süresi
 - `grammarCefrLevel` (opsiyonel): grammar challenge seviyesi
 - `grammarTopic` (opsiyonel): hedef grammar konusu
-- `expectedGrammarStructures` (opsiyonel): beklenen grammar yapilari
+- `expectedGrammarStructures` (opsiyonel): beklenen grammar yapıları
 - `speakingPrompt` (opsiyonel): grammar challenge prompt'u
 
 Header:
 
-- `Authorization: Bearer <signed-device-token>`: aktivasyon sonrasi SecureStore'da tutulan cihaz token'i
+- `Authorization: Bearer <signed-device-token>`: aktivasyon sonrası SecureStore'da tutulan cihaz token'ı
 
-Basarili cevap:
+Başarılı cevap:
 
 ```json
 {
@@ -347,33 +347,33 @@ Basarili cevap:
 }
 ```
 
-Backend analiz skorlarini 0-100 formatinda uretir. Mobil uygulama eski 1-10 kayitlari da desteklemek icin skorları ekranda normalize eder.
+Backend analiz skorlarını 0-100 formatında üretir. Mobil uygulama eski 1-10 kayıtları da desteklemek için skorları ekranda normalize eder.
 
-### Ses tabanli analiz (transkript degil, dogrudan ses)
+### Ses tabanlı analiz (transkript değil, doğrudan ses)
 
-Backend artik analiz icin (mumkunse) transkripti degil, doğrudan ses kaydinin kendisini `OPENAI_AUDIO_ANALYSIS_MODEL` (varsayilan `gpt-audio`) modeline gonderiyor; telaffuz, tonlama ve duraksama gibi degerlendirmeler artik gercekten dinlenen sesten cikariliyor. Kayit, gonderilmeden once `ffmpeg-static` ile mono 16kHz WAV'a donusturuluyor (mobil taraf genelde `.m4a` kaydediyor, ses modeli icin en guvenilir format WAV).
+Backend artık analiz için (mümkünse) transkripti değil, doğrudan ses kaydının kendisini `OPENAI_AUDIO_ANALYSIS_MODEL` (varsayılan `gpt-audio`) modeline gönderiyor; telaffuz, tonlama ve duraksama gibi değerlendirmeler artık gerçekten dinlenen sesten çıkarılıyor. Kayıt, gönderilmeden önce `ffmpeg-static` ile mono 16kHz WAV'a dönüştürülüyor (mobil taraf genelde `.m4a` kaydediyor, ses modeli için en güvenilir format WAV).
 
-Bu yeni bir entegrasyon oldugu icin **otomatik yedekleme** var: ses tabanli analiz herhangi bir nedenle basarisiz olursa (donusturme hatasi, model hatasi, format sorunu), backend sessizce eski transkript-tabanli analiz yoluna dusuyor ve istek yine de basariyla tamamlaniyor — sadece backend loglarinda `audio_analysis_failed_falling_back_to_text` uyarisi gorursunuz. Ozelligi tamamen kapatmak icin `ENABLE_AUDIO_ANALYSIS=false` yapip backend'i yeniden baslatmaniz yeterli, kod degisikligi gerekmez.
+Bu yeni bir entegrasyon olduğu için **otomatik yedekleme** var: ses tabanlı analiz herhangi bir nedenle başarısız olursa (dönüştürme hatası, model hatası, format sorunu), backend sessizce eski transkript-tabanlı analiz yoluna düşüyor ve istek yine de başarıyla tamamlanıyor — sadece backend loglarında `audio_analysis_failed_falling_back_to_text` uyarısı görürsünüz. Özelliği tamamen kapatmak için `ENABLE_AUDIO_ANALYSIS=false` yapıp backend'i yeniden başlatmanız yeterli, kod değişikliği gerekmez.
 
-Not: Bu, gercek OpenAI API'sine karsi bu ortamda test edilemedi (bu gelistirme ortaminin OpenAI erisimi yok) — ffmpeg donusturme adimi ve yedekleme mantigi gercek verilerle dogrulandi, ancak `gpt-audio` modelinin tam istek/yanit sekliyle ilk gercek denemeyi siz production'da veya yerel `npm run dev` ile yapacaksiniz. Bir sorun cikarsa backend loglarina bakin.
+Not: Bu, gerçek OpenAI API'sine karşı bu ortamda test edilemedi (bu geliştirme ortamının OpenAI erişimi yok) — ffmpeg dönüştürme adımı ve yedekleme mantığı gerçek verilerle doğrulandı, ancak `gpt-audio` modelinin tam istek/yanıt şekliyle ilk gerçek denemeyi siz production'da veya yerel `npm run dev` ile yapacaksınız. Bir sorun çıkarsa backend loglarına bakın.
 
-**Faz 3 — telaffuzun genel puana etkisi:** Ses tabanli analiz gercekten basarili oldugunda (yedeklemeye dusmeden), telaffuz artik "sadece gosterim" olmaktan cikip genel puana da %10 agirlikla katiliyor (grammar/fluency&coherence/content&relevance/vocabulary agirliklari buna gore hafifce azaltildi: 25/25/25/15/10 -> 22/22/22/14/10 + telaffuz %10). Analiz eski transkript-tabanli yola dustuyse veya ses hic gonderilmediyse, telaffuz oncekiyle birebir ayni sekilde genel puanin disinda kaliyor — cunku o durumda telaffuz hala sadece bir tahmin, gercek ses kanitina dayanmiyor. Kullaniciya da bu net simdi belirtiliyor: telaffuz notlarinin altinda "genel puana katiliyor mu, katilmiyor mu" aciklayan bir cumle otomatik ekleniyor.
+**Faz 3 — telaffuzun genel puana etkisi:** Ses tabanlı analiz gerçekten başarılı olduğunda (yedeklemeye düşmeden), telaffuz artık "sadece gösterim" olmaktan çıkıp genel puana da %10 ağırlıkla katılıyor (grammar/fluency&coherence/content&relevance/vocabulary ağırlıkları buna göre hafifçe azaltıldı: 25/25/25/15/10 -> 22/22/22/14/10 + telaffuz %10). Analiz eski transkript-tabanlı yola düştüyse veya ses hiç gönderilmediyse, telaffuz öncekiyle birebir aynı şekilde genel puanın dışında kalıyor — çünkü o durumda telaffuz hâlâ sadece bir tahmin, gerçek ses kanıtına dayanmıyor. Kullanıcıya da bu net şimdi belirtiliyor: telaffuz notlarının altında "genel puana katılıyor mu, katılmıyor mu" açıklayan bir cümle otomatik ekleniyor.
 
-**Madde 4 — konu uygunlugunun bagimsiz dogrulanmasi:** AI artik her analizde ayri, yapilandirilmis bir `topicRelevance` alani doldurur (`off_topic` / `partially_relevant` / `fully_relevant` + kisa aciklama), sadece verilen konuyu/prompt'u gercekten ele alip almadigina bakarak — gramer/akicilik kalitesinden tamamen bagimsiz. Konu tam olarak ele alinmamissa "Content & Relevance" bilesen puani (dolayisiyla genel puan) buna gore tavana carpar, ve kullaniciya "cevabin verilen konuyu tam olarak ele almadigi" seklinde bir geri bildirim ve improvement plan maddesi eklenir. Eski kayitlarda bu alan yoksa (veya `fully_relevant` ise) hicbir ceza uygulanmaz.
+**Madde 4 — konu uygunluğunun bağımsız doğrulanması:** AI artık her analizde ayrı, yapılandırılmış bir `topicRelevance` alanı doldurur (`off_topic` / `partially_relevant` / `fully_relevant` + kısa açıklama), sadece verilen konuyu/prompt'u gerçekten ele alıp almadığına bakarak — gramer/akıcılık kalitesinden tamamen bağımsız. Konu tam olarak ele alınmamışsa "Content & Relevance" bileşen puanı (dolayısıyla genel puan) buna göre tavana çarpar, ve kullanıcıya "cevabın verilen konuyu tam olarak ele almadığı" şeklinde bir geri bildirim ve improvement plan maddesi eklenir. Eski kayıtlarda bu alan yoksa (veya `fully_relevant` ise) hiçbir ceza uygulanmaz.
 
-**Madde 13 — dolgu/tekrar kelimesi icin ozel egzersiz:** Doldurma/tekrar kelime yogunlugu esigi asildiginda (Faz 2'de eklenen ayni esik), artik sadece "bu puanini dusurdu" seklinde genel bir not degil, ogrencinin kendi tespit edilen kelimelerini (orn. "like", "um") kullanan somut, uygulanabilir bir pratik egzersizi otomatik olarak `improvementPlan.homework` alanina ekleniyor ("Extra drill: ... consciously avoid saying "like" and "um" more than once...").
+**Madde 13 — dolgu/tekrar kelimesi için özel egzersiz:** Doldurma/tekrar kelime yoğunluğu eşiği aşıldığında (Faz 2'de eklenen aynı eşik), artık sadece "bu puanını düşürdü" şeklinde genel bir not değil, öğrencinin kendi tespit edilen kelimelerini (örn. "like", "um") kullanan somut, uygulanabilir bir pratik egzersizi otomatik olarak `improvementPlan.homework` alanına ekleniyor ("Extra drill: ... consciously avoid saying "like" and "um" more than once...").
 
-**Tense analizi guclendirmesi:** `prompt.js`'teki mistakes talimati, AI'nin her cumleyi ozellikle yanlis tense kullanimi acisindan da taramasini ve tense hatalarini genel "grammar mistake" olarak birakmamasini artik acikca istiyor. Bir mistake tense hatasiysa `problem` alani hangi tense kullanildigini ve hangisinin kullanilmasi gerektigini isimlendirmek zorunda (orn. "Used present simple instead of past simple"), `explanation` alani ise o baglamda o tense'in neden gerekli oldugunu (bitmis/bitmemis zaman, belirli bir zaman zarfi, sequence vb.) kisaca acikladiktan sonra ogrencinin yanlis cumlesiyle duzeltilmis halini yan yana gostermek zorunda (orn. "Wrong: 'I go there yesterday.' Correct: 'I went there yesterday.'"). Bu, schema veya skorlama mantiginda degisiklik gerektirmiyor — sadece `mistakes[].problem` ve `mistakes[].explanation` alanlarinin icerigini zenginlestiren bir prompt guncellemesi, bu yuzden mevcut alan yapisiyla tam uyumlu; AI ciktisina bagli oldugu icin otomatik test yazilamaz, ilk gercek denemede ciktiyi gozden gecirmenizi tavsiye ederim.
+**Tense analizi güçlendirmesi:** `prompt.js`'teki mistakes talimatı, AI'nin her cümleyi özellikle yanlış tense kullanımı açısından da taramasını ve tense hatalarını genel "grammar mistake" olarak bırakmamasını artık açıkça istiyor. Bir mistake tense hatasıysa `problem` alanı hangi tense kullanıldığını ve hangisinin kullanılması gerektiğini isimlendirmek zorunda (örn. "Used present simple instead of past simple"), `explanation` alanı ise o bağlamda o tense'in neden gerekli olduğunu (bitmiş/bitmemiş zaman, belirli bir zaman zarfı, sequence vb.) kısaca açıkladıktan sonra öğrencinin yanlış cümlesiyle düzeltilmiş hâlini yan yana göstermek zorunda (örn. "Wrong: 'I go there yesterday.' Correct: 'I went there yesterday.'"). Bu, schema veya skorlama mantığında değişiklik gerektirmiyor — sadece `mistakes[].problem` ve `mistakes[].explanation` alanlarının içeriğini zenginleştiren bir prompt güncellemesi, bu yüzden mevcut alan yapısıyla tam uyumlu; AI çıktısına bağlı olduğu için otomatik test yazılamaz, ilk gerçek denemede çıktıyı gözden geçirmenizi tavsiye ederim.
 
-Not: Incelememde bahsettigim ama hicbir fazda planlanmamis baska kucuk bir tutarsizlik da fark edildi — `prompt.js` icindeki resim tanimlama (picture description) talimati, semada hic bulunmayan `personalizedExercises` ve `dailyStudyPlan` alanlarina geri bildirim koymayi soyluyor; model bu alanlari `strict: true` semasi geregi zaten donduremiyor, yani bu talimat pratikte hicbir etki yaratmiyor (zararsiz ama gereksiz). Dokunmadim, isterseniz ayrica temizleyebiliriz.
+Not: İncelememde bahsettiğim ama hiçbir fazda planlanmamış başka küçük bir tutarsızlık da fark edildi — `prompt.js` içindeki resim tanımlama (picture description) talimatı, şemada hiç bulunmayan `personalizedExercises` ve `dailyStudyPlan` alanlarına geri bildirim koymayı söylüyor; model bu alanları `strict: true` şeması gereği zaten döndüremiyor, yani bu talimat pratikte hiçbir etki yaratmıyor (zararsız ama gereksiz). Dokunmadım, isterseniz ayrıca temizleyebiliriz.
 
-## Secret Kurallari
+## Secret Kuralları
 
 - `.env` Git'e eklenmez.
 - `backend/.env` Git'e eklenmez.
 - API key, token, private URL veya Authorization header commitlenmez.
-- Mobil uygulamada OpenAI key alani yoktur.
-- Public Expo env degiskenleri secret icin kullanilmaz.
+- Mobil uygulamada OpenAI key alanı yoktur.
+- Public Expo env değişkenleri secret için kullanılmaz.
 
 ## Kontroller
 
@@ -391,18 +391,26 @@ cd ..
 npm audit
 ```
 
-Not: Root Expo audit bulgulari Expo SDK zincirinden gelebilir. SDK major upgrade Expo Go uyumlulugunu etkileyebilecegi icin ayrica planlanmalidir.
+Not: Root Expo audit bulguları Expo SDK zincirinden gelebilir. SDK major upgrade Expo Go uyumluluğunu etkileyebileceği için ayrıca planlanmalıdır.
 
-Saf mantik (pure logic) self-testleri:
+Saf mantık (pure logic) self-testleri:
 
 ```bash
 npm install
 npm run test:logic
 ```
 
-Bu komut `scoreUtils`, `streakService`, `recordClassification`, `analysisEnrichmentService`, `practiceTiming` ve `beforeAfterService` icin `node:assert` tabanli self-testleri `tsx` ile calistirir (Jest kurulumu gerektirmez). `analysisEnrichmentService` testi, bir mistake AI tarafindan siniflandirildiginda (category/severity/isTurkishTransferError) `errorPatterns[]` listesinin bu siniflandirmadan mekanik olarak turetildigini, ayrica bagimsiz uretilmis eski bir AI `errorPatterns` listesiyle celismedigini dogrular. `practiceTiming` testi, hicbir topic sekli icin onerilen konusma suresinin 90 saniyenin altina dusmedigini ve karmasiklik kademelerinin (90/105/120) hala birbirinden ayristigini dogrular. `beforeAfterService` testi, "Retry This Question" akisinin dayandigi `findTopicAttempts` (ayni soruya ait TUM diger denemeleri bulur) ile `buildLatestTopicComparison`'in halen kullandigi "sadece en son deneme" mantiginin, ortak `recordsForSameTopic` eslestirmesi factor edildikten sonra da birbiriyle tutarli kaldigini dogrular. Backend tarafinda ayni yaklasim zaten `scoringCalibrator` icin mevcuttu; oraya da birkac ek sinir-durum (bos transkript, kisa cevap kademeleri, sure kullanimi, doldurma/tekrar yogunlugu cezasi, hedef gramer yapisi kullanim cezasi) testi eklendi:
+Bu komut `scoreUtils`, `streakService`, `recordClassification`, `analysisEnrichmentService`, `practiceTiming` ve `beforeAfterService` için `node:assert` tabanlı self-testleri `tsx` ile çalıştırır (Jest kurulumu gerektirmez). `analysisEnrichmentService` testi, bir mistake AI tarafından sınıflandırıldığında (category/severity/isTurkishTransferError) `errorPatterns[]` listesinin bu sınıflandırmadan mekanik olarak türetildiğini, ayrıca bağımsız üretilmiş eski bir AI `errorPatterns` listesiyle çelişmediğini doğrular. `practiceTiming` testi, hiçbir topic şekli için önerilen konuşma süresinin 90 saniyenin altına düşmediğini ve karmaşıklık kademelerinin (90/105/120) hâlâ birbirinden ayrıştığını doğrular. `beforeAfterService` testi, "Retry This Question" akışının dayandığı `findTopicAttempts` (aynı soruya ait TÜM diğer denemeleri bulur) ile `buildLatestTopicComparison`'in halen kullandığı "sadece en son deneme" mantığının, ortak `recordsForSameTopic` eşleştirmesi factor edildikten sonra da birbiriyle tutarlı kaldığını doğrular. Backend tarafında aynı yaklaşım zaten `scoringCalibrator` için mevcuttu; oraya da birkaç ek sınır-durum (boş transkript, kısa cevap kademeleri, süre kullanımı, doldurma/tekrar yoğunluğu cezası, hedef gramer yapısı kullanım cezası) testi eklendi:
 
 ```bash
 cd backend
 npm run test:scoring
 ```
+
+## Telif Hakkı / Copyright
+
+© 2026 Yağız Ali Küçük. Tüm hakları saklıdır.
+
+Bu depodaki kaynak kod ve içerik yalnızca incelenmek üzere herkese açık paylaşılmıştır. Yazılı izin olmadan kopyalanamaz, değiştirilemez, dağıtılamaz veya başka bir projede kullanılamaz.
+
+This repository is publicly visible for reference only. No license is granted: the source code and content may not be copied, modified, distributed, or used in other projects without written permission.
